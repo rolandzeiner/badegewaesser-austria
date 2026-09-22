@@ -27,6 +27,15 @@ on:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    # CodeQL's SARIF upload step ("github/codeql-action/analyze") posts
+    # results to the repo's code-scanning surface, which on PRIVATE repos
+    # requires GitHub Advanced Security. Without GHAS the action runs the
+    # analysis successfully (scans every file, processes findings) but fails
+    # at the upload step with `Code scanning is not enabled for this
+    # repository`. Skip the whole job until the repo is public. This repo
+    # starts private and flips public at the 1.0.0 release — when it does,
+    # the gate opens automatically with no edit here.
+    if: github.event.repository.private != true
     runs-on: ubuntu-latest
     permissions:
       security-events: write
