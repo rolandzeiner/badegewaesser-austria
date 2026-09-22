@@ -83,6 +83,7 @@ async def test_the_configured_site_is_included(
 
     assert site["site_id"] == NORMAL_SITE_ID
     assert site["name"] == "Naturbadesee Königsdorf"
+    # The dump carries the raw AGES letter, not the HA state name.
     assert site["rating"] == "A"
     assert len(site["samples"]) == 5
     # Dates must survive as readable strings, not repr() of a date object.

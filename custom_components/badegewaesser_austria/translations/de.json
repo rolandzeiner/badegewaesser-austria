@@ -55,20 +55,30 @@
   },
   "entity": {
     "sensor": {
-      "water_temperature": { "name": "Wassertemperatur" },
-      "e_coli": { "name": "E. coli" },
-      "enterococci": { "name": "Enterokokken" },
-      "secchi_depth": { "name": "Sichttiefe" },
+      "water_temperature": {
+        "name": "Wassertemperatur"
+      },
+      "e_coli": {
+        "name": "E. coli"
+      },
+      "enterococci": {
+        "name": "Enterokokken"
+      },
+      "secchi_depth": {
+        "name": "Sichttiefe"
+      },
       "water_quality": {
         "name": "Wasserqualität",
         "state": {
-          "A": "Ausgezeichnet",
-          "B": "Gut",
-          "C": "Ausreichend",
-          "D": "Mangelhaft"
+          "excellent": "Ausgezeichnet",
+          "good": "Gut",
+          "sufficient": "Ausreichend",
+          "poor": "Mangelhaft"
         }
       },
-      "last_sample": { "name": "Letzte Probenahme" }
+      "last_sample": {
+        "name": "Letzte Probenahme"
+      }
     },
     "binary_sensor": {
       "closed": {

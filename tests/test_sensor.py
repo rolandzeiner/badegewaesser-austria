@@ -45,7 +45,7 @@ async def test_all_six_sensors_exist(
         ("e_coli", "15"),
         ("enterococci", "15"),
         ("secchi_depth", "1.05"),
-        ("water_quality", "A"),
+        ("water_quality", "excellent"),
     ],
 )
 async def test_values_from_the_newest_sample(
@@ -93,8 +93,18 @@ async def test_water_quality_declares_its_options_and_year(
     """
     await setup_entry(hass, config_entry)
     state = hass.states.get(f"{PREFIX}water_quality")
-    assert state.attributes["options"] == ["A", "B", "C", "D"]
+    assert state.attributes["options"] == [
+        "excellent",
+        "good",
+        "sufficient",
+        "poor",
+    ]
     assert state.state in state.attributes["options"]
+    # The AGES letter stays reachable for anyone who reads their publications.
+    # A = ausgezeichnet is measured, not assumed: AGES's 2025 report says 251
+    # of 260 sites were rated "ausgezeichnet", and QUALITAET_2025 carries
+    # exactly 251 "A" values.
+    assert state.attributes["rating_class"] == "A"
     # 2026 is empty until AGES publishes after the season, so the rating in
     # force is last year's — and the sensor says which year it means.
     assert state.attributes["rating_year"] == 2025
@@ -114,7 +124,8 @@ async def test_unclassified_letter_is_reported_but_not_published(
         ),
     )
     state = hass.states.get("sensor.testsee_ohne_klassifizierung_water_quality")
-    assert state.state == "B"
+    assert state.state == "good"
+    assert state.attributes["rating_class"] == "B"
     assert state.attributes["rating_year"] == 2024
     assert state.attributes["rating_raw"] == "G"
     assert state.attributes["rating_raw_year"] == 2025

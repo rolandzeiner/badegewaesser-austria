@@ -21,7 +21,7 @@ from homeassistant.util import dt as dt_util
 
 from . import BadegewaesserConfigEntry
 from .api import BathingSite
-from .const import RATING_CLASSES
+from .const import RATING_STATES
 from .entity import BadegewaesserEntity
 
 # The coordinator is domain-wide and fetches once for every entry, so there is
@@ -88,9 +88,25 @@ def _detection_attrs(below: bool) -> Callable[[BathingSite], dict[str, Any]]:
     return _attrs
 
 
+def _quality_state(site: BathingSite) -> str | None:
+    """The annual class as a named state rather than a bare letter.
+
+    HA enum states double as translation keys and hassfest enforces
+    `[a-z0-9-_]+` on those, so "A" cannot be the state. Naming the class is
+    the better answer anyway — "excellent" means something to a reader who has
+    never opened the Bathing Water Directive. The letter stays available as
+    the `rating_class` attribute.
+    """
+    return None if site.rating is None else RATING_STATES.get(site.rating)
+
+
 def _quality_attrs(site: BathingSite) -> dict[str, Any]:
     """Which year the classification is for, and anything unclassifiable."""
-    attrs: dict[str, Any] = {"rating_year": site.rating_year}
+    attrs: dict[str, Any] = {
+        "rating_year": site.rating_year,
+        # The AGES notation, for anyone who reads their publications.
+        "rating_class": site.rating,
+    }
     if site.rating_raw != site.rating:
         # Upstream carried a letter outside A-D. It is not published as a
         # rating, but discarding it would hide evidence rather than handle it.
@@ -149,8 +165,8 @@ SENSORS: tuple[BadegewaesserSensorDescription, ...] = (
         key="water_quality",
         translation_key="water_quality",
         device_class=SensorDeviceClass.ENUM,
-        options=list(RATING_CLASSES),
-        value_fn=lambda site: site.rating,
+        options=list(RATING_STATES.values()),
+        value_fn=_quality_state,
         attrs_fn=_quality_attrs,
     ),
     BadegewaesserSensorDescription(

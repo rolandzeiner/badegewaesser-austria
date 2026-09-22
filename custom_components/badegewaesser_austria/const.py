@@ -165,12 +165,59 @@ CONF_SCAN_INTERVAL_OFFSEASON_HOURS: Final = "scan_interval_offseason_hours"
 # "<15", not "15". Publishing 15 as a measured count would be wrong.
 BELOW_DETECTION_OPERATOR: Final = "<N"
 
-# The EU Bathing Water Directive classes, best to worst. Anything outside this
-# set is NOT published as a rating: across the five year-columns the live
-# document also carries a single "G" (2022) and a single "F" (2024) whose
-# meaning AGES does not document. They are kept verbatim in the `rating_raw`
-# attribute rather than guessed at or silently dropped.
+# The EU Bathing Water Directive classes, best to worst, as AGES encodes them.
+#
+# The letter-to-meaning mapping is MEASURED, not assumed. AGES's own 2025
+# report states that "251 (96,5 %) von 260 österreichischen Badestellen" were
+# rated *ausgezeichnet*, and `QUALITAET_2025` in this document carries exactly
+# 251 "A" values out of 260. That pins A = ausgezeichnet quantitatively, and
+# the rest follow the Directive's four-class order (2006/7/EC: ausgezeichnet /
+# gut / ausreichend / mangelhaft).
+#
+# Worth knowing before "correcting" this: the per-site AGES page also prints a
+# line reading "Einhaltung der Richtwerte, Wasser guter Qualität" next to a
+# site whose QUALITAET_* is "A". That is a different statement (compliance
+# with guideline values) on a different axis, and reading it as the annual
+# class is how you end up mapping A to "gut".
+#
+# Anything outside this set is NOT published as a rating: across the five
+# year-columns the live document also carries a single "G" (2022) and a single
+# "F" (2024) whose meaning AGES does not document anywhere found. They are
+# kept verbatim in the `rating_raw` attribute rather than guessed at.
 RATING_CLASSES: Final = ("A", "B", "C", "D")
+
+# Home Assistant enum states double as translation keys, and hassfest enforces
+# `[a-z0-9-_]+` on those — so the bare letters cannot be the state. Naming the
+# class outright is better anyway: "excellent" says what "A" means to somebody
+# who has never read the Directive. The original letter stays on the entity as
+# the `rating_class` attribute for anyone who knows the AGES notation.
+RATING_STATES: Final = {
+    "A": "excellent",
+    "B": "good",
+    "C": "sufficient",
+    "D": "poor",
+}
+
+# The per-sample `A` field, distinct from the annual class above, is published
+# as the raw integer because the available sources disagree about what it
+# means and none of them is AGES documentation:
+#
+#   * Observed in the live document: 1 (1282x), 2 (73x), 3 (7x). No 4.
+#   * The AGES per-site page legend shows THREE per-measurement categories —
+#     "Ausgezeichnete", "Gute" and "Mangelhafte Badegewässerqualität".
+#   * A third-party Home Assistant tutorial (zeitwesentech.com, 2026) states
+#     "1=Ausgezeichnet, 4=Baden verboten", i.e. a FOUR-level scale.
+#
+# Three categories or four, and no authority for the middle values. A 4 may
+# simply never have occurred — TGESPERRT is "0" on all 260 sites, so nothing
+# is currently prohibited. Publishing the number AGES publishes is the only
+# option here that cannot be wrong; translating it into words would mean
+# picking a side in a disagreement this integration cannot settle.
+#
+# The same tutorial independently corroborates D = sample date, S = Sichttiefe
+# in metres, E = intestinal enterococci and E_C = E. coli, which is a useful
+# second source for the field meanings this parser relies on.
+SAMPLE_ASSESSMENT_IS_UNDOCUMENTED: Final = True
 
 # Newest first. `WASSERQUALITAET_JAHR_*` is NOT a year label — it duplicates
 # the matching `QUALITAET_<year>` letter (verified byte-equal on all 260

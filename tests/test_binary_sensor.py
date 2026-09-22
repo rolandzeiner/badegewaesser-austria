@@ -147,7 +147,10 @@ async def test_readings_survive_the_end_of_the_season(
         hass.states.get("sensor.naturbadesee_konigsdorf_water_temperature").state
         == "26.2"
     )
-    assert hass.states.get("sensor.naturbadesee_konigsdorf_water_quality").state == "A"
+    assert (
+        hass.states.get("sensor.naturbadesee_konigsdorf_water_quality").state
+        == "excellent"
+    )
     # Midnight Vienna on the sampling day, which HA serialises as UTC — so
     # 20 August local reads "2026-08-19T22:00:00+00:00". Assert the local
     # date, because the local date is what the value means.
