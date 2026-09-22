@@ -1,0 +1,360 @@
+"""Coordinator cadence, backoff, and the one-request-per-poll guarantee.
+
+The backoff and interval arithmetic is the kind of thing that keeps "working"
+while being wrong — a doubling that never resets, or a floor that only exists
+in the options form, produces no error anywhere. It is asserted directly.
+"""
+
+from __future__ import annotations
+
+from datetime import date, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import UpdateFailed
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.badegewaesser_austria.api import (
+    BadegewaesserApiError,
+    BadegewaesserClient,
+)
+from custom_components.badegewaesser_austria.const import (
+    CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
+    CONF_SCAN_INTERVAL_SEASON_HOURS,
+    CONF_SITE_ID,
+    DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS,
+    DEFAULT_SCAN_INTERVAL_SEASON_HOURS,
+    DOMAIN,
+    MAX_POLL_HOURS,
+    MIN_POLL_HOURS,
+)
+from custom_components.badegewaesser_austria.coordinator import (
+    BadegewaesserCoordinator,
+    async_get_coordinator,
+    clamp_poll_hours,
+    is_in_season,
+)
+from tests.test_api import NORMAL, fixture_bytes, make_session
+
+
+def build_coordinator(
+    hass: HomeAssistant, session: MagicMock | None = None
+) -> BadegewaesserCoordinator:
+    """A coordinator with jitter pinned to zero so intervals are exact."""
+    client = BadegewaesserClient(session or make_session(fixture_bytes()))
+    return BadegewaesserCoordinator(hass, client, jitter=lambda: 0.0)
+
+
+def hours(coordinator: BadegewaesserCoordinator) -> float:
+    """The current interval, in hours."""
+    assert coordinator.update_interval is not None
+    return coordinator.update_interval.total_seconds() / 3600
+
+
+# --- season ----------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("day", "expected"),
+    [
+        (date(2026, 5, 14), False),  # day before the window opens
+        (date(2026, 5, 15), True),  # first day
+        (date(2026, 5, 26), True),  # earliest sample seen in the live document
+        (date(2026, 8, 31), True),  # latest sample seen in the live document
+        (date(2026, 9, 30), True),  # last day
+        (date(2026, 10, 1), False),  # day after
+        (date(2026, 1, 15), False),  # deep winter
+        (date(2027, 2, 28), False),  # the ~9.5-month frozen stretch
+    ],
+)
+def test_season_window(day: date, expected: bool) -> None:
+    """One window, shared by the cadence and the Badesaison sensor.
+
+    The boundaries are a superset of what the live document actually contains
+    (2026-05-26 to 2026-08-31, months 5-8 only), with headroom at both ends so
+    an earlier start next season needs no code change.
+    """
+    assert is_in_season(day) is expected
+
+
+# --- interval floor / ceiling ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        (6, 6),
+        (1, MIN_POLL_HOURS),  # below the floor
+        (0, MIN_POLL_HOURS),
+        (-5, MIN_POLL_HOURS),
+        (9999, MAX_POLL_HOURS),  # above the ceiling
+        ("12", 12),  # numeric string from a stored option
+        (6.7, 6),
+    ],
+)
+def test_clamp_poll_hours(configured: object, expected: int) -> None:
+    """The floor is enforced in code, not only in the options-form hints.
+
+    A user editing the stored entry directly must not be able to poll faster
+    than MIN_POLL_HOURS.
+    """
+    assert clamp_poll_hours(configured, DEFAULT_SCAN_INTERVAL_SEASON_HOURS) == expected
+
+
+@pytest.mark.parametrize("configured", [None, "", "abc", {}, []])
+def test_clamp_falls_back_on_a_corrupt_option(configured: object) -> None:
+    """A junk option must not take the integration down."""
+    assert clamp_poll_hours(configured, 6) == 6
+
+
+# --- cadence ---------------------------------------------------------------
+
+
+async def test_in_season_uses_the_season_default(hass: HomeAssistant) -> None:
+    """With no entries configured, the season default applies."""
+    coordinator = build_coordinator(hass)
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=True,
+    ):
+        coordinator.update_interval = coordinator._compute_interval()
+    assert hours(coordinator) == DEFAULT_SCAN_INTERVAL_SEASON_HOURS
+
+
+async def test_out_of_season_uses_the_offseason_default(hass: HomeAssistant) -> None:
+    """Nothing can change out of season, so the poll slows to a courtesy call."""
+    coordinator = build_coordinator(hass)
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=False,
+    ):
+        coordinator.update_interval = coordinator._compute_interval()
+    assert hours(coordinator) == DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS
+
+
+async def test_shortest_configured_interval_wins(hass: HomeAssistant) -> None:
+    """One shared poller cannot honour several cadences at once.
+
+    It polls at the shortest any entry asks for: that entry's freshness
+    expectation is the binding one, and the others get fresher data for free
+    because the request is shared anyway.
+    """
+    for index, configured in enumerate((12, 4, 24)):
+        MockConfigEntry(
+            domain=DOMAIN,
+            data={CONF_SITE_ID: f"site-{index}"},
+            options={CONF_SCAN_INTERVAL_SEASON_HOURS: configured},
+            unique_id=f"site-{index}",
+        ).add_to_hass(hass)
+
+    coordinator = build_coordinator(hass)
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=True,
+    ):
+        coordinator.update_interval = coordinator._compute_interval()
+
+    assert hours(coordinator) == 4
+
+
+async def test_a_below_floor_option_is_clamped_not_honoured(
+    hass: HomeAssistant,
+) -> None:
+    """An entry asking for 1 h still gets the floor."""
+    MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_SITE_ID: "x"},
+        options={CONF_SCAN_INTERVAL_SEASON_HOURS: 1},
+        unique_id="x",
+    ).add_to_hass(hass)
+
+    coordinator = build_coordinator(hass)
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=True,
+    ):
+        coordinator.update_interval = coordinator._compute_interval()
+
+    assert hours(coordinator) == MIN_POLL_HOURS
+
+
+async def test_offseason_option_is_read_out_of_season(hass: HomeAssistant) -> None:
+    """The two options are not interchangeable."""
+    MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_SITE_ID: "x"},
+        options={
+            CONF_SCAN_INTERVAL_SEASON_HOURS: 4,
+            CONF_SCAN_INTERVAL_OFFSEASON_HOURS: 48,
+        },
+        unique_id="x",
+    ).add_to_hass(hass)
+
+    coordinator = build_coordinator(hass)
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=False,
+    ):
+        coordinator.update_interval = coordinator._compute_interval()
+
+    assert hours(coordinator) == 48
+
+
+async def test_jitter_is_added_to_every_cycle(hass: HomeAssistant) -> None:
+    """Spreads installs, and stops a fleet re-synchronising after an outage."""
+    client = BadegewaesserClient(make_session(fixture_bytes()))
+    coordinator = BadegewaesserCoordinator(hass, client, jitter=lambda: 300.0)
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=True,
+    ):
+        coordinator.update_interval = coordinator._compute_interval()
+    assert coordinator.update_interval == timedelta(
+        hours=DEFAULT_SCAN_INTERVAL_SEASON_HOURS, seconds=300
+    )
+
+
+# --- backoff ---------------------------------------------------------------
+
+
+async def test_backoff_ladder(hass: HomeAssistant) -> None:
+    """No penalty for one miss; double from the second; clamp at the ceiling.
+
+    A lone timeout is noise, so punishing it would slow every install for no
+    reason. A sustained outage is different, and doubling stops the fleet
+    hammering a service that is down.
+    """
+    coordinator = build_coordinator(hass)
+    base = DEFAULT_SCAN_INTERVAL_SEASON_HOURS
+
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=True,
+    ):
+        expectations = {
+            0: base,
+            1: base,  # first failure: no penalty yet
+            2: base * 2,
+            3: base * 4,
+            4: base * 8,
+            5: base * 16,
+            10: MAX_POLL_HOURS,  # clamped
+            50: MAX_POLL_HOURS,
+        }
+        for failures, expected in expectations.items():
+            coordinator._consecutive_failures = failures
+            coordinator.update_interval = coordinator._compute_interval()
+            assert hours(coordinator) == expected, f"after {failures} failures"
+
+
+async def test_failure_raises_translated_update_failed(hass: HomeAssistant) -> None:
+    """Bare-string raises fail the `exception-translations` quality-scale rule."""
+    coordinator = build_coordinator(hass)
+    coordinator.client.async_fetch = AsyncMock(  # type: ignore[method-assign]
+        side_effect=BadegewaesserApiError("cannot_connect", "boom")
+    )
+
+    with pytest.raises(UpdateFailed) as err:
+        await coordinator._async_update_data()
+
+    assert err.value.translation_domain == DOMAIN
+    assert err.value.translation_key == "cannot_connect"
+    assert err.value.translation_placeholders == {"detail": "boom"}
+
+
+async def test_backoff_applies_on_the_failure_path(hass: HomeAssistant) -> None:
+    """The interval must widen when the fetch RAISES, not only when it returns.
+
+    `_async_update_data` recomputes the interval in `finally`, which runs
+    before the base class reaches its own `finally` and schedules the next
+    refresh. Setting it only on the success path would leave a failing
+    upstream polled at full cadence for the whole outage.
+    """
+    coordinator = build_coordinator(hass)
+    coordinator.client.async_fetch = AsyncMock(  # type: ignore[method-assign]
+        side_effect=BadegewaesserApiError("cannot_connect", "boom")
+    )
+
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=True,
+    ):
+        for _ in range(3):
+            with pytest.raises(UpdateFailed):
+                await coordinator._async_update_data()
+
+    assert coordinator._consecutive_failures == 3
+    assert hours(coordinator) == DEFAULT_SCAN_INTERVAL_SEASON_HOURS * 4
+
+
+async def test_success_resets_the_backoff(hass: HomeAssistant) -> None:
+    """One good poll returns the fleet to normal cadence."""
+    coordinator = build_coordinator(hass)
+    coordinator._consecutive_failures = 5
+
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_in_season",
+        return_value=True,
+    ):
+        await coordinator._async_update_data()
+
+    assert coordinator._consecutive_failures == 0
+    assert hours(coordinator) == DEFAULT_SCAN_INTERVAL_SEASON_HOURS
+
+
+# --- one request for N entries ---------------------------------------------
+
+
+async def test_unchanged_document_returns_the_same_object(
+    hass: HomeAssistant,
+) -> None:
+    """Identity, not just equality — that is what suppresses listener callbacks.
+
+    The coordinator runs with `always_update=False`, so handing back the SAME
+    mapping means no entity writes a state on a poll that changed nothing.
+    """
+    body = fixture_bytes()
+    coordinator = build_coordinator(hass, make_session(body, body))
+
+    first = await coordinator._async_update_data()
+    coordinator.data = first
+    second = await coordinator._async_update_data()
+
+    assert second is first
+    assert first[NORMAL].name == "Naturbadesee Königsdorf"
+
+
+async def test_one_coordinator_is_shared_across_entries(
+    hass: HomeAssistant,
+) -> None:
+    """N config entries must produce ONE poller, hence one request per poll.
+
+    All 260 sites arrive in a single document, so a per-entry coordinator
+    would multiply the load on AGES by the number of bathing waters a
+    household happens to follow, for identical bytes.
+    """
+    first = await async_get_coordinator(hass)
+    second = await async_get_coordinator(hass)
+    third = await async_get_coordinator(hass)
+
+    assert first is second is third
+
+
+async def test_a_single_refresh_makes_a_single_request(
+    hass: HomeAssistant,
+) -> None:
+    """Three entries, one refresh, one GET."""
+    session = make_session(fixture_bytes())
+    coordinator = build_coordinator(hass, session)
+
+    for index in range(3):
+        MockConfigEntry(
+            domain=DOMAIN,
+            data={CONF_SITE_ID: f"site-{index}"},
+            unique_id=f"site-{index}",
+        ).add_to_hass(hass)
+
+    await coordinator._async_update_data()
+
+    assert session.get.call_count == 1

@@ -1,0 +1,13 @@
+{
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Der AGES-Badegewässerdienst ist nicht erreichbar ({detail}). Home Assistant versucht es von selbst erneut."
+    },
+    "invalid_response": {
+      "message": "Der AGES-Badegewässerdienst hat unerwartet geantwortet ({detail}). Home Assistant versucht es von selbst erneut."
+    },
+    "malformed_payload": {
+      "message": "Die Badegewässerdaten von AGES sind nicht lesbar ({detail}). Das legt sich meist mit der nächsten Aktualisierung."
+    }
+  }
+}

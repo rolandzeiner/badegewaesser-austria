@@ -1,8 +1,7 @@
 """Constants for the Badegewässer Austria integration.
 
-The measured upstream-capability block (compression, conditional GET, the
-10-minute regeneration trap) lands here in Phase 2, alongside the cadence
-constants. Phase 1 declares only what the skeleton needs.
+Data source: AGES — Österreichische Agentur für Gesundheit und
+Ernährungssicherheit GmbH, CC BY 3.0 AT.
 """
 
 from __future__ import annotations
@@ -10,6 +9,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Final
+
+from homeassistant.const import __version__ as _HA_VERSION
 
 DOMAIN: Final = "badegewaesser_austria"
 
@@ -27,3 +28,155 @@ INTEGRATION_VERSION: Final[str] = _MANIFEST["version"]
 # src/const.ts byte-for-byte — a drift there is the infinite reload-banner
 # bug.
 CARD_VERSION: Final[str] = INTEGRATION_VERSION
+
+# ---------------------------------------------------------------------------
+# Upstream
+# ---------------------------------------------------------------------------
+
+API_URL: Final = "https://www.ages.at/typo3temp/badegewaesser_db.json"
+
+# Identify ourselves properly rather than hiding behind HA's default
+# clientsession UA: it lets AGES traffic-shape or contact *this* integration
+# specifically instead of blanket-blocking every HA instance. HA convention is
+# "HomeAssistant/{ver} {slug}/{ver}"; the trailing "(+<repo-url>)" follows the
+# RFC 9110 product-token-comment convention so the operator has a contact
+# point without having to guess the repo.
+USER_AGENT: Final = (
+    f"HomeAssistant/{_HA_VERSION} {DOMAIN}/{INTEGRATION_VERSION} "
+    f"(+https://github.com/rolandzeiner/badegewaesser-austria)"
+)
+
+# --- Upstream capabilities, measured 2026-09-22 ----------------------------
+#   https://www.ages.at/typo3temp/badegewaesser_db.json
+#   Compression: honoured (gzip). 312348 B identity -> 24055 B wire (13.0x).
+#   Auth: none. Rate limit: none advertised — no RateLimit-*, no Retry-After.
+#   Cache-Control: max-age=0.  ETag: ABSENT.
+#
+#   Conditional GET: DO NOT IMPLEMENT IT. There is no usable conditional GET
+#   here, and this is the one measurement on this endpoint that is easy to get
+#   wrong, because the tooling actively disagrees.
+#
+#   `api-polling/scripts/probe_endpoint.py` reports
+#       Conditional GET: verdict WORKS, If-Mod-Since -> 304: True
+#   and recommends storing the validator. That verdict is an artefact of the
+#   probe's own timing: all seven of its requests land inside one regeneration
+#   window, so of course the 304 fires.
+#
+#   What is actually happening: the typo3temp file is REGENERATED EVERY ~10
+#   MINUTES whether or not anything changed. Measured here on 2026-09-22:
+#       16:17:51Z  Last-Modified 16:10:03Z  VERSION "121623"
+#       16:39:18Z  Last-Modified 16:30:02Z  VERSION "121625"
+#   +2 on the counter across 20 minutes, i.e. one regeneration per 10 min, on
+#   a payload whose content did not change. So `Last-Modified` churns faster
+#   than any sane poll interval and a 304 can never fire at 6 h or 24 h.
+#   Storing an `If-Modified-Since` would buy nothing and cost a validator
+#   store, a cache, and a branch that is never taken.
+#
+#   `VERSION` is a REGENERATION COUNTER, not a content version — it increments
+#   across a byte-identical payload, so it is not a change signal either. Note
+#   it is serialised as a STRING (`"VERSION":"121625"`), not an int.
+#
+#   The only honest change signal is a content hash of the payload with
+#   VERSION stripped (api-polling §5). That saves the parse of a 312 KB
+#   document, the storage writes and the state churn — NOT bytes. 24 KB
+#   arrives either way, which is fine at this cadence.
+#
+#   Re-probe with api-polling/scripts/probe_endpoint.py before changing any of
+#   the above — but read this whole block first, because the probe alone will
+#   tell you to add the validator back.
+# ---------------------------------------------------------------------------
+
+# Strips the regeneration counter so the digest reflects content only. Anchored
+# on the quoted form because upstream serialises it as a string; a `\d+`
+# pattern without the quotes silently matches nothing and every poll then looks
+# like a change. `VERSION` occurs exactly once in the document (measured), so
+# `count=1` is safe and keeps the substitution O(1) in matches.
+VERSION_FIELD_PATTERN: Final = r'"VERSION"\s*:\s*"[^"]*"\s*,'
+
+# ---------------------------------------------------------------------------
+# Season
+# ---------------------------------------------------------------------------
+
+# One window, used by BOTH the poll cadence and the `Badesaison` binary sensor,
+# so the two can never disagree about what "in season" means.
+#
+# Measured against the live document on 2026-09-22: 1362 samples across 260
+# sites fall in months 5-8 only, spanning 2026-05-26 to 2026-08-31 (May 12,
+# Jun 525, Jul 407, Aug 418). The window below is a superset of that with
+# headroom at both ends, so an earlier start next season is picked up without
+# a code change.
+SEASON_START_MONTH: Final = 5
+SEASON_START_DAY: Final = 15
+SEASON_END_MONTH: Final = 9
+SEASON_END_DAY: Final = 30
+
+# ---------------------------------------------------------------------------
+# Poll cadence
+# ---------------------------------------------------------------------------
+
+# In season. Samples arrive every ~20 days per site (measured: median 20,
+# p10 14, p90 21, max 42 across 1102 consecutive-sample gaps), so 6 h is
+# already far faster than the data moves. The justification is not sample
+# freshness but TGESPERRT — an acute closure that can be posted any day
+# during the season and is the one thing a bather needs promptly.
+DEFAULT_SCAN_INTERVAL_SEASON_HOURS: Final = 6
+
+# Out of season nothing can change at all: no samples are taken and the annual
+# rating is already fixed. 24 KB/day is a courtesy poll that keeps the entry
+# alive and picks up the new annual rating when AGES publishes it.
+DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS: Final = 24
+
+# Enforced in the coordinator, not only in the options-flow hints — a user
+# editing the entry directly must not be able to go below this.
+MIN_POLL_HOURS: Final = 3
+MAX_POLL_HOURS: Final = 168  # one week
+
+# Spread installs so they do not all fire on the same wall-clock second. Added
+# to every computed interval, not just the first, which also stops a fleet
+# re-synchronising after a shared outage.
+POLL_JITTER_SECONDS: Final = 600
+
+# Exponential backoff on sustained failure: no penalty for a single miss, then
+# double from the second consecutive failure, clamped at MAX_POLL_HOURS and
+# reset on the next success.
+BACKOFF_AFTER_FAILURES: Final = 2
+
+# ---------------------------------------------------------------------------
+# Config / options keys
+# ---------------------------------------------------------------------------
+
+CONF_SITE_ID: Final = "site_id"
+CONF_SCAN_INTERVAL_SEASON_HOURS: Final = "scan_interval_season_hours"
+CONF_SCAN_INTERVAL_OFFSEASON_HOURS: Final = "scan_interval_offseason_hours"
+
+# ---------------------------------------------------------------------------
+# Data semantics
+# ---------------------------------------------------------------------------
+
+# `O_E` / `O_EC` carry a comparison operator rather than a value. The only
+# non-null value observed across 1362 samples is "<N", which means the analyte
+# was below the laboratory's detection limit — so `E=15, O_E="<N"` reads
+# "<15", not "15". Publishing 15 as a measured count would be wrong.
+BELOW_DETECTION_OPERATOR: Final = "<N"
+
+# The EU Bathing Water Directive classes, best to worst. Anything outside this
+# set is NOT published as a rating: across the five year-columns the live
+# document also carries a single "G" (2022) and a single "F" (2024) whose
+# meaning AGES does not document. They are kept verbatim in the `rating_raw`
+# attribute rather than guessed at or silently dropped.
+RATING_CLASSES: Final = ("A", "B", "C", "D")
+
+# Newest first. `WASSERQUALITAET_JAHR_*` is NOT a year label — it duplicates
+# the matching `QUALITAET_<year>` letter (verified byte-equal on all 260
+# sites), so it is ignored entirely.
+RATING_YEARS: Final = (2026, 2025, 2024, 2023, 2022)
+
+# Upstream sends 0 for an unmeasured water temperature. Two of 1362 samples do
+# this, in months when an Austrian lake cannot be at 0 °C, so it is a sentinel
+# and not a reading. Sichttiefe has no such sentinel (its minimum is 0.1 m).
+UNMEASURED_TEMPERATURE: Final = 0.0
+
+ATTRIBUTION: Final = (
+    "Datenquelle: AGES — Österreichische Agentur für Gesundheit und "
+    "Ernährungssicherheit GmbH · CC BY 3.0 AT"
+)

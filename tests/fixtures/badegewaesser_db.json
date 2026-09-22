@@ -1,0 +1,469 @@
+{
+ "VERSION": "121625",
+ "BUNDESLAENDER": [
+  {
+   "BUNDESLAND": "Burgenland",
+   "BADEGEWAESSER": [
+    {
+     "BADEGEWAESSERID": "AT1051051100150010",
+     "BADEGEWAESSERNAME": "Naturbadesee Königsdorf",
+     "BEZIRK": "Jennersdorf",
+     "GEMEINDE": "Königsdorf",
+     "LONGITUDE": "16.1632530000",
+     "LATITUDE": "47.0082870000",
+     "ANSPRECHSTELLE": "Bezirkshauptmannschaft Jennersdorf",
+     "STRASSE_NUMMER": "Hauptplatz 15",
+     "PLZ_ORT": "8380 - Jennersdorf",
+     "TELEFON": "+43 3329 45202",
+     "EMAIL": "bh.jennersdorf@bgld.gv.at",
+     "TGESPERRT": "0",
+     "ENTEROKOKKEN_EINHEIT": "KBE/100ml",
+     "E_COLI_EINHEIT": "KBE/100ml",
+     "WASSERTEMPERATUR_EINHEIT": "°C",
+     "SICHTTIEFE_EINHEIT": "m",
+     "SPERRGRUND": "",
+     "WASSERQUALITAET_JAHR_HEUER": "",
+     "QUALITAET_2026": "",
+     "WASSERQUALITAET_JAHR_VORIGES": "A",
+     "QUALITAET_2025": "A",
+     "WASSERQUALITAET_JAHR_VOR_VORIGES": "A",
+     "QUALITAET_2024": "A",
+     "WASSERQUALITAET_JAHR_VOR_VOR_VORIGES": "A",
+     "QUALITAET_2023": "A",
+     "QUALITAET_2022": "G",
+     "MESSWERTE": [
+      {
+       "D": "20.08.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.2,
+       "S": 1.05,
+       "A": 1
+      },
+      {
+       "D": "29.07.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.3,
+       "S": 1.25,
+       "A": 1
+      },
+      {
+       "D": "08.07.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.1,
+       "S": 1.3,
+       "A": 1
+      },
+      {
+       "D": "24.06.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 28.3,
+       "S": 1.3,
+       "A": 1
+      },
+      {
+       "D": "08.06.2026",
+       "O_E": null,
+       "E": 21,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 23.8,
+       "S": 1.5,
+       "A": 1
+      }
+     ]
+    },
+    {
+     "BADEGEWAESSERID": "AT9999999999999001",
+     "BADEGEWAESSERNAME": "Testsee gesperrt",
+     "BEZIRK": "Jennersdorf",
+     "GEMEINDE": "Königsdorf",
+     "LONGITUDE": "16.1632530000",
+     "LATITUDE": "47.0082870000",
+     "ANSPRECHSTELLE": "Bezirkshauptmannschaft Jennersdorf",
+     "STRASSE_NUMMER": "Hauptplatz 15",
+     "PLZ_ORT": "8380 - Jennersdorf",
+     "TELEFON": "+43 3329 45202",
+     "EMAIL": "bh.jennersdorf@bgld.gv.at",
+     "TGESPERRT": "1",
+     "ENTEROKOKKEN_EINHEIT": "KBE/100ml",
+     "E_COLI_EINHEIT": "KBE/100ml",
+     "WASSERTEMPERATUR_EINHEIT": "°C",
+     "SICHTTIEFE_EINHEIT": "m",
+     "SPERRGRUND": "Blaualgen — Badeverbot bis auf Widerruf",
+     "WASSERQUALITAET_JAHR_HEUER": "",
+     "QUALITAET_2026": "",
+     "WASSERQUALITAET_JAHR_VORIGES": "A",
+     "QUALITAET_2025": "A",
+     "WASSERQUALITAET_JAHR_VOR_VORIGES": "A",
+     "QUALITAET_2024": "A",
+     "WASSERQUALITAET_JAHR_VOR_VOR_VORIGES": "A",
+     "QUALITAET_2023": "A",
+     "QUALITAET_2022": "G",
+     "MESSWERTE": [
+      {
+       "D": "20.08.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.2,
+       "S": 1.05,
+       "A": 1
+      },
+      {
+       "D": "29.07.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.3,
+       "S": 1.25,
+       "A": 1
+      },
+      {
+       "D": "08.07.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.1,
+       "S": 1.3,
+       "A": 1
+      },
+      {
+       "D": "24.06.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 28.3,
+       "S": 1.3,
+       "A": 1
+      },
+      {
+       "D": "08.06.2026",
+       "O_E": null,
+       "E": 21,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 23.8,
+       "S": 1.5,
+       "A": 1
+      }
+     ]
+    },
+    {
+     "BADEGEWAESSERID": "AT9999999999999002",
+     "BADEGEWAESSERNAME": "Testsee ohne Klassifizierung",
+     "BEZIRK": "Jennersdorf",
+     "GEMEINDE": "Königsdorf",
+     "LONGITUDE": "16.1632530000",
+     "LATITUDE": "47.0082870000",
+     "ANSPRECHSTELLE": "Bezirkshauptmannschaft Jennersdorf",
+     "STRASSE_NUMMER": "Hauptplatz 15",
+     "PLZ_ORT": "8380 - Jennersdorf",
+     "TELEFON": "+43 3329 45202",
+     "EMAIL": "bh.jennersdorf@bgld.gv.at",
+     "TGESPERRT": "0",
+     "ENTEROKOKKEN_EINHEIT": "KBE/100ml",
+     "E_COLI_EINHEIT": "KBE/100ml",
+     "WASSERTEMPERATUR_EINHEIT": "°C",
+     "SICHTTIEFE_EINHEIT": "m",
+     "SPERRGRUND": "",
+     "WASSERQUALITAET_JAHR_HEUER": "",
+     "QUALITAET_2026": "",
+     "WASSERQUALITAET_JAHR_VORIGES": "A",
+     "QUALITAET_2025": "G",
+     "WASSERQUALITAET_JAHR_VOR_VORIGES": "A",
+     "QUALITAET_2024": "B",
+     "WASSERQUALITAET_JAHR_VOR_VOR_VORIGES": "A",
+     "QUALITAET_2023": "A",
+     "QUALITAET_2022": "A",
+     "MESSWERTE": [
+      {
+       "D": "20.08.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.2,
+       "S": 1.05,
+       "A": 1
+      },
+      {
+       "D": "29.07.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.3,
+       "S": 1.25,
+       "A": 1
+      },
+      {
+       "D": "08.07.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.1,
+       "S": 1.3,
+       "A": 1
+      },
+      {
+       "D": "24.06.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 28.3,
+       "S": 1.3,
+       "A": 1
+      },
+      {
+       "D": "08.06.2026",
+       "O_E": null,
+       "E": 21,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 23.8,
+       "S": 1.5,
+       "A": 1
+      }
+     ]
+    },
+    {
+     "BADEGEWAESSERID": "AT9999999999999003",
+     "BADEGEWAESSERNAME": "Testsee ohne Proben",
+     "BEZIRK": "Jennersdorf",
+     "GEMEINDE": "Königsdorf",
+     "LONGITUDE": "16.1632530000",
+     "LATITUDE": "47.0082870000",
+     "ANSPRECHSTELLE": "Bezirkshauptmannschaft Jennersdorf",
+     "STRASSE_NUMMER": "Hauptplatz 15",
+     "PLZ_ORT": "8380 - Jennersdorf",
+     "TELEFON": "+43 3329 45202",
+     "EMAIL": "bh.jennersdorf@bgld.gv.at",
+     "TGESPERRT": "0",
+     "ENTEROKOKKEN_EINHEIT": "KBE/100ml",
+     "E_COLI_EINHEIT": "KBE/100ml",
+     "WASSERTEMPERATUR_EINHEIT": "°C",
+     "SICHTTIEFE_EINHEIT": "m",
+     "SPERRGRUND": "",
+     "WASSERQUALITAET_JAHR_HEUER": "",
+     "QUALITAET_2026": "",
+     "WASSERQUALITAET_JAHR_VORIGES": "A",
+     "QUALITAET_2025": "A",
+     "WASSERQUALITAET_JAHR_VOR_VORIGES": "A",
+     "QUALITAET_2024": "A",
+     "WASSERQUALITAET_JAHR_VOR_VOR_VORIGES": "A",
+     "QUALITAET_2023": "A",
+     "QUALITAET_2022": "G",
+     "MESSWERTE": []
+    }
+   ]
+  },
+  {
+   "BUNDESLAND": "Salzburg",
+   "BADEGEWAESSER": [
+    {
+     "BADEGEWAESSERID": "AT3230004400240040",
+     "BADEGEWAESSERNAME": "Wolfgangsee, St. Gilgen - Gamsjaga",
+     "BEZIRK": "Salzburg-Umgebung",
+     "GEMEINDE": "Sankt Gilgen",
+     "LONGITUDE": "0",
+     "LATITUDE": "0",
+     "ANSPRECHSTELLE": "Bezirkshauptmannschaft Salzburg-Umgebung ",
+     "STRASSE_NUMMER": "Karl-Wurmb-Straße 17",
+     "PLZ_ORT": "5020 - Salzburg",
+     "TELEFON": "+43 662 81800",
+     "EMAIL": "0",
+     "TGESPERRT": "0",
+     "ENTEROKOKKEN_EINHEIT": "KBE/100ml",
+     "E_COLI_EINHEIT": "KBE/100ml",
+     "WASSERTEMPERATUR_EINHEIT": "°C",
+     "SICHTTIEFE_EINHEIT": "m",
+     "SPERRGRUND": "",
+     "WASSERQUALITAET_JAHR_HEUER": "",
+     "QUALITAET_2026": "",
+     "WASSERQUALITAET_JAHR_VORIGES": "A",
+     "QUALITAET_2025": "A",
+     "WASSERQUALITAET_JAHR_VOR_VORIGES": "A",
+     "QUALITAET_2024": "A",
+     "WASSERQUALITAET_JAHR_VOR_VOR_VORIGES": "A",
+     "QUALITAET_2023": "A",
+     "QUALITAET_2022": "A",
+     "MESSWERTE": [
+      {
+       "D": "18.08.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 23.2,
+       "S": 1.5,
+       "A": 1
+      },
+      {
+       "D": "04.08.2026",
+       "O_E": null,
+       "E": 30,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 23.3,
+       "S": 1.5,
+       "A": 1
+      },
+      {
+       "D": "14.07.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 23.5,
+       "S": 1.5,
+       "A": 1
+      },
+      {
+       "D": "23.06.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 23.7,
+       "S": 1.5,
+       "A": 1
+      },
+      {
+       "D": "09.06.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 18.6,
+       "S": 1.5,
+       "A": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "BUNDESLAND": "Wien",
+   "BADEGEWAESSER": [
+    {
+     "BADEGEWAESSERID": "AT1300002200020010",
+     "BADEGEWAESSERNAME": "Neue Donau, Höhe Lobgrundstraße",
+     "BEZIRK": "Wien(Stadt)",
+     "GEMEINDE": "Wien (Donaustadt)",
+     "LONGITUDE": "16.492099",
+     "LATITUDE": "48.1762",
+     "ANSPRECHSTELLE": "Magistrat der Stadt Wien",
+     "STRASSE_NUMMER": "Rathausstraße 1",
+     "PLZ_ORT": "1082 - Wien",
+     "TELEFON": "+43 1 4000 0",
+     "EMAIL": "wienerbadegewaesser@ma39.wien.gv.at",
+     "TGESPERRT": "0",
+     "ENTEROKOKKEN_EINHEIT": "KBE/100ml",
+     "E_COLI_EINHEIT": "KBE/100ml",
+     "WASSERTEMPERATUR_EINHEIT": "°C",
+     "SICHTTIEFE_EINHEIT": "m",
+     "SPERRGRUND": "",
+     "WASSERQUALITAET_JAHR_HEUER": "",
+     "QUALITAET_2026": "",
+     "WASSERQUALITAET_JAHR_VORIGES": "A",
+     "QUALITAET_2025": "A",
+     "WASSERQUALITAET_JAHR_VOR_VORIGES": "A",
+     "QUALITAET_2024": "A",
+     "WASSERQUALITAET_JAHR_VOR_VOR_VORIGES": "A",
+     "QUALITAET_2023": "A",
+     "QUALITAET_2022": "A",
+     "MESSWERTE": [
+      {
+       "D": "24.08.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 0,
+       "S": 2.6,
+       "A": 1
+      },
+      {
+       "D": "10.08.2026",
+       "O_E": null,
+       "E": 30,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 26.5,
+       "S": 3,
+       "A": 1
+      },
+      {
+       "D": "27.07.2026",
+       "O_E": null,
+       "E": 30,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 23.2,
+       "S": 3.1,
+       "A": 1
+      },
+      {
+       "D": "13.07.2026",
+       "O_E": null,
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 24.3,
+       "S": 2.9,
+       "A": 1
+      },
+      {
+       "D": "29.06.2026",
+       "O_E": null,
+       "E": 15,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 28.2,
+       "S": 3.4,
+       "A": 1
+      },
+      {
+       "D": "15.06.2026",
+       "O_E": null,
+       "E": 30,
+       "O_EC": "<N",
+       "E_C": 15,
+       "W": 20.2,
+       "S": 2.8,
+       "A": 1
+      },
+      {
+       "D": "01.06.2026",
+       "O_E": "<N",
+       "E": 15,
+       "O_EC": null,
+       "E_C": 15,
+       "W": 21.6,
+       "S": 2.2,
+       "A": 1
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

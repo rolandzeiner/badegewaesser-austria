@@ -1,0 +1,13 @@
+{
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Can't reach the AGES bathing-water service ({detail}). Home Assistant will retry on its own."
+    },
+    "invalid_response": {
+      "message": "The AGES bathing-water service answered unexpectedly ({detail}). Home Assistant will retry on its own."
+    },
+    "malformed_payload": {
+      "message": "Can't read the bathing-water data from AGES ({detail}). This usually clears with the next update."
+    }
+  }
+}
