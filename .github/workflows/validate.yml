@@ -54,6 +54,20 @@ jobs:
         run: python -m compileall -q custom_components/badegewaesser_austria
 
   validate-hacs:
+    # The HACS validate action expects a PUBLIC repository. Its internal
+    # manifest / hacs.json fetches use unauthenticated GitHub API calls,
+    # which silently return `None` from a private repo; that surfaces as the
+    # thoroughly misleading pair
+    #   <Validation hacsjson> failed: The repository has an invalid 'hacs.json'
+    #   <Validation integration_manifest> failed: expected a dictionary. Got None
+    # neither of which is true — both files are valid and were read fine by
+    # every other job in this workflow. Measured on this repo's first CI run,
+    # 2026-09-22, and already documented the same way in
+    # evn-smartmeter-austria, which is private permanently.
+    #
+    # This repo starts private and flips public at the 1.0.0 release, so the
+    # guard opens the gate automatically with no edit here.
+    if: github.event.repository.private != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
