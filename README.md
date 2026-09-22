@@ -32,13 +32,13 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 
 ## Supported Functions
 
-- **All 260 EU-designated bathing waters**, across every Bundesland — Burgenland 20, Niederösterreich 28, Wien 17, Kärnten 32, Steiermark 32, Oberösterreich 43, Salzburg 37, Tirol 35, Vorarlberg 16 *(1.0.0)*
-- **Six sensors and two binary sensors per bathing water** — water temperature, E. coli, enterococci, Secchi depth, the annual EU classification, the sampling date, a closure flag and a bathing-season flag *(1.0.0)*
-- **A Lovelace card built around the season**, not the instant. The samples sit on a calendar axis from 15 May to 30 September, so you can see the rhythm of the season and how fresh the newest reading is *(1.0.0)*
-- **Find a lake by distance** — the setup flow can rank bathing waters by how far they are from your Home Assistant location *(1.0.0)*
-- **Honest about detection limits** — most samples report "below the laboratory's detection limit" rather than a measured count. The card shows `<15`, and the sensor carries a `below_detection_limit` attribute, so you never read a limit as a measurement *(1.0.0)*
-- **Keeps working out of season** — from October to May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(1.0.0)*
-- **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(1.0.0)*
+- **All 260 EU-designated bathing waters**, across every Bundesland — Burgenland 20, Niederösterreich 28, Wien 17, Kärnten 32, Steiermark 32, Oberösterreich 43, Salzburg 37, Tirol 35, Vorarlberg 16 *(0.1.0)*
+- **Six sensors and two binary sensors per bathing water** — water temperature, E. coli, enterococci, Secchi depth, the annual EU classification, the sampling date, a closure flag and a bathing-season flag *(0.1.0)*
+- **A Lovelace card built around the season**, not the instant. The samples sit on a calendar axis from 15 May to 30 September, so you can see the rhythm of the season and how fresh the newest reading is *(0.1.0)*
+- **Find a lake by distance** — the setup flow can rank bathing waters by how far they are from your Home Assistant location *(0.1.0)*
+- **Honest about detection limits** — most samples report "below the laboratory's detection limit" rather than a measured count. The card shows `<15`, and the sensor carries a `below_detection_limit` attribute, so you never read a limit as a measurement *(0.1.0)*
+- **Keeps working out of season** — from October to May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
+- **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
 
 ## Requirements
 

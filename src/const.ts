@@ -8,6 +8,6 @@
  * reload re-serves the same JS, and the banner comes straight back — an
  * infinite loop for every HACS user.
  */
-export const CARD_VERSION = "1.0.0";
+export const CARD_VERSION = "0.1.0";
 
 export const CARD_TAG = "badegewaesser-austria-card";

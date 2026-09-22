@@ -123,7 +123,12 @@ def test_every_feature_bullet_carries_a_version_marker() -> None:
 
 
 def test_first_release_markers_all_say_the_current_version() -> None:
-    """Nothing predates 1.0.0, so every marker should say 1.0.0."""
+    """Nothing has shipped yet, so every marker names the version in flight.
+
+    Markers freeze once a release goes out; until then they simply track
+    manifest.json, which is why this compares against INTEGRATION_VERSION
+    rather than a literal.
+    """
     section = README.split("## Supported Functions")[1].split("## Requirements")[0]
     for marker in re.findall(r"\*\((\d+\.\d+\.\d+)\)\*", section):
         assert marker == INTEGRATION_VERSION
