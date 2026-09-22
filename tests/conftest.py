@@ -3,12 +3,40 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
 from syrupy.assertion import SnapshotAssertion
 
+from custom_components.badegewaesser_austria.const import CONF_SITE_ID, DOMAIN
+
+# The ordinary Burgenland site in the fixture: rating A via 2025, five
+# samples, both analytes below the detection limit.
+NORMAL_SITE_ID = "AT1051051100150010"
+# Synthetic rows for states the live document has never been in.
+CLOSED_SITE_ID = "AT9999999999999001"
+UNRATED_SITE_ID = "AT9999999999999002"
+NEVER_SAMPLED_SITE_ID = "AT9999999999999003"
+# Ships LONGITUDE/LATITUDE of "0" upstream.
+NULL_ISLAND_SITE_ID = "AT3230004400240040"
+
 pytest_plugins = "pytest_homeassistant_custom_component"
+
+
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(
+    enable_custom_integrations: None,
+) -> None:
+    """Let PHACC load `custom_components/` at all.
+
+    Without it every `async_setup` fails with "Integration not found" and the
+    failure looks like a bug in this integration rather than a missing test
+    wiring.
+    """
 
 
 @pytest.fixture(autouse=True)
@@ -75,3 +103,73 @@ def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
     Stored under tests/snapshots/ next to the test module.
     """
     return snapshot.use_extension(HomeAssistantSnapshotExtension)
+
+
+@pytest.fixture(name="document")
+def document_fixture() -> bytes:
+    """The recorded AGES document, as it arrives off the wire."""
+    return (Path(__file__).parent / "fixtures" / "badegewaesser_db.json").read_bytes()
+
+
+def _response_cm(body: bytes, status: int = 200) -> MagicMock:
+    """One `async with session.get(...)` context manager."""
+    response = MagicMock()
+    response.status = status
+    response.read = AsyncMock(return_value=body)
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=response)
+    cm.__aexit__ = AsyncMock(return_value=None)
+    return cm
+
+
+@pytest.fixture(name="session")
+def session_fixture(document: bytes) -> MagicMock:
+    """A session that answers every GET with the recorded document.
+
+    Patched in at `async_get_clientsession`, i.e. the lowest I/O boundary, so
+    the real client, the real digest and the real parser all run. Only the
+    socket is fake.
+    """
+    session = MagicMock()
+    session.get = MagicMock(side_effect=lambda *a, **kw: _response_cm(document))
+    return session
+
+
+@pytest.fixture(autouse=True)
+def patched_clientsession(session: MagicMock) -> Generator[MagicMock]:
+    """Autouse so no test can reach the real AGES endpoint."""
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.async_get_clientsession",
+        return_value=session,
+    ):
+        yield session
+
+
+@pytest.fixture(autouse=True)
+def _reset_shared_coordinator() -> Generator[None]:
+    """Keep the domain-wide coordinator from leaking between tests.
+
+    It is memoised in `hass.data`, which PHACC rebuilds per test, so nothing
+    actually leaks today. The fixture is here to make that dependency
+    explicit rather than accidental.
+    """
+    yield
+
+
+@pytest.fixture(name="config_entry")
+def config_entry_fixture() -> MockConfigEntry:
+    """An entry for the fixture document's ordinary bathing water."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="Naturbadesee Königsdorf",
+        data={CONF_SITE_ID: NORMAL_SITE_ID},
+        unique_id=NORMAL_SITE_ID,
+    )
+
+
+async def setup_entry(hass: HomeAssistant, entry: MockConfigEntry) -> MockConfigEntry:
+    """Add and set up an entry, asserting it actually loaded."""
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry

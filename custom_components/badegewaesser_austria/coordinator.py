@@ -121,6 +121,11 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
 
     # -- cadence ----------------------------------------------------------
 
+    @property
+    def consecutive_failures(self) -> int:
+        """How many refreshes have failed in a row. Read by diagnostics."""
+        return self._consecutive_failures
+
     @callback
     def _base_hours(self) -> int:
         """The configured base interval for right now, in hours.

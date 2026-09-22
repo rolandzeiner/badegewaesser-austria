@@ -1,0 +1,205 @@
+# Self-audit against the Integration Quality Scale, 54 rules as of HA 2026.8.
+#
+# Hassfest does NOT validate this file for a custom integration
+# (`validate_iqs_file()` returns early on `if not integration.core`), and
+# `manifest.json` deliberately carries no `quality_scale` key — that key is
+# inert for custom integrations and would assert a tier nobody granted. This
+# file is kept honest because it is useful, not because anything enforces it.
+#
+# Every `exempt` carries a comment, which is what core's own schema requires.
+
+rules:
+  # --- Bronze --------------------------------------------------------------
+  action-setup:
+    status: exempt
+    comment: This integration does not register any service actions.
+  appropriate-polling:
+    status: done
+    comment: >-
+      6 h in season, 24 h out of it, configurable within a 3 h floor enforced
+      in the coordinator. Derived from measurement rather than taste: samples
+      arrive roughly every 20 days per site (median 20, p10 14, p90 21 across
+      1102 gaps), so even 6 h is far faster than the data moves. The
+      justification for 6 h is TGESPERRT, an acute closure that can post any
+      day during the season.
+  brands:
+    status: todo
+    comment: Local brand/ assets land in Phase 5.
+  common-modules:
+    status: done
+    comment: api.py / coordinator.py / entity.py split.
+  config-flow:
+    status: done
+  config-flow-test-coverage:
+    status: done
+  dependency-transparency:
+    status: done
+    comment: No third-party requirements; aiohttp comes from HA core.
+  docs-actions:
+    status: exempt
+    comment: This integration does not have any actions.
+  docs-conditions:
+    status: exempt
+    comment: This integration does not have any conditions.
+  docs-high-level-description:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-installation-instructions:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-removal-instructions:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-triggers:
+    status: exempt
+    comment: This integration does not have any triggers.
+  entity-event-setup:
+    status: done
+    comment: >-
+      CoordinatorEntity throughout. The one extra subscription is the
+      bathing-season sensor's daily timer, registered in
+      async_added_to_hass and released through async_on_remove.
+  entity-unique-id:
+    status: done
+    comment: f"{entry.entry_id}_{description.key}", frozen.
+  has-entity-name:
+    status: done
+  runtime-data:
+    status: done
+    comment: >-
+      entry.runtime_data holds a per-entry view (coordinator + site_id). The
+      coordinator itself is domain-wide by design — one AGES request returns
+      all 260 bathing waters, so N entries must cost one request, not N.
+  test-before-configure:
+    status: done
+    comment: The config flow fetches through the shared coordinator before creating an entry.
+  test-before-setup:
+    status: done
+    comment: >-
+      Explicit rather than via async_config_entry_first_refresh(), which
+      refuses an entry-less coordinator. Setup refreshes and raises a
+      translated ConfigEntryNotReady itself.
+  unique-config-entry:
+    status: done
+    comment: unique_id is the AGES BADEGEWAESSERID; _abort_if_unique_id_configured(reload_on_update=False).
+
+  # --- Silver --------------------------------------------------------------
+  action-exceptions:
+    status: exempt
+    comment: This integration does not register any service actions.
+  config-entry-unloading:
+    status: done
+  docs-configuration-parameters:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-installation-parameters:
+    status: todo
+    comment: README lands in Phase 5.
+  entity-unavailable:
+    status: done
+    comment: >-
+      Unavailable means the fetch failed or the site vanished from the
+      document — never that the bathing season is over. Last season's readings
+      and the annual classification stay valid all winter, so greying them out
+      for nine and a half months would be wrong.
+  integration-owner:
+    status: done
+  log-when-unavailable:
+    status: done
+    comment: >-
+      DataUpdateCoordinator logs the first failure and the recovery once each;
+      no duplicate logging is added on top.
+  parallel-updates:
+    status: done
+    comment: PARALLEL_UPDATES = 0 in both platforms; one shared fetch, nothing to serialise.
+  reauthentication-flow:
+    status: exempt
+    comment: The AGES document is public and needs no credentials.
+  test-coverage:
+    status: done
+    comment: 95% floor per module, enforced by scripts/check_module_coverage.py in CI.
+
+  # --- Gold ----------------------------------------------------------------
+  devices:
+    status: done
+    comment: One device per bathing water, registered in async_setup_entry.
+  diagnostics:
+    status: done
+  discovery:
+    status: exempt
+    comment: A national cloud dataset; there is nothing on the network to discover.
+  discovery-update-info:
+    status: exempt
+    comment: A national cloud dataset; there is nothing on the network to discover.
+  docs-data-update:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-examples:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-known-limitations:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-supported-devices:
+    status: exempt
+    comment: No devices; the integration reads one public dataset.
+  docs-supported-functions:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-troubleshooting:
+    status: todo
+    comment: README lands in Phase 5.
+  docs-use-cases:
+    status: todo
+    comment: README lands in Phase 5.
+  dynamic-devices:
+    status: exempt
+    comment: One entry is one bathing water, chosen at setup; no devices appear later.
+  entity-category:
+    status: exempt
+    comment: Every entity is primary data a user looks at; none is diagnostic or config.
+  entity-device-class:
+    status: done
+    comment: >-
+      temperature, distance, enum, timestamp and problem where they apply. The
+      two bacteriological counts carry no device class because HA has none for
+      KBE/100 ml, and inventing one would misrepresent the unit.
+  entity-disabled-by-default:
+    status: exempt
+    comment: Six sensors and two binary sensors, all cheap and all of direct interest.
+  entity-translations:
+    status: done
+  exception-translations:
+    status: done
+    comment: Every UpdateFailed and ConfigEntryNotReady carries translation_domain + translation_key.
+  icon-translations:
+    status: done
+    comment: icons.json only; no _attr_icon anywhere.
+  reconfiguration-flow:
+    status: exempt
+    comment: >-
+      The entry's only identity is the bathing water chosen at setup, so
+      changing it is equivalent to adding a new entry — and rewriting the
+      unique_id would orphan the device and all eight entities. The poll
+      intervals, which are the only other setting, are handled by the options
+      flow.
+  repair-issues:
+    status: done
+    comment: >-
+      One issue, raised when the configured bathing water is no longer in the
+      AGES document. Raised once and cleared on recovery; entity states alone
+      cannot distinguish that case from an outage.
+  stale-devices:
+    status: exempt
+    comment: One device per entry; removing the entry removes the device.
+
+  # --- Platinum ------------------------------------------------------------
+  async-dependency:
+    status: done
+    comment: aiohttp only.
+  inject-websession:
+    status: done
+    comment: async_get_clientsession(hass), passed into the client.
+  strict-typing:
+    status: done
+    comment: py.typed shipped; mypy --strict runs in CI.

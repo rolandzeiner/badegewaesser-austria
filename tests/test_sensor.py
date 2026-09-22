@@ -1,0 +1,205 @@
+"""Sensor states and attributes."""
+
+from __future__ import annotations
+
+from unittest.mock import MagicMock
+
+import pytest
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.badegewaesser_austria.const import (
+    ATTRIBUTION,
+    CONF_SITE_ID,
+    DOMAIN,
+)
+from tests.conftest import (
+    NEVER_SAMPLED_SITE_ID,
+    UNRATED_SITE_ID,
+    setup_entry,
+)
+
+PREFIX = "sensor.naturbadesee_konigsdorf_"
+
+
+async def test_all_six_sensors_exist(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """The documented entity set, present after one setup."""
+    await setup_entry(hass, config_entry)
+    for key in (
+        "water_temperature",
+        "e_coli",
+        "enterococci",
+        "secchi_depth",
+        "water_quality",
+        "last_sample",
+    ):
+        assert hass.states.get(f"{PREFIX}{key}") is not None, key
+
+
+@pytest.mark.parametrize(
+    ("key", "expected"),
+    [
+        ("water_temperature", "26.2"),
+        ("e_coli", "15"),
+        ("enterococci", "15"),
+        ("secchi_depth", "1.05"),
+        ("water_quality", "A"),
+    ],
+)
+async def test_values_from_the_newest_sample(
+    hass: HomeAssistant, config_entry: MockConfigEntry, key: str, expected: str
+) -> None:
+    """Each sensor reads the most recent sample, not an arbitrary one."""
+    await setup_entry(hass, config_entry)
+    assert hass.states.get(f"{PREFIX}{key}").state == expected
+
+
+async def test_below_detection_limit_is_flagged(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """The state is a detection limit, and the attribute says so.
+
+    "15" with the flag reads "<15". Publishing the number alone would
+    overstate contamination at sites that are actually clean — 901 of 1362
+    live E. coli samples are in exactly this state.
+    """
+    await setup_entry(hass, config_entry)
+    for key in ("e_coli", "enterococci"):
+        state = hass.states.get(f"{PREFIX}{key}")
+        assert state.state == "15"
+        assert state.attributes["below_detection_limit"] is True
+
+
+async def test_units_come_from_the_document(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """Uniform across all 260 live sites, but read rather than hardcoded."""
+    await setup_entry(hass, config_entry)
+    assert (
+        hass.states.get(f"{PREFIX}e_coli").attributes["unit_of_measurement"]
+        == "KBE/100ml"
+    )
+
+
+async def test_water_quality_declares_its_options_and_year(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """An enum sensor may only ever report a state it declared.
+
+    Which is why the parser refuses to publish a letter outside A-D: the live
+    document carries a "G" and an "F", and handing either to HA would raise.
+    """
+    await setup_entry(hass, config_entry)
+    state = hass.states.get(f"{PREFIX}water_quality")
+    assert state.attributes["options"] == ["A", "B", "C", "D"]
+    assert state.state in state.attributes["options"]
+    # 2026 is empty until AGES publishes after the season, so the rating in
+    # force is last year's — and the sensor says which year it means.
+    assert state.attributes["rating_year"] == 2025
+
+
+async def test_unclassified_letter_is_reported_but_not_published(
+    hass: HomeAssistant,
+) -> None:
+    """The "G" site falls back to 2024's B, and keeps the G visible."""
+    await setup_entry(
+        hass,
+        MockConfigEntry(
+            domain=DOMAIN,
+            title="Testsee ohne Klassifizierung",
+            data={CONF_SITE_ID: UNRATED_SITE_ID},
+            unique_id=UNRATED_SITE_ID,
+        ),
+    )
+    state = hass.states.get("sensor.testsee_ohne_klassifizierung_water_quality")
+    assert state.state == "B"
+    assert state.attributes["rating_year"] == 2024
+    assert state.attributes["rating_raw"] == "G"
+    assert state.attributes["rating_raw_year"] == 2025
+
+
+async def test_last_sample_is_a_timestamp(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """A real timestamp, so a dashboard can render an age without help."""
+    await setup_entry(hass, config_entry)
+    state = hass.states.get(f"{PREFIX}last_sample")
+    assert state.attributes["device_class"] == "timestamp"
+    assert state.state.startswith("2026-08-20T")
+    assert state.attributes["sample_assessment"] == 1
+
+
+async def test_no_days_since_attribute(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """There must be no attribute derived from today's date.
+
+    The coordinator only writes state when the document changes, and out of
+    season it never does — so a "days since sampling" attribute would freeze
+    at its September value and quietly stay wrong until the following June.
+    The timestamp state is the honest carrier; age is the consumer's to
+    compute.
+    """
+    await setup_entry(hass, config_entry)
+    attributes = hass.states.get(f"{PREFIX}last_sample").attributes
+    assert not any("age" in key or "days" in key for key in attributes)
+
+
+async def test_never_sampled_site_reports_unknown_not_unavailable(
+    hass: HomeAssistant,
+) -> None:
+    """ "No sample exists" is a known fact, not a failure to find out."""
+    await setup_entry(
+        hass,
+        MockConfigEntry(
+            domain=DOMAIN,
+            title="Testsee ohne Proben",
+            data={CONF_SITE_ID: NEVER_SAMPLED_SITE_ID},
+            unique_id=NEVER_SAMPLED_SITE_ID,
+        ),
+    )
+    for key in ("water_temperature", "e_coli", "last_sample"):
+        state = hass.states.get(f"sensor.testsee_ohne_proben_{key}")
+        assert state.state == "unknown", key
+
+
+async def test_attribution_is_on_every_entity(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """CC BY 3.0 AT requires attribution, and it is the only obligation."""
+    await setup_entry(hass, config_entry)
+    for state in hass.states.async_all():
+        assert state.attributes["attribution"] == ATTRIBUTION
+
+
+async def test_entities_go_unavailable_only_when_the_fetch_fails(
+    hass: HomeAssistant, config_entry: MockConfigEntry, session: MagicMock
+) -> None:
+    """Unavailable means "we could not find out" — nothing else."""
+    from custom_components.badegewaesser_austria.coordinator import (
+        async_get_coordinator,
+    )
+
+    await setup_entry(hass, config_entry)
+    assert hass.states.get(f"{PREFIX}water_temperature").state == "26.2"
+
+    session.get = MagicMock(side_effect=TimeoutError)
+    coordinator = await async_get_coordinator(hass)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert hass.states.get(f"{PREFIX}water_temperature").state == "unavailable"
+
+
+async def test_unique_ids_are_entry_scoped(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """The formula is frozen; changing it would wipe every install's history."""
+    from homeassistant.helpers import entity_registry as er
+
+    await setup_entry(hass, config_entry)
+    registry = er.async_get(hass)
+    entry = registry.async_get(f"{PREFIX}water_temperature")
+    assert entry.unique_id == f"{config_entry.entry_id}_water_temperature"

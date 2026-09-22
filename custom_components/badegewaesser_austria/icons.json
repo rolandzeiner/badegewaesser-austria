@@ -1,0 +1,28 @@
+{
+  "entity": {
+    "sensor": {
+      "water_temperature": { "default": "mdi:thermometer-water" },
+      "e_coli": { "default": "mdi:bacteria" },
+      "enterococci": { "default": "mdi:bacteria-outline" },
+      "secchi_depth": { "default": "mdi:water-opacity" },
+      "water_quality": { "default": "mdi:water-check" },
+      "last_sample": { "default": "mdi:test-tube" }
+    },
+    "binary_sensor": {
+      "closed": {
+        "default": "mdi:swim",
+        "state": {
+          "off": "mdi:check-circle",
+          "on": "mdi:close-octagon"
+        }
+      },
+      "bathing_season": {
+        "default": "mdi:calendar-range",
+        "state": {
+          "off": "mdi:calendar-remove",
+          "on": "mdi:swim"
+        }
+      }
+    }
+  }
+}

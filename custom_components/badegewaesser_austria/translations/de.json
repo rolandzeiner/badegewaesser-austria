@@ -1,4 +1,98 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Badegewässer hinzufügen",
+        "menu_options": {
+          "bundesland": "Nach Bundesland auswählen",
+          "nearby": "Badegewässer in deiner Nähe"
+        }
+      },
+      "bundesland": {
+        "title": "Bundesland",
+        "description": "In welchem Bundesland liegt das Badegewässer?",
+        "data": {
+          "bundesland": "Bundesland"
+        }
+      },
+      "site": {
+        "title": "Badegewässer",
+        "description": "Welches Badegewässer in {bundesland} möchtest du verfolgen?",
+        "data": {
+          "site_id": "Badegewässer"
+        }
+      },
+      "nearby": {
+        "title": "In deiner Nähe",
+        "description": "Sortiert nach Entfernung von deinem Standort in Home Assistant.",
+        "data": {
+          "site_id": "Badegewässer"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dieses Badegewässer ist bereits eingerichtet.",
+      "cannot_connect": "Die AGES-Daten sind gerade nicht erreichbar. Versuch es später noch einmal.",
+      "no_home_location": "Home Assistant kennt deinen Standort noch nicht. Trag ihn in den Systemeinstellungen ein und starte noch einmal.",
+      "unknown_site": "Dieses Badegewässer steht nicht mehr in den AGES-Daten."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Abfrage-Intervall",
+        "description": "Alle Einträge teilen sich eine Abfrage — es gilt das kürzeste hier eingestellte Intervall.",
+        "data": {
+          "scan_interval_season_hours": "Während der Badesaison",
+          "scan_interval_offseason_hours": "Außerhalb der Saison"
+        },
+        "data_description": {
+          "scan_interval_season_hours": "15. Mai bis 30. September. Proben kommen etwa alle 20 Tage — öfter abzufragen hilft nur bei kurzfristigen Sperren.",
+          "scan_interval_offseason_hours": "Außerhalb der Saison ändert sich nichts mehr — die Werte vom Sommer und die Jahresbewertung bleiben, wie sie sind."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": { "name": "Wassertemperatur" },
+      "e_coli": { "name": "E. coli" },
+      "enterococci": { "name": "Enterokokken" },
+      "secchi_depth": { "name": "Sichttiefe" },
+      "water_quality": {
+        "name": "Wasserqualität",
+        "state": {
+          "A": "Ausgezeichnet",
+          "B": "Gut",
+          "C": "Ausreichend",
+          "D": "Mangelhaft"
+        }
+      },
+      "last_sample": { "name": "Letzte Probenahme" }
+    },
+    "binary_sensor": {
+      "closed": {
+        "name": "Gesperrt",
+        "state": {
+          "off": "Offen",
+          "on": "Gesperrt"
+        }
+      },
+      "bathing_season": {
+        "name": "Badesaison",
+        "state": {
+          "off": "Außer Saison",
+          "on": "In der Saison"
+        }
+      }
+    }
+  },
+  "issues": {
+    "site_missing": {
+      "title": "{title} fehlt in den AGES-Daten",
+      "description": "AGES führt {title} (ID {site_id}) nicht mehr, darum bleiben die Entitäten nicht verfügbar. Wenn das Badegewässer dauerhaft aufgelassen wurde, kannst du diesen Eintrag entfernen."
+    }
+  },
   "exceptions": {
     "cannot_connect": {
       "message": "Der AGES-Badegewässerdienst ist nicht erreichbar ({detail}). Home Assistant versucht es von selbst erneut."

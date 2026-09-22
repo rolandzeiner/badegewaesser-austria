@@ -1,4 +1,98 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a bathing water",
+        "menu_options": {
+          "bundesland": "Choose by province",
+          "nearby": "Bathing waters near you"
+        }
+      },
+      "bundesland": {
+        "title": "Province",
+        "description": "Which province is the bathing water in?",
+        "data": {
+          "bundesland": "Province"
+        }
+      },
+      "site": {
+        "title": "Bathing water",
+        "description": "Which bathing water in {bundesland} do you want to follow?",
+        "data": {
+          "site_id": "Bathing water"
+        }
+      },
+      "nearby": {
+        "title": "Near you",
+        "description": "Sorted by distance from your Home Assistant location.",
+        "data": {
+          "site_id": "Bathing water"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This bathing water is already set up.",
+      "cannot_connect": "AGES data isn't reachable right now. Try again in a little while.",
+      "no_home_location": "Home Assistant doesn't know where you are yet. Set your location in system settings, then start again.",
+      "unknown_site": "That bathing water is no longer in the AGES data."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update interval",
+        "description": "All entries share one request, so the shortest interval set here wins.",
+        "data": {
+          "scan_interval_season_hours": "During the bathing season",
+          "scan_interval_offseason_hours": "Outside the season"
+        },
+        "data_description": {
+          "scan_interval_season_hours": "15 May to 30 September. Samples arrive about every 20 days, so checking more often only helps catch short-notice closures.",
+          "scan_interval_offseason_hours": "Nothing changes outside the season — last summer's readings and the annual rating stay as they are."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": { "name": "Water temperature" },
+      "e_coli": { "name": "E. coli" },
+      "enterococci": { "name": "Enterococci" },
+      "secchi_depth": { "name": "Secchi depth" },
+      "water_quality": {
+        "name": "Water quality",
+        "state": {
+          "A": "Excellent",
+          "B": "Good",
+          "C": "Sufficient",
+          "D": "Poor"
+        }
+      },
+      "last_sample": { "name": "Last sample" }
+    },
+    "binary_sensor": {
+      "closed": {
+        "name": "Closed",
+        "state": {
+          "off": "Open",
+          "on": "Closed"
+        }
+      },
+      "bathing_season": {
+        "name": "Bathing season",
+        "state": {
+          "off": "Out of season",
+          "on": "In season"
+        }
+      }
+    }
+  },
+  "issues": {
+    "site_missing": {
+      "title": "{title} is missing from the AGES data",
+      "description": "AGES no longer lists {title} (ID {site_id}), so its entities stay unavailable. If the bathing water was closed for good, you can remove this entry."
+    }
+  },
   "exceptions": {
     "cannot_connect": {
       "message": "Can't reach the AGES bathing-water service ({detail}). Home Assistant will retry on its own."
