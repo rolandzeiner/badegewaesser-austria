@@ -86,17 +86,17 @@ async def test_season_sensor_flips_without_any_coordinator_update(
     the request count does not move.
     """
     await hass.config.async_set_time_zone("Europe/Vienna")
-    freezer.move_to(datetime(2026, 9, 30, 12, 0, tzinfo=VIENNA))
+    freezer.move_to(datetime(2026, 8, 31, 12, 0, tzinfo=VIENNA))
 
     await setup_entry(hass, config_entry)
     assert hass.states.get(f"{PREFIX}bathing_season").state == "on"
     reading_before = hass.states.get(f"{SENSOR_PREFIX}water_temperature")
 
-    # Cross into 1 October and let the sensor's own 00:01 job run. Scheduled
+    # Cross into 1 September and let the sensor's own 00:01 job run. Scheduled
     # refreshes fire during this jump too — that is the point. They fetch an
     # unchanged document, so `always_update=False` suppresses every listener
     # callback and nothing data-driven writes a state.
-    freezer.move_to(datetime(2026, 10, 1, 0, 2, tzinfo=VIENNA))
+    freezer.move_to(datetime(2026, 9, 1, 0, 2, tzinfo=VIENNA))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
 
@@ -110,17 +110,17 @@ async def test_season_sensor_flips_without_any_coordinator_update(
     assert session.get.call_count >= 1, "a scheduled refresh did run"
 
 
-async def test_season_sensor_flips_back_on_in_may(
+async def test_season_sensor_flips_back_on_in_june(
     hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:
     """And it must come back — a latch that only opens is still a latch."""
     await hass.config.async_set_time_zone("Europe/Vienna")
-    freezer.move_to(datetime(2027, 5, 14, 12, 0, tzinfo=VIENNA))
+    freezer.move_to(datetime(2027, 6, 14, 12, 0, tzinfo=VIENNA))
 
     await setup_entry(hass, config_entry)
     assert hass.states.get(f"{PREFIX}bathing_season").state == "off"
 
-    freezer.move_to(datetime(2027, 5, 15, 0, 2, tzinfo=VIENNA))
+    freezer.move_to(datetime(2027, 6, 15, 0, 2, tzinfo=VIENNA))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
 

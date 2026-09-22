@@ -115,18 +115,42 @@ VERSION_FIELD_PATTERN: Final = r'"VERSION"\s*:\s*"[^"]*"\s*,'
 # Season
 # ---------------------------------------------------------------------------
 
-# One window, used by BOTH the poll cadence and the `Badesaison` binary sensor,
-# so the two can never disagree about what "in season" means.
+# THE LEGAL BATHING SEASON, and the only thing the `Badesaison` sensor may
+# report. Austria's Badegewässerverordnung § 4 is explicit:
 #
-# Measured against the live document on 2026-09-22: 1362 samples across 260
-# sites fall in months 5-8 only, spanning 2026-05-26 to 2026-08-31 (May 12,
-# Jun 525, Jul 407, Aug 418). The window below is a superset of that with
-# headroom at both ends, so an earlier start next season is picked up without
-# a code change.
-SEASON_START_MONTH: Final = 5
+#   "Die Badesaison ist der Zeitraum vom 15. Juni bis 31. August eines jeden
+#    Kalenderjahres."
+#   https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20006509
+#
+# This was 15 May - 30 September until 2026-09-22, which is the GERMAN
+# definition (BadegewVO) applied to an Austrian integration by mistake. The
+# visible symptom was the card cheerfully reporting "Badesaison läuft" on
+# 22 September, five weeks after the last sample of the year.
+#
+# The live document corroborates the statute almost exactly: of 1362 samples,
+# ZERO fall after 31 August, and exactly 260 fall before 15 June — one per
+# bathing water, which is the pre-season sample Anlage 3 requires ("Kurz vor
+# Beginn jeder Badesaison ist eine Probenahme vorzunehmen"). The data was
+# saying this all along.
+SEASON_START_MONTH: Final = 6
 SEASON_START_DAY: Final = 15
-SEASON_END_MONTH: Final = 9
-SEASON_END_DAY: Final = 30
+SEASON_END_MONTH: Final = 8
+SEASON_END_DAY: Final = 31
+
+# THE MONITORING WINDOW — when readings can actually arrive, which is wider
+# than the legal season at the front because of that mandated pre-season
+# sample. Measured: samples span 26 May to 31 August, and the pre-season ones
+# run 26 May to 10 June.
+#
+# Deliberately a second window rather than reusing the one above. The two
+# answer different questions — "may one swim" versus "can the data move" — and
+# collapsing them is what produced the bug: either the sensor lies in
+# September, or the poll sleeps through the pre-season sample. Both end on
+# 31 August, and both are justified above rather than chosen.
+MONITORING_START_MONTH: Final = 5
+MONITORING_START_DAY: Final = 15
+MONITORING_END_MONTH: Final = 8
+MONITORING_END_DAY: Final = 31
 
 # ---------------------------------------------------------------------------
 # Poll cadence

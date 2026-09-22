@@ -23,6 +23,10 @@ from custom_components.badegewaesser_austria.const import (
     INTEGRATION_VERSION,
     MAX_POLL_HOURS,
     MIN_POLL_HOURS,
+    MONITORING_END_DAY,
+    MONITORING_END_MONTH,
+    MONITORING_START_DAY,
+    MONITORING_START_MONTH,
     RATING_STATES,
     SEASON_END_DAY,
     SEASON_END_MONTH,
@@ -99,11 +103,29 @@ def test_documented_poll_intervals_match_the_defaults() -> None:
     assert f"between {MIN_POLL_HOURS} and {MAX_POLL_HOURS} hours" in README
 
 
-def test_documented_season_window_matches_the_code() -> None:
-    """One window, and the docs quote it in two places."""
-    assert SEASON_START_MONTH == 5 and SEASON_END_MONTH == 9
-    assert f"{SEASON_START_DAY} May" in README
-    assert f"{SEASON_END_DAY} Sep" in README
+def test_documented_legal_season_matches_the_statute() -> None:
+    """The docs must quote the statute, not a neighbouring country's.
+
+    Badegewässerverordnung § 4 is 15 June to 31 August. The README said
+    15 May to 30 September until 2026-09-22, which is the German definition.
+    """
+    assert (SEASON_START_MONTH, SEASON_START_DAY) == (6, 15)
+    assert (SEASON_END_MONTH, SEASON_END_DAY) == (8, 31)
+    assert "15 June and 31 August" in README
+    assert "Badegewässerverordnung" in README
+
+
+def test_documented_monitoring_window_matches_the_code() -> None:
+    """And the cadence table must quote the wider window it actually uses."""
+    assert (MONITORING_START_MONTH, MONITORING_START_DAY) == (5, 15)
+    assert (MONITORING_END_MONTH, MONITORING_END_DAY) == (8, 31)
+    assert "15 May – 31 Aug" in README
+
+
+def test_docs_never_mention_the_old_window() -> None:
+    """A stale date in the copy is how the wrong season survives a fix."""
+    assert "30 September" not in README
+    assert "30 Sep" not in README
 
 
 def test_attribution_block_is_the_licence_text_verbatim() -> None:

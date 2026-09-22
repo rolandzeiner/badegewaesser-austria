@@ -12,9 +12,28 @@ import { latestFraction, seasonFraction, seasonTrackDescription } from "./season
 const at = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
 describe("seasonFraction", () => {
-  it("puts the season boundaries at the ends", () => {
+  it("puts the axis boundaries at the ends", () => {
+    // The axis is the MONITORING window, 15 May to 31 August — not the legal
+    // bathing season (15 June to 31 August, BGewV § 4). It has to start early
+    // enough to carry the mandated pre-season sample, which lands between
+    // 26 May and 10 June for all 260 sites.
     expect(seasonFraction(at("2026-05-15"))).toBe(0);
-    expect(seasonFraction(at("2026-09-30"))).toBe(1);
+    expect(seasonFraction(at("2026-08-31"))).toBe(1);
+  });
+
+  it("places the pre-season sample inside the axis, not clamped to its edge", () => {
+    // The bug this guards: an axis starting at the legal 15 June would pin
+    // every site's first dot to 0 and destroy the spacing of the whole series.
+    const earliest = seasonFraction(at("2026-05-26"));
+    const latestPreSeason = seasonFraction(at("2026-06-10"));
+    expect(earliest).toBeGreaterThan(0);
+    expect(latestPreSeason).toBeGreaterThan(earliest);
+  });
+
+  it("puts a late-August sample near the end of the axis", () => {
+    // 20 August is ~90% of 15 May to 31 August. It was ~69% while the axis
+    // wrongly ran to 30 September.
+    expect(seasonFraction(at("2026-08-20"))).toBeGreaterThan(0.85);
   });
 
   it("is monotonic through the season", () => {
@@ -36,7 +55,9 @@ describe("seasonFraction", () => {
     // AGES has published from 26 May, but nothing guarantees next season
     // starts as late. An early sample is real data and belongs at the edge.
     expect(seasonFraction(at("2026-05-01"))).toBe(0);
-    expect(seasonFraction(at("2026-10-20"))).toBe(1);
+    // Zero of 1362 live samples fall after 31 August, but a stray one would
+    // still be shown rather than silently dropped.
+    expect(seasonFraction(at("2026-09-20"))).toBe(1);
   });
 });
 

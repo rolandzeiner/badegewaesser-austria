@@ -247,10 +247,11 @@ describe("reading anchoring", () => {
     // placed at all.
     expect(before + after).toBeCloseTo(100, 1);
 
-    // Newest fixture sample is 20 August, which is past the middle of a
-    // 15 May - 30 September season but nowhere near its end.
-    expect(before).toBeGreaterThan(50);
-    expect(before).toBeLessThan(85);
+    // Newest fixture sample is 20 August. On the real axis — 15 May to
+    // 31 August, the window in which readings arrive — that is near the end,
+    // around 90%. It read ~69% while the axis wrongly ran to 30 September.
+    expect(before).toBeGreaterThan(85);
+    expect(before).toBeLessThan(97);
   });
 
   it("keeps the reading inside the card for an early-season sample", async () => {

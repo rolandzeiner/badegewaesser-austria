@@ -34,10 +34,10 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 
 - **All 260 EU-designated bathing waters**, across every Bundesland — Burgenland 20, Niederösterreich 28, Wien 17, Kärnten 32, Steiermark 32, Oberösterreich 43, Salzburg 37, Tirol 35, Vorarlberg 16 *(0.1.0)*
 - **Six sensors and two binary sensors per bathing water** — water temperature, E. coli, enterococci, Secchi depth, the annual EU classification, the sampling date, a closure flag and a bathing-season flag *(0.1.0)*
-- **A Lovelace card built around the season**, not the instant. The samples sit on a calendar axis from 15 May to 30 September, so you can see the rhythm of the season and how fresh the newest reading is *(0.1.0)*
+- **A Lovelace card built around the season**, not the instant. The samples sit on a calendar axis from 15 May to 31 August, so you can see the rhythm of the season and how fresh the newest reading is *(0.1.0)*
 - **Find a lake by distance** — the setup flow can rank bathing waters by how far they are from your Home Assistant location *(0.1.0)*
 - **Honest about detection limits** — most samples report "below the laboratory's detection limit" rather than a measured count. The card shows `<15`, and the sensor carries a `below_detection_limit` attribute, so you never read a limit as a measurement *(0.1.0)*
-- **Keeps working out of season** — from October to May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
+- **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
 - **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
 
 ## Requirements
@@ -84,7 +84,7 @@ Each bathing water becomes one device with eight entities.
 | Water quality | `sensor` | The annual EU classification, plus `rating_year` and `rating_class`. |
 | Last sample | `sensor` | When the newest sample was taken. |
 | Closed | `binary_sensor` | On when the authority has banned swimming. `closure_reason` says why. |
-| Bathing season | `binary_sensor` | On between 15 May and 30 September. |
+| Bathing season | `binary_sensor` | On between 15 June and 31 August, the season defined in Badegewässerverordnung § 4. |
 
 ### Water quality
 
@@ -109,8 +109,8 @@ The integration polls once for every bathing water you follow, because AGES publ
 
 | When | Default | Why |
 |---|---|---|
-| In season (15 May – 30 Sep) | every 6 hours | Samples arrive about every 20 days, so this is already far faster than the data moves. The reason for 6 hours is a closure, which can be posted any day. |
-| Out of season | every 24 hours | Nothing changes. This is a courtesy poll that picks up the new annual classification when AGES publishes it. |
+| Readings arrive (15 May – 31 Aug) | every 6 hours | Samples arrive about every 20 days, so this is already far faster than the data moves. The reason for 6 hours is a closure, which can be posted any day. |
+| Rest of the year | every 24 hours | Nothing changes. This is a courtesy poll that picks up the new annual classification when AGES publishes it. |
 
 You can set both intervals in the entry's **Configure** dialog, between 3 and 168 hours. Entries share one poll, so the shortest interval you set applies to all of them.
 
@@ -212,7 +212,7 @@ logger:
 ## Known Limitations
 
 - **Samples are sparse.** Each bathing water is sampled 4 to 9 times a season, about 20 days apart. This is not live data and the card does not pretend otherwise — every reading is shown with the date it was taken.
-- **Nothing changes from October to mid-May.** No samples are taken, so the newest reading stays put until the following summer.
+- **Nothing changes from September to mid-May.** No samples are taken, so the newest reading stays put until the following summer.
 - **One bathing water has no coordinates.** AGES publishes `0` / `0` for *Wolfgangsee, St. Gilgen – Gamsjaga*, so it never appears in the "near you" list. You can still add it by province.
 - **A few historical ratings use letters AGES does not document.** Two sites carry an `F` or a `G` in an older year. The integration will not publish a letter it cannot interpret, so it falls back to the most recent year it can, and keeps the original in `rating_raw`.
 - **The per-sample assessment is a raw number.** Each sample carries a 1, 2 or 3 whose meaning AGES does not publish; sources disagree on whether the scale even has four levels. It is exposed as `sample_assessment` without a label rather than guessed at.

@@ -47,8 +47,8 @@
           "scan_interval_offseason_hours": "Außerhalb der Saison"
         },
         "data_description": {
-          "scan_interval_season_hours": "15. Mai bis 30. September. Proben kommen etwa alle 20 Tage — öfter abzufragen hilft nur bei kurzfristigen Sperren.",
-          "scan_interval_offseason_hours": "Außerhalb der Saison ändert sich nichts mehr — die Werte vom Sommer und die Jahresbewertung bleiben, wie sie sind."
+          "scan_interval_season_hours": "15. Mai bis 31. August, wenn Werte kommen. Proben gibt es etwa alle 20 Tage — öfter abzufragen hilft vor allem bei kurzfristigen Sperren.",
+          "scan_interval_offseason_hours": "Von September bis Mitte Mai ändert sich nichts — die Werte vom Sommer und die Jahresbewertung bleiben, wie sie sind."
         }
       }
     }

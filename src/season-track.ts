@@ -32,13 +32,20 @@ export interface SeasonSample {
   secchi_depth?: number | null;
 }
 
-// Mirrors SEASON_START_* / SEASON_END_* in const.py. The two must agree, or
-// an in-season card draws a dot outside its own axis.
-const SEASON_START = { month: 5, day: 15 };
-const SEASON_END = { month: 9, day: 30 };
+// Mirrors MONITORING_START_* / MONITORING_END_* in const.py — the window in
+// which readings arrive, NOT the legal bathing season. The axis has to carry
+// the mandated pre-season sample, which lands between 26 May and 10 June for
+// all 260 sites, so an axis starting at the legal 15 June would clamp every
+// site's first dot onto its left edge.
+const AXIS_START = { month: 5, day: 15 };
+const AXIS_END = { month: 8, day: 31 };
 
-const VIEW_W = 300;
-const VIEW_H = 44;
+// No viewBox: percentages resolve against the rendered element, and r / y stay
+// in CSS pixels. The first version used viewBox="0 0 300 44" with
+// preserveAspectRatio="none", which stretches the coordinate system
+// non-uniformly — at a rendered width of ~460px the x scale was 1.53 against a
+// y scale of 1.0, so every circle came out an ellipse and the month labels
+// were stretched with them.
 const TRACK_Y = 14;
 const LABEL_Y = 38;
 
@@ -46,17 +53,15 @@ const LABEL_Y = 38;
 // 12px marks.
 const DOT_R = 4;
 const LATEST_R = 6;
+// Keeps the end dots off the edge now that 0% and 100% are the real edges.
+export const TRACK_INSET_PX = LATEST_R + 2;
 // dataviz: a pinpoint hover target is an anti-pattern; the hit area must
 // reach ~24px even though the mark is 8px.
 const HIT_R = 12;
 
-const MONTHS: ReadonlyArray<{ month: number; key: string }> = [
-  { month: 5, key: "May" },
-  { month: 6, key: "Jun" },
-  { month: 7, key: "Jul" },
-  { month: 8, key: "Aug" },
-  { month: 9, key: "Sep" },
-];
+// September is deliberately absent: the season ends 31 August and the live
+// document contains zero September samples in 1362 rows.
+const MONTHS: ReadonlyArray<number> = [5, 6, 7, 8];
 
 const dayOfYear = (date: Date): number => {
   const start = Date.UTC(date.getUTCFullYear(), 0, 1);
@@ -73,8 +78,8 @@ const dayOfYear = (date: Date): number => {
  */
 export function seasonFraction(date: Date): number {
   const year = date.getUTCFullYear();
-  const first = dayOfYear(new Date(Date.UTC(year, SEASON_START.month - 1, SEASON_START.day)));
-  const last = dayOfYear(new Date(Date.UTC(year, SEASON_END.month - 1, SEASON_END.day)));
+  const first = dayOfYear(new Date(Date.UTC(year, AXIS_START.month - 1, AXIS_START.day)));
+  const last = dayOfYear(new Date(Date.UTC(year, AXIS_END.month - 1, AXIS_END.day)));
   const span = last - first;
   if (span <= 0) return 0;
   return Math.min(1, Math.max(0, (dayOfYear(date) - first) / span));
@@ -85,8 +90,8 @@ const parseDate = (iso: string): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const x = (fraction: number): number =>
-  DOT_R + LATEST_R + fraction * (VIEW_W - 2 * (DOT_R + LATEST_R));
+/** A position on the axis as a percentage of the rendered width. */
+const x = (fraction: number): string => `${(fraction * 100).toFixed(3)}%`;
 
 export interface SeasonTrackOptions {
   samples: readonly SeasonSample[];
@@ -126,9 +131,12 @@ export function latestFraction(samples: readonly SeasonSample[]): number {
 }
 
 export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
-  const { samples, now, inSeason, language, formatDate, formatTemperature } = options;
+  const { samples, now, language, formatDate, formatTemperature } = options;
 
-  const progress = inSeason ? seasonFraction(now) : 1;
+  // Progress is read off the axis itself rather than the in-season flag: past
+  // 31 August the axis is simply complete, which is what makes an out-of-season
+  // card look finished instead of broken.
+  const progress = seasonFraction(now);
   const points = samples
     .map((sample) => ({ sample, date: parseDate(sample.date) }))
     .filter((entry): entry is { sample: SeasonSample; date: Date } => entry.date !== null)
@@ -136,71 +144,79 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
 
   const lastIndex = points.length - 1;
   const year = points.at(-1)?.date.getUTCFullYear() ?? now.getUTCFullYear();
+  const monthName = (month: number): string =>
+    new Intl.DateTimeFormat(language ?? "en", { month: "short", timeZone: "UTC" }).format(
+      new Date(Date.UTC(year, month - 1, 15)),
+    );
 
   return html`
-    <svg
-      class="track"
-      viewBox="0 0 ${VIEW_W} ${VIEW_H}"
-      preserveAspectRatio="none"
-      role="img"
-      aria-label=${localize("card.season_axis_label", language, { year })}
-    >
-      <!-- Solid hairlines only. A dashed rule reads as a threshold or a
-           projection when it is just an axis. -->
-      ${svg`<line
-        class="track-ground"
-        x1=${x(0)} y1=${TRACK_Y} x2=${x(1)} y2=${TRACK_Y}
-      />`}
-      ${svg`<line
-        class="track-filled"
-        x1=${x(0)} y1=${TRACK_Y} x2=${x(progress)} y2=${TRACK_Y}
-      />`}
-      ${MONTHS.map((entry, index) => {
-        const tick = seasonFraction(
-          new Date(Date.UTC(year, entry.month - 1, index === 0 ? SEASON_START.day : 1)),
-        );
-        return svg`<text
-          class="month"
-          x=${x(tick)}
-          y=${LABEL_Y}
-          text-anchor=${index === 0 ? "start" : index === MONTHS.length - 1 ? "end" : "middle"}
-        >${new Intl.DateTimeFormat(language ?? "en", { month: "short", timeZone: "UTC" }).format(
-          new Date(Date.UTC(year, entry.month - 1, 15)),
-        )}</text>`;
-      })}
-      ${points.map(
-        (point, index) => svg`
-          <g class=${index === lastIndex ? "point is-latest" : "point"}>
-            <title>
-              ${formatDate(point.date)}: ${formatTemperature(point.sample.water_temperature)}
-            </title>
-            <circle
-              class="dot"
-              cx=${point.cx}
-              cy=${TRACK_Y}
-              r=${index === lastIndex ? LATEST_R : DOT_R}
-            />
-            <circle
-              class="hit"
-              cx=${point.cx}
-              cy=${TRACK_Y}
-              r=${HIT_R}
-            />
-          </g>
-        `,
-      )}
-    </svg>
+    <div class="track-wrap">
+      <svg
+        class="track"
+        role="img"
+        aria-label=${localize("card.season_axis_label", language, { year })}
+      >
+        <!-- Solid hairlines only. A dashed rule reads as a threshold or a
+             projection when it is just an axis. -->
+        ${svg`<line
+          class="track-ground"
+          x1=${x(0)} y1=${TRACK_Y} x2=${x(1)} y2=${TRACK_Y}
+        />`}
+        ${svg`<line
+          class="track-filled"
+          x1=${x(0)} y1=${TRACK_Y} x2=${x(progress)} y2=${TRACK_Y}
+        />`}
+        ${MONTHS.map((month, index) => {
+          const tick = seasonFraction(
+            new Date(Date.UTC(year, month - 1, index === 0 ? AXIS_START.day : 1)),
+          );
+          return svg`<text
+            class="month"
+            x=${x(tick)}
+            y=${LABEL_Y}
+            text-anchor=${index === 0 ? "start" : "middle"}
+          >${monthName(month)}</text>`;
+        })}
+        ${points.map(
+          (point, index) => svg`
+            <g class=${index === lastIndex ? "point is-latest" : "point"}>
+              <title>
+                ${formatDate(point.date)}: ${formatTemperature(point.sample.water_temperature)}
+              </title>
+              <circle
+                class="dot"
+                cx=${point.cx}
+                cy=${TRACK_Y}
+                r=${index === lastIndex ? LATEST_R : DOT_R}
+              />
+              <circle class="hit" cx=${point.cx} cy=${TRACK_Y} r=${HIT_R} />
+            </g>
+          `,
+        )}
+      </svg>
+    </div>
   `;
 }
 
 export const seasonTrackStyles = css`
+  /* The inset the end dots need now that 0% and 100% are the real edges of
+     the element rather than padded coordinates inside a viewBox. */
+  .track-wrap {
+    padding-inline: 8px;
+    margin-top: var(--ha-space-1, 4px);
+  }
+
   .track {
     display: block;
     width: 100%;
     /* Sized to include the month labels. A container that fits only the plot
-       gives the card a tiny nested scrollbar instead of an axis. */
+       gives the card a tiny nested scrollbar instead of an axis.
+
+       There is no viewBox on purpose, so one CSS pixel is one user unit: r=4
+       draws a 8px CIRCLE at any card width. With a viewBox plus
+       preserveAspectRatio="none" the x and y scales differ and every dot
+       renders as a horizontally stretched ellipse. */
     height: 44px;
-    margin-top: var(--ha-space-1, 4px);
     overflow: visible;
   }
 

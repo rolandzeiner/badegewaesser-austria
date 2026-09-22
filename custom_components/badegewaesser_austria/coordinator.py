@@ -40,6 +40,10 @@ from .const import (
     DOMAIN,
     MAX_POLL_HOURS,
     MIN_POLL_HOURS,
+    MONITORING_END_DAY,
+    MONITORING_END_MONTH,
+    MONITORING_START_DAY,
+    MONITORING_START_MONTH,
     POLL_JITTER_SECONDS,
     SEASON_END_DAY,
     SEASON_END_MONTH,
@@ -78,16 +82,40 @@ type SiteMap = dict[str, BathingSite]
 
 
 @callback
-def is_in_season(day: date) -> bool:
-    """Is `day` inside the Austrian bathing season?
-
-    One window shared by the poll cadence and the `Badesaison` binary sensor,
-    so the two can never disagree. The window does not cross a year boundary,
-    which keeps this a plain comparison of (month, day) tuples.
-    """
-    start = (SEASON_START_MONTH, SEASON_START_DAY)
-    end = (SEASON_END_MONTH, SEASON_END_DAY)
+def _within(day: date, start: tuple[int, int], end: tuple[int, int]) -> bool:
+    """Is `day` inside a window that does not cross a year boundary?"""
     return start <= (day.month, day.day) <= end
+
+
+@callback
+def is_in_season(day: date) -> bool:
+    """Is `day` inside the LEGAL Austrian bathing season?
+
+    15 June to 31 August, per Badegewässerverordnung § 4. This is what the
+    `Badesaison` sensor reports, and it is the answer to "may one swim" — not
+    "is there fresh data", which is `is_monitoring_window` below.
+    """
+    return _within(
+        day,
+        (SEASON_START_MONTH, SEASON_START_DAY),
+        (SEASON_END_MONTH, SEASON_END_DAY),
+    )
+
+
+@callback
+def is_monitoring_window(day: date) -> bool:
+    """Can a new reading plausibly arrive on `day`?
+
+    Wider than the legal season at the front, because every bathing water gets
+    one mandated pre-season sample and those land between 26 May and 10 June.
+    Polling on the legal season alone would sleep through all 260 of them at
+    the 24-hour off-season cadence.
+    """
+    return _within(
+        day,
+        (MONITORING_START_MONTH, MONITORING_START_DAY),
+        (MONITORING_END_MONTH, MONITORING_END_DAY),
+    )
 
 
 @callback
@@ -176,7 +204,10 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
         and every other entry gets fresher data at no extra cost, since the
         request is shared anyway.
         """
-        in_season = is_in_season(dt_util.now().date())
+        # The MONITORING window, not the legal season: the point of the fast
+        # cadence is catching data that moves, and the pre-season sample moves
+        # a month before the season opens.
+        in_season = is_monitoring_window(dt_util.now().date())
         key = (
             CONF_SCAN_INTERVAL_SEASON_HOURS
             if in_season

@@ -373,58 +373,64 @@ Le(),Ve(),Ue(),We(),Ge(),Ke(),qe(),Je(),Ye()}));Xe(),B();const Ze=l`
       border: 1px solid CanvasText;
     }
   }
-`,Qe=`badegewaesser-austria-card`;var $e={card:{season_over:`Saison beendet`,in_season:`Badesaison läuft`,no_samples:`Noch keine Proben in dieser Saison`,closed:`Baden verboten`,sampled_on:`Probe vom {date}`,not_measured:`nicht gemessen`,season_axis_label:`Proben der Saison {year}`,water_quality:`Wasserqualität`,e_coli:`E. coli`,enterococci:`Enterokokken`,secchi_depth:`Sichttiefe`,water_temperature:`Wassertemperatur`,rating_year:`Bewertung {year}`,no_rating:`noch nicht bewertet`,below_limit:`unter der Nachweisgrenze`,attribution:`Datenquelle: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT`},quality:{excellent:`Ausgezeichnet`,good:`Gut`,sufficient:`Ausreichend`,poor:`Mangelhaft`},error:{no_entity:`Wähle im Karteneditor ein Badegewässer aus.`,entity_missing:`Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.`,not_this_integration:`{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration.`},version:{mismatch:`Diese Karte ist veraltet ({card} statt {integration}).`,reload:`Neu laden`},editor:{entity:`Badegewässer`,entity_helper:`Eine beliebige Entität des Badegewässers — die übrigen findet die Karte selbst.`,name:`Titel`,name_helper:`Leer lassen, um den Namen des Badegewässers zu verwenden.`,show_season_track:`Saisonverlauf zeigen`,show_season_track_helper:`Die Proben der Saison als Zeitachse.`,show_readings:`Messwerte zeigen`,show_readings_helper:`Wasserqualität, E. coli, Enterokokken und Sichttiefe.`}},et={card:{season_over:`Season over`,in_season:`Bathing season under way`,no_samples:`No samples yet this season`,closed:`Swimming prohibited`,sampled_on:`Sampled {date}`,not_measured:`not measured`,season_axis_label:`Samples from the {year} season`,water_quality:`Water quality`,e_coli:`E. coli`,enterococci:`Enterococci`,secchi_depth:`Secchi depth`,water_temperature:`Water temperature`,rating_year:`{year} rating`,no_rating:`not yet rated`,below_limit:`below the detection limit`,attribution:`Data source: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT`},quality:{excellent:`Excellent`,good:`Good`,sufficient:`Sufficient`,poor:`Poor`},error:{no_entity:`Pick a bathing water in the card editor.`,entity_missing:`The entity {entity} no longer exists. Pick another one in the card editor.`,not_this_integration:`{entity} isn't part of Badegewässer Austria. Pick an entity from this integration.`},version:{mismatch:`This card is out of date ({card} instead of {integration}).`,reload:`Reload`},editor:{entity:`Bathing water`,entity_helper:`Any entity of the bathing water — the card finds the rest itself.`,name:`Title`,name_helper:`Leave empty to use the bathing water's own name.`,show_season_track:`Show the season track`,show_season_track_helper:`This season's samples on a time axis.`,show_readings:`Show the readings`,show_readings_helper:`Water quality, E. coli, enterococci and Secchi depth.`}};function V(e,t,n={}){let r=(t??U).toLowerCase().split(`-`)[0]??U,[i,a]=e.split(`.`),o=H[r]??H[U],s=H[U],c=e=>i&&a?e?.[i]?.[a]:void 0,l=c(o)??c(s)??e;return Object.entries(n).reduce((e,[t,n])=>e.replaceAll(`{${t}}`,String(n)),l)}var H,U,tt=t((()=>{H={de:$e,en:et},U=`en`}));B(),tt();const nt={month:5,day:15},rt={month:9,day:30},it=[{month:5,key:`May`},{month:6,key:`Jun`},{month:7,key:`Jul`},{month:8,key:`Aug`},{month:9,key:`Sep`}],at=e=>{let t=Date.UTC(e.getUTCFullYear(),0,1),n=Date.UTC(e.getUTCFullYear(),e.getUTCMonth(),e.getUTCDate());return Math.round((n-t)/864e5)};function W(e){let t=e.getUTCFullYear(),n=at(new Date(Date.UTC(t,nt.month-1,nt.day))),r=at(new Date(Date.UTC(t,rt.month-1,rt.day)))-n;return r<=0?0:Math.min(1,Math.max(0,(at(e)-n)/r))}const ot=e=>{let t=/* @__PURE__ */ new Date(`${e}T00:00:00Z`);return Number.isNaN(t.getTime())?null:t},G=e=>10+e*280;function st(e){let{samples:t,formatDate:n,formatTemperature:r,language:i}=e;return t.length===0?V(`card.no_samples`,i):t.map(e=>{let t=ot(e.date);return`${t?n(t):e.date}: ${r(e.water_temperature)}`}).join(`, `)}function ct(e){let t=e.at(-1),n=t?ot(t.date):null;return n?W(n):1}function lt(e){let{samples:t,now:n,inSeason:r,language:i,formatDate:a,formatTemperature:o}=e,s=r?W(n):1,c=t.map(e=>({sample:e,date:ot(e.date)})).filter(e=>e.date!==null).map(e=>({...e,cx:G(W(e.date))})),l=c.length-1,u=c.at(-1)?.date.getUTCFullYear()??n.getUTCFullYear();return A`
-    <svg
-      class="track"
-      viewBox="0 0 ${300} ${44}"
-      preserveAspectRatio="none"
-      role="img"
-      aria-label=${V(`card.season_axis_label`,i,{year:u})}
-    >
-      <!-- Solid hairlines only. A dashed rule reads as a threshold or a
-           projection when it is just an axis. -->
-      ${j`<line
-        class="track-ground"
-        x1=${G(0)} y1=${14} x2=${G(1)} y2=${14}
-      />`}
-      ${j`<line
-        class="track-filled"
-        x1=${G(0)} y1=${14} x2=${G(s)} y2=${14}
-      />`}
-      ${it.map((e,t)=>{let n=W(new Date(Date.UTC(u,e.month-1,t===0?nt.day:1)));return j`<text
-          class="month"
-          x=${G(n)}
-          y=${38}
-          text-anchor=${t===0?`start`:t===it.length-1?`end`:`middle`}
-        >${new Intl.DateTimeFormat(i??`en`,{month:`short`,timeZone:`UTC`}).format(new Date(Date.UTC(u,e.month-1,15)))}</text>`})}
-      ${c.map((e,t)=>j`
-          <g class=${t===l?`point is-latest`:`point`}>
-            <title>
-              ${a(e.date)}: ${o(e.sample.water_temperature)}
-            </title>
-            <circle
-              class="dot"
-              cx=${e.cx}
-              cy=${14}
-              r=${t===l?6:4}
-            />
-            <circle
-              class="hit"
-              cx=${e.cx}
-              cy=${14}
-              r=${12}
-            />
-          </g>
-        `)}
-    </svg>
+`,Qe=`badegewaesser-austria-card`;var $e={card:{season_over:`Saison beendet`,in_season:`Badesaison läuft`,no_samples:`Noch keine Proben in dieser Saison`,closed:`Baden verboten`,sampled_on:`Probe vom {date}`,not_measured:`nicht gemessen`,season_axis_label:`Proben der Saison {year}`,water_quality:`Wasserqualität`,e_coli:`E. coli`,enterococci:`Enterokokken`,secchi_depth:`Sichttiefe`,water_temperature:`Wassertemperatur`,rating_year:`Bewertung {year}`,no_rating:`noch nicht bewertet`,below_limit:`unter der Nachweisgrenze`,attribution:`Datenquelle: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT`},quality:{excellent:`Ausgezeichnet`,good:`Gut`,sufficient:`Ausreichend`,poor:`Mangelhaft`},error:{no_entity:`Wähle im Karteneditor ein Badegewässer aus.`,entity_missing:`Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.`,not_this_integration:`{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration.`},version:{mismatch:`Diese Karte ist veraltet ({card} statt {integration}).`,reload:`Neu laden`},editor:{entity:`Badegewässer`,entity_helper:`Eine beliebige Entität des Badegewässers — die übrigen findet die Karte selbst.`,name:`Titel`,name_helper:`Leer lassen, um den Namen des Badegewässers zu verwenden.`,show_season_track:`Saisonverlauf zeigen`,show_season_track_helper:`Die Proben der Saison als Zeitachse.`,show_readings:`Messwerte zeigen`,show_readings_helper:`Wasserqualität, E. coli, Enterokokken und Sichttiefe.`}},et={card:{season_over:`Season over`,in_season:`Bathing season under way`,no_samples:`No samples yet this season`,closed:`Swimming prohibited`,sampled_on:`Sampled {date}`,not_measured:`not measured`,season_axis_label:`Samples from the {year} season`,water_quality:`Water quality`,e_coli:`E. coli`,enterococci:`Enterococci`,secchi_depth:`Secchi depth`,water_temperature:`Water temperature`,rating_year:`{year} rating`,no_rating:`not yet rated`,below_limit:`below the detection limit`,attribution:`Data source: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT`},quality:{excellent:`Excellent`,good:`Good`,sufficient:`Sufficient`,poor:`Poor`},error:{no_entity:`Pick a bathing water in the card editor.`,entity_missing:`The entity {entity} no longer exists. Pick another one in the card editor.`,not_this_integration:`{entity} isn't part of Badegewässer Austria. Pick an entity from this integration.`},version:{mismatch:`This card is out of date ({card} instead of {integration}).`,reload:`Reload`},editor:{entity:`Bathing water`,entity_helper:`Any entity of the bathing water — the card finds the rest itself.`,name:`Title`,name_helper:`Leave empty to use the bathing water's own name.`,show_season_track:`Show the season track`,show_season_track_helper:`This season's samples on a time axis.`,show_readings:`Show the readings`,show_readings_helper:`Water quality, E. coli, enterococci and Secchi depth.`}};function V(e,t,n={}){let r=(t??U).toLowerCase().split(`-`)[0]??U,[i,a]=e.split(`.`),o=H[r]??H[U],s=H[U],c=e=>i&&a?e?.[i]?.[a]:void 0,l=c(o)??c(s)??e;return Object.entries(n).reduce((e,[t,n])=>e.replaceAll(`{${t}}`,String(n)),l)}var H,U,tt=t((()=>{H={de:$e,en:et},U=`en`}));B(),tt();const nt={month:5,day:15},rt={month:8,day:31},it=[5,6,7,8],at=e=>{let t=Date.UTC(e.getUTCFullYear(),0,1),n=Date.UTC(e.getUTCFullYear(),e.getUTCMonth(),e.getUTCDate());return Math.round((n-t)/864e5)};function W(e){let t=e.getUTCFullYear(),n=at(new Date(Date.UTC(t,nt.month-1,nt.day))),r=at(new Date(Date.UTC(t,rt.month-1,rt.day)))-n;return r<=0?0:Math.min(1,Math.max(0,(at(e)-n)/r))}const ot=e=>{let t=/* @__PURE__ */ new Date(`${e}T00:00:00Z`);return Number.isNaN(t.getTime())?null:t},G=e=>`${(e*100).toFixed(3)}%`;function st(e){let{samples:t,formatDate:n,formatTemperature:r,language:i}=e;return t.length===0?V(`card.no_samples`,i):t.map(e=>{let t=ot(e.date);return`${t?n(t):e.date}: ${r(e.water_temperature)}`}).join(`, `)}function ct(e){let t=e.at(-1),n=t?ot(t.date):null;return n?W(n):1}function lt(e){let{samples:t,now:n,language:r,formatDate:i,formatTemperature:a}=e,o=W(n),s=t.map(e=>({sample:e,date:ot(e.date)})).filter(e=>e.date!==null).map(e=>({...e,cx:G(W(e.date))})),c=s.length-1,l=s.at(-1)?.date.getUTCFullYear()??n.getUTCFullYear(),u=e=>new Intl.DateTimeFormat(r??`en`,{month:`short`,timeZone:`UTC`}).format(new Date(Date.UTC(l,e-1,15)));return A`
+    <div class="track-wrap">
+      <svg
+        class="track"
+        role="img"
+        aria-label=${V(`card.season_axis_label`,r,{year:l})}
+      >
+        <!-- Solid hairlines only. A dashed rule reads as a threshold or a
+             projection when it is just an axis. -->
+        ${j`<line
+          class="track-ground"
+          x1=${G(0)} y1=${14} x2=${G(1)} y2=${14}
+        />`}
+        ${j`<line
+          class="track-filled"
+          x1=${G(0)} y1=${14} x2=${G(o)} y2=${14}
+        />`}
+        ${it.map((e,t)=>{let n=W(new Date(Date.UTC(l,e-1,t===0?nt.day:1)));return j`<text
+            class="month"
+            x=${G(n)}
+            y=${38}
+            text-anchor=${t===0?`start`:`middle`}
+          >${u(e)}</text>`})}
+        ${s.map((e,t)=>j`
+            <g class=${t===c?`point is-latest`:`point`}>
+              <title>
+                ${i(e.date)}: ${a(e.sample.water_temperature)}
+              </title>
+              <circle
+                class="dot"
+                cx=${e.cx}
+                cy=${14}
+                r=${t===c?6:4}
+              />
+              <circle class="hit" cx=${e.cx} cy=${14} r=${12} />
+            </g>
+          `)}
+      </svg>
+    </div>
   `}const ut=l`
+  /* The inset the end dots need now that 0% and 100% are the real edges of
+     the element rather than padded coordinates inside a viewBox. */
+  .track-wrap {
+    padding-inline: 8px;
+    margin-top: var(--ha-space-1, 4px);
+  }
+
   .track {
     display: block;
     width: 100%;
     /* Sized to include the month labels. A container that fits only the plot
-       gives the card a tiny nested scrollbar instead of an axis. */
+       gives the card a tiny nested scrollbar instead of an axis.
+
+       There is no viewBox on purpose, so one CSS pixel is one user unit: r=4
+       draws a 8px CIRCLE at any card width. With a viewBox plus
+       preserveAspectRatio="none" the x and y scales differ and every dot
+       renders as a horizontally stretched ellipse. */
     height: 44px;
-    margin-top: var(--ha-space-1, 4px);
     overflow: visible;
   }
 
