@@ -31,6 +31,20 @@ export const cardStyles = css`
     --bade-warn: var(--warning-color, #f57c00);
     --bade-alert: var(--error-color, #c62828);
 
+    /* A FILLED danger surface needs a fill + foreground pair, not the flat
+       semantic colour above. Measured on the live box: the flat
+       --error-color is #db4437, and white on it is 4.29:1 -- under the 4.5:1
+       WCAG 1.4.3 floor for normal text. Our own #c62828 fallback is 5.62:1,
+       so testing against the fallback said everything was fine while every
+       themed install shipped failing contrast.
+
+       HA's design system has a matched pair for exactly this. Light mode
+       resolves to red-50 #dc3146 (white -> 4.59:1) and dark to red-40
+       #b30532 (white -> 7.04:1), so the contrast becomes HA's problem to
+       keep correct rather than ours to re-measure per theme. */
+    --bade-alert-fill: var(--ha-color-fill-danger-loud-resting, #c62828);
+    --bade-on-alert: var(--ha-color-on-danger-loud, #fff);
+
     /* The unsampled part of the season track. */
     --bade-track: light-dark(#e4e9ea, #262b2d);
 
@@ -77,8 +91,8 @@ export const cardStyles = css`
     align-items: center;
     gap: var(--bade-gap);
     padding: var(--ha-space-3, 12px) var(--bade-pad-x);
-    background: var(--bade-alert);
-    color: #fff;
+    background: var(--bade-alert-fill);
+    color: var(--bade-on-alert);
     font-size: var(--ha-font-size-m, 1rem);
     font-weight: var(--ha-font-weight-medium, 500);
   }
@@ -98,13 +112,36 @@ export const cardStyles = css`
     margin-top: var(--ha-space-5, 20px);
   }
 
+  /* Anchors the reading over the newest sample's dot rather than parking it
+     at the right edge. Three grid columns -- a proportional spacer, the label
+     at its natural width, another proportional spacer -- so the label tracks
+     the dot and the fr units guarantee it can never overflow the card, which
+     absolute positioning would not.
+
+     The centring is approximate by design: the spacers split the space LEFT
+     OVER after the label, so the label's centre lands about (0.5 - f) x its
+     own width off the dot. That is roughly 20px on a typical card, against
+     the ~140px it was adrift when the label was simply right-aligned. Exact
+     placement would need either absolute positioning (which needs a measured
+     container height) or a JS width measurement, and neither is worth it for
+     20px. */
+  .reading-row {
+    display: grid;
+    grid-template-columns: var(--before, 1fr) auto var(--after, 0fr);
+  }
+
+  .reading-block {
+    grid-column: 2;
+    text-align: center;
+    min-width: 0;
+  }
+
   .reading {
     display: flex;
     align-items: baseline;
+    justify-content: center;
     gap: var(--bade-gap);
-    /* The hero reading sits with the newest sample, which the track pushes to
-       the right edge. */
-    justify-content: flex-end;
+    white-space: nowrap;
   }
 
   .temperature {
@@ -123,10 +160,9 @@ export const cardStyles = css`
   }
 
   .sampled {
+    margin: 2px 0 0;
     font-size: var(--ha-font-size-s, 0.857rem);
     color: var(--secondary-text-color);
-    text-align: right;
-    margin-top: 2px;
   }
 
   .season-status {

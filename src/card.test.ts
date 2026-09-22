@@ -225,3 +225,49 @@ describe("configuration errors", () => {
     expect(text(card)).toContain("gehört nicht");
   });
 });
+
+describe("reading anchoring", () => {
+  it("positions the reading over the newest sample, not at the card edge", async () => {
+    // Regression guard. The first version set a --last-x custom property that
+    // no CSS rule ever consumed, so the reading simply right-aligned: for
+    // Lunzer See the newest sample sits at 68.8% of the axis and the label
+    // rendered at 100%, about 140px adrift on a real card. The design
+    // decision this card is built on is that the number IS the endpoint of
+    // the season, so an unconsumed variable was the whole point going
+    // missing.
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const row = card.shadowRoot?.querySelector<HTMLElement>(".reading-row");
+    expect(row).not.toBeNull();
+
+    const before = Number.parseFloat(row!.style.getPropertyValue("--before"));
+    const after = Number.parseFloat(row!.style.getPropertyValue("--after"));
+    expect(Number.isFinite(before)).toBe(true);
+    expect(Number.isFinite(after)).toBe(true);
+    // The two spacers must span the axis, or the label is not proportionally
+    // placed at all.
+    expect(before + after).toBeCloseTo(100, 1);
+
+    // Newest fixture sample is 20 August, which is past the middle of a
+    // 15 May - 30 September season but nowhere near its end.
+    expect(before).toBeGreaterThan(50);
+    expect(before).toBeLessThan(85);
+  });
+
+  it("keeps the reading inside the card for an early-season sample", async () => {
+    // fr units cannot produce a negative track, which is why this needs no
+    // clamping — absolute positioning would have.
+    const hass = makeHass();
+    hass.states["sensor.koenigsdorf_water_temperature"] = {
+      state: "19.0",
+      attributes: {
+        unit_of_measurement: "°C",
+        season_samples: [{ date: "2026-05-20", water_temperature: 19 }],
+      },
+    };
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" }, hass);
+    const row = card.shadowRoot?.querySelector<HTMLElement>(".reading-row");
+    const before = Number.parseFloat(row!.style.getPropertyValue("--before"));
+    expect(before).toBeGreaterThanOrEqual(0);
+    expect(before).toBeLessThan(10);
+  });
+});

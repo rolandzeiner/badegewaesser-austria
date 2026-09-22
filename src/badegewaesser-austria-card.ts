@@ -294,27 +294,37 @@ export class BadegewaesserAustriaCard extends LitElement {
           : `${formatNumber(temp, language)} ${typeof unit === "string" ? unit : "°C"}`,
     };
 
-    // Anchor the reading over the newest dot, clamped so a very early or very
-    // late sample cannot push the label out of the card.
-    const anchor = Math.min(0.88, Math.max(0.12, latestFraction(samples)));
+    // Anchor the reading over the newest sample's dot. No clamping needed:
+    // the grid's fr spacers cannot produce a negative track, so the label
+    // stays inside the card at any width.
+    const anchor = latestFraction(samples);
 
     return html`
       <div class="season">
-        <div class="reading" style=${`--last-x:${(anchor * 100).toFixed(1)}%`}>
-          <span class=${formatted === null ? "temperature is-missing" : "temperature"}>
-            ${formatted ?? "—"}
-          </span>
-          ${formatted !== null && typeof unit === "string"
-            ? html`<span class="unit">${unit}</span>`
-            : nothing}
+        <div
+          class="reading-row"
+          style=${`--before:${(anchor * 100).toFixed(2)}fr;--after:${(
+            (1 - anchor) * 100
+          ).toFixed(2)}fr`}
+        >
+          <div class="reading-block">
+            <div class="reading">
+              <span class=${formatted === null ? "temperature is-missing" : "temperature"}>
+                ${formatted ?? "—"}
+              </span>
+              ${formatted !== null && typeof unit === "string"
+                ? html`<span class="unit">${unit}</span>`
+                : nothing}
+            </div>
+            ${latestDate
+              ? html`<p class="sampled">
+                  ${localize("card.sampled_on", language, {
+                    date: formatSampleDate(latestDate, language),
+                  })}
+                </p>`
+              : nothing}
+          </div>
         </div>
-        ${latestDate
-          ? html`<p class="sampled">
-              ${localize("card.sampled_on", language, {
-                date: formatSampleDate(latestDate, language),
-              })}
-            </p>`
-          : nothing}
         ${renderSeasonTrack(options)}
         <p class="season-status">
           <ha-icon

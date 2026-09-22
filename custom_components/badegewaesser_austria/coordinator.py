@@ -16,11 +16,13 @@ itself — see `__init__.py`.
 
 from __future__ import annotations
 
+import contextlib
 import logging
+import os
 import random
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -49,6 +51,26 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
+
+# Dev-only fixture hook.
+#
+# `TGESPERRT` is "0" on all 260 bathing waters and `SPERRGRUND` is empty
+# everywhere, so the closure banner and the `problem` binary sensor have no
+# live data to render against. This lets a developer drop a gitignored
+# `_dev_fixture.py` next to this module to rewrite a snapshot locally.
+#
+# Four pieces keep it out of production: the file is gitignored, the import is
+# suppressed when absent, the call is skipped under pytest so no test can ever
+# depend on it, and `validate.yml`'s `no-dev-fixture` job hard-fails if the
+# file is ever committed.
+_DEV_FIXTURE: Any = None
+with contextlib.suppress(ImportError):
+    # The module is absent by design, so mypy is right that the attribute
+    # does not exist — that is the whole point of the suppress.
+    from . import (  # type: ignore[attr-defined,no-redef,unused-ignore]
+        _dev_fixture as _DEV_FIXTURE,
+    )
+
 
 COORDINATOR_KEY: HassKey[BadegewaesserCoordinator] = HassKey(DOMAIN)
 
@@ -82,6 +104,24 @@ def clamp_poll_hours(hours: object, default: int) -> int:
     except (TypeError, ValueError):
         return default
     return max(MIN_POLL_HOURS, min(MAX_POLL_HOURS, value))
+
+
+@callback
+def apply_dev_fixture(sites: SiteMap) -> SiteMap:
+    """Let a local `_dev_fixture.py` rewrite a snapshot, never in production.
+
+    Returns the snapshot untouched when the module is absent, and always when
+    running under pytest — a test that could see fixture data would be
+    asserting on something users never get.
+    """
+    if _DEV_FIXTURE is None or os.environ.get("PYTEST_CURRENT_TEST"):
+        return sites
+    _LOGGER.warning(
+        "Applying _dev_fixture.py — this is a development hook and must never "
+        "be present in an installed integration"
+    )
+    applied: SiteMap = _DEV_FIXTURE.apply(sites)
+    return applied
 
 
 class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
@@ -206,6 +246,8 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
                 )
             self._consecutive_failures = 0
             self.last_fetch_utc = dt_util.utcnow()
+            if sites is not None:
+                sites = apply_dev_fixture(sites)
             if sites is None:
                 # Unchanged document: hand back the SAME object so
                 # `always_update=False` suppresses the listener callbacks.

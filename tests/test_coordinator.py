@@ -358,3 +358,69 @@ async def test_a_single_refresh_makes_a_single_request(
     await coordinator._async_update_data()
 
     assert session.get.call_count == 1
+
+
+# --- the dev-fixture guard -------------------------------------------------
+
+
+def test_dev_fixture_is_absent_by_default() -> None:
+    """The hook module must never exist in the repo.
+
+    `validate.yml`'s no-dev-fixture job is the CI half of this; the assertion
+    here means a developer who forgets to delete their local copy fails the
+    suite before they reach a push.
+    """
+    from custom_components.badegewaesser_austria import coordinator as module
+
+    assert module._DEV_FIXTURE is None, (
+        "_dev_fixture.py is present. It is a local development hook and must "
+        "never be committed or shipped."
+    )
+
+
+def test_dev_fixture_is_a_noop_without_the_module(hass: HomeAssistant) -> None:
+    """No module, no rewrite."""
+    from custom_components.badegewaesser_austria.coordinator import apply_dev_fixture
+
+    sites = {"a": object()}
+    assert apply_dev_fixture(sites) is sites  # type: ignore[arg-type]
+
+
+def test_dev_fixture_is_skipped_under_pytest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Even with a module present, tests must never see fixture data.
+
+    A test that could assert on rewritten data would be asserting on something
+    no user ever receives — which is worse than no test at all.
+    """
+    from custom_components.badegewaesser_austria import coordinator as module
+
+    class _Fixture:
+        @staticmethod
+        def apply(_sites: object) -> dict[str, object]:
+            return {"rewritten": object()}
+
+    monkeypatch.setattr(module, "_DEV_FIXTURE", _Fixture)
+    # PYTEST_CURRENT_TEST is set by pytest for every test, which is the guard.
+    sites = {"a": object()}
+    assert module.apply_dev_fixture(sites) is sites  # type: ignore[arg-type]
+
+
+def test_dev_fixture_applies_when_a_developer_runs_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """And the hook does work outside pytest, or it would be dead code."""
+    from custom_components.badegewaesser_austria import coordinator as module
+
+    replacement = {"rewritten": object()}
+
+    class _Fixture:
+        @staticmethod
+        def apply(_sites: object) -> dict[str, object]:
+            return replacement
+
+    monkeypatch.setattr(module, "_DEV_FIXTURE", _Fixture)
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+
+    assert module.apply_dev_fixture({"a": object()}) is replacement  # type: ignore[arg-type]

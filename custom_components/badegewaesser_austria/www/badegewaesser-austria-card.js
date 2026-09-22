@@ -101,6 +101,20 @@ Le(),Ve(),Ue(),We(),Ge(),Ke(),qe(),Je(),Ye()}));Xe(),B();const Ze=l`
     --bade-warn: var(--warning-color, #f57c00);
     --bade-alert: var(--error-color, #c62828);
 
+    /* A FILLED danger surface needs a fill + foreground pair, not the flat
+       semantic colour above. Measured on the live box: the flat
+       --error-color is #db4437, and white on it is 4.29:1 -- under the 4.5:1
+       WCAG 1.4.3 floor for normal text. Our own #c62828 fallback is 5.62:1,
+       so testing against the fallback said everything was fine while every
+       themed install shipped failing contrast.
+
+       HA's design system has a matched pair for exactly this. Light mode
+       resolves to red-50 #dc3146 (white -> 4.59:1) and dark to red-40
+       #b30532 (white -> 7.04:1), so the contrast becomes HA's problem to
+       keep correct rather than ours to re-measure per theme. */
+    --bade-alert-fill: var(--ha-color-fill-danger-loud-resting, #c62828);
+    --bade-on-alert: var(--ha-color-on-danger-loud, #fff);
+
     /* The unsampled part of the season track. */
     --bade-track: light-dark(#e4e9ea, #262b2d);
 
@@ -147,8 +161,8 @@ Le(),Ve(),Ue(),We(),Ge(),Ke(),qe(),Je(),Ye()}));Xe(),B();const Ze=l`
     align-items: center;
     gap: var(--bade-gap);
     padding: var(--ha-space-3, 12px) var(--bade-pad-x);
-    background: var(--bade-alert);
-    color: #fff;
+    background: var(--bade-alert-fill);
+    color: var(--bade-on-alert);
     font-size: var(--ha-font-size-m, 1rem);
     font-weight: var(--ha-font-weight-medium, 500);
   }
@@ -168,13 +182,36 @@ Le(),Ve(),Ue(),We(),Ge(),Ke(),qe(),Je(),Ye()}));Xe(),B();const Ze=l`
     margin-top: var(--ha-space-5, 20px);
   }
 
+  /* Anchors the reading over the newest sample's dot rather than parking it
+     at the right edge. Three grid columns -- a proportional spacer, the label
+     at its natural width, another proportional spacer -- so the label tracks
+     the dot and the fr units guarantee it can never overflow the card, which
+     absolute positioning would not.
+
+     The centring is approximate by design: the spacers split the space LEFT
+     OVER after the label, so the label's centre lands about (0.5 - f) x its
+     own width off the dot. That is roughly 20px on a typical card, against
+     the ~140px it was adrift when the label was simply right-aligned. Exact
+     placement would need either absolute positioning (which needs a measured
+     container height) or a JS width measurement, and neither is worth it for
+     20px. */
+  .reading-row {
+    display: grid;
+    grid-template-columns: var(--before, 1fr) auto var(--after, 0fr);
+  }
+
+  .reading-block {
+    grid-column: 2;
+    text-align: center;
+    min-width: 0;
+  }
+
   .reading {
     display: flex;
     align-items: baseline;
+    justify-content: center;
     gap: var(--bade-gap);
-    /* The hero reading sits with the newest sample, which the track pushes to
-       the right edge. */
-    justify-content: flex-end;
+    white-space: nowrap;
   }
 
   .temperature {
@@ -193,10 +230,9 @@ Le(),Ve(),Ue(),We(),Ge(),Ke(),qe(),Je(),Ye()}));Xe(),B();const Ze=l`
   }
 
   .sampled {
+    margin: 2px 0 0;
     font-size: var(--ha-font-size-s, 0.857rem);
     color: var(--secondary-text-color);
-    text-align: right;
-    margin-top: 2px;
   }
 
   .season-status {
@@ -471,17 +507,24 @@ Le(),Ve(),Ue(),We(),Ge(),Ke(),qe(),Je(),Ye()}));Xe(),B();const Ze=l`
         <span>${V(`card.closed`,t)}</span>
         ${typeof n==`string`&&n?A`<span class="closure-reason">${n}</span>`:N}
       </div>
-    `}_renderPlace(){let e=this._config?.entity,t=e?this.hass?.entities?.[e]?.device_id:void 0,n=t?this.hass?.devices?.[t]?.model:void 0;return n?A`<p class="place">${n}</p>`:N}_renderSeason(e,t,n,r){let i=q(e),a=Y(i,r),o=e?.attributes.unit_of_measurement,s=t.at(-1),c=s?/* @__PURE__ */ new Date(`${s.date}T00:00:00Z`):null,l={samples:t,now:/* @__PURE__ */ new Date,inSeason:n,language:r,formatDate:e=>pt(e,r),formatTemperature:e=>Y(e,r)===null?V(`card.not_measured`,r):`${Y(e,r)} ${typeof o==`string`?o:`°C`}`},u=Math.min(.88,Math.max(.12,ct(t)));return A`
+    `}_renderPlace(){let e=this._config?.entity,t=e?this.hass?.entities?.[e]?.device_id:void 0,n=t?this.hass?.devices?.[t]?.model:void 0;return n?A`<p class="place">${n}</p>`:N}_renderSeason(e,t,n,r){let i=q(e),a=Y(i,r),o=e?.attributes.unit_of_measurement,s=t.at(-1),c=s?/* @__PURE__ */ new Date(`${s.date}T00:00:00Z`):null,l={samples:t,now:/* @__PURE__ */ new Date,inSeason:n,language:r,formatDate:e=>pt(e,r),formatTemperature:e=>Y(e,r)===null?V(`card.not_measured`,r):`${Y(e,r)} ${typeof o==`string`?o:`°C`}`},u=ct(t);return A`
       <div class="season">
-        <div class="reading" style=${`--last-x:${(u*100).toFixed(1)}%`}>
-          <span class=${a===null?`temperature is-missing`:`temperature`}>
-            ${a??`—`}
-          </span>
-          ${a!==null&&typeof o==`string`?A`<span class="unit">${o}</span>`:N}
+        <div
+          class="reading-row"
+          style=${`--before:${(u*100).toFixed(2)}fr;--after:${((1-u)*100).toFixed(2)}fr`}
+        >
+          <div class="reading-block">
+            <div class="reading">
+              <span class=${a===null?`temperature is-missing`:`temperature`}>
+                ${a??`—`}
+              </span>
+              ${a!==null&&typeof o==`string`?A`<span class="unit">${o}</span>`:N}
+            </div>
+            ${c?A`<p class="sampled">
+                  ${V(`card.sampled_on`,r,{date:pt(c,r)})}
+                </p>`:N}
+          </div>
         </div>
-        ${c?A`<p class="sampled">
-              ${V(`card.sampled_on`,r,{date:pt(c,r)})}
-            </p>`:N}
         ${lt(l)}
         <p class="season-status">
           <ha-icon
