@@ -14,14 +14,17 @@ import logging
 from dataclasses import dataclass
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
+from homeassistant.core import CoreState, Event, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.typing import ConfigType
 
+from .card_registration import JSModuleRegistration
 from .const import CONF_SITE_ID, DOMAIN
 from .coordinator import BadegewaesserCoordinator, async_get_coordinator
 from .repairs import async_clear_missing_site, async_report_missing_site
+from .websocket import async_register_websocket_commands
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +45,33 @@ class BadegewaesserRuntimeData:
 
 
 type BadegewaesserConfigEntry = ConfigEntry[BadegewaesserRuntimeData]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Component-level setup: serve and register the Lovelace card.
+
+    Deliberately here and not in `async_setup_entry`. Resource registration is
+    per HA process, not per bathing water: doing it per entry would push a
+    fresh `?v=` to every browser session each time an entry loads, and the
+    frontend answers that by reloading — which with two entries never settles.
+    """
+    async_register_websocket_commands(hass)
+
+    registration = JSModuleRegistration(hass)
+
+    async def _register_card(_event: Event | None = None) -> None:
+        await registration.async_register()
+
+    # `after_dependencies` is soft ordering, so frontend / http / lovelace may
+    # not be up yet at boot. Conditional rather than an unconditional listener:
+    # an integration added at runtime is already past that event and would
+    # otherwise wait for a restart that never comes.
+    if hass.state is CoreState.running:
+        await _register_card()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _register_card)
+
+    return True
 
 
 async def async_setup_entry(
@@ -123,6 +153,18 @@ async def async_remove_entry(
 ) -> None:
     """Clean up anything that outlives the entry."""
     async_clear_missing_site(hass, entry)
+
+    # The Lovelace resource is component-level, so it may only be withdrawn
+    # once the LAST bathing water is gone. Wiring this to async_unload_entry
+    # instead would tear the card out of every dashboard on any reload.
+    remaining = [
+        other
+        for other in hass.config_entries.async_entries(DOMAIN)
+        if other.entry_id != entry.entry_id
+    ]
+    if remaining:
+        return
+    await JSModuleRegistration(hass).async_unregister()
 
 
 async def _async_reload_entry(

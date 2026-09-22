@@ -115,6 +115,38 @@ def _quality_attrs(site: BathingSite) -> dict[str, Any]:
     return attrs
 
 
+def _season_series(site: BathingSite) -> dict[str, Any]:
+    """The season's samples, oldest first, for the card's season track.
+
+    Lives on the temperature sensor because the series it carries is a series
+    of temperatures; the other readings ride along so the card can label a
+    hovered point without binding to five more entities.
+
+    Excluded from the recorder (see `_unrecorded_attributes`). It is bounded —
+    4 to 9 samples per site per season, measured — so this is not about size
+    but about meaning: a history of a list-of-samples attribute answers no
+    question anybody asks, while the individual readings already have their
+    own recorded entities.
+    """
+    return {
+        "season_samples": [
+            {
+                "date": sample.sampled_on.isoformat(),
+                "water_temperature": sample.water_temperature,
+                "e_coli": sample.e_coli,
+                "e_coli_below_limit": sample.e_coli_below_limit,
+                "enterococci": sample.enterococci,
+                "enterococci_below_limit": sample.enterococci_below_limit,
+                "secchi_depth": sample.secchi_depth,
+                "assessment": sample.assessment,
+            }
+            # Oldest first: the track reads left to right, and reversing in
+            # the card would mean every consumer reversing it again.
+            for sample in reversed(site.samples)
+        ]
+    }
+
+
 def _sample_attrs(site: BathingSite) -> dict[str, Any]:
     """The per-sample assessment that rides with the newest reading.
 
@@ -136,6 +168,7 @@ SENSORS: tuple[BadegewaesserSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         value_fn=_latest_temperature,
+        attrs_fn=_season_series,
     ),
     BadegewaesserSensorDescription(
         key="e_coli",
@@ -194,6 +227,9 @@ class BadegewaesserSensor(BadegewaesserEntity, SensorEntity):
     """One reading of one bathing water."""
 
     entity_description: BadegewaesserSensorDescription
+
+    # The season series is for the card to draw, not for the recorder to keep.
+    _unrecorded_attributes = frozenset({"season_samples"})
 
     @property
     def native_value(self) -> StateType | datetime:

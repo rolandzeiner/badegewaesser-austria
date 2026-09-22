@@ -30,6 +30,18 @@ INTEGRATION_VERSION: Final[str] = _MANIFEST["version"]
 CARD_VERSION: Final[str] = INTEGRATION_VERSION
 
 # ---------------------------------------------------------------------------
+# Bundled Lovelace card
+# ---------------------------------------------------------------------------
+
+CARD_FILENAME: Final = "badegewaesser-austria-card.js"
+
+# Serving the `www` subdirectory itself keeps the public URL flat — the card
+# lives at /badegewaesser_austria/<file>, with no /www segment leaking into a
+# URL users will see in their Lovelace resources list.
+URL_BASE: Final = f"/{DOMAIN}"
+CARD_URL: Final = f"{URL_BASE}/{CARD_FILENAME}"
+
+# ---------------------------------------------------------------------------
 # Upstream
 # ---------------------------------------------------------------------------
 

@@ -1,0 +1,45 @@
+{
+  "card": {
+    "season_over": "Season over",
+    "in_season": "Bathing season under way",
+    "no_samples": "No samples yet this season",
+    "closed": "Swimming prohibited",
+    "sampled_on": "Sampled {date}",
+    "not_measured": "not measured",
+    "season_axis_label": "Samples from the {year} season",
+    "water_quality": "Water quality",
+    "e_coli": "E. coli",
+    "enterococci": "Enterococci",
+    "secchi_depth": "Secchi depth",
+    "water_temperature": "Water temperature",
+    "rating_year": "{year} rating",
+    "no_rating": "not yet rated",
+    "below_limit": "below the detection limit",
+    "attribution": "Data source: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT"
+  },
+  "quality": {
+    "excellent": "Excellent",
+    "good": "Good",
+    "sufficient": "Sufficient",
+    "poor": "Poor"
+  },
+  "error": {
+    "no_entity": "Pick a bathing water in the card editor.",
+    "entity_missing": "The entity {entity} no longer exists. Pick another one in the card editor.",
+    "not_this_integration": "{entity} isn't part of Badegewässer Austria. Pick an entity from this integration."
+  },
+  "version": {
+    "mismatch": "This card is out of date ({card} instead of {integration}).",
+    "reload": "Reload"
+  },
+  "editor": {
+    "entity": "Bathing water",
+    "entity_helper": "Any entity of the bathing water — the card finds the rest itself.",
+    "name": "Title",
+    "name_helper": "Leave empty to use the bathing water's own name.",
+    "show_season_track": "Show the season track",
+    "show_season_track_helper": "This season's samples on a time axis.",
+    "show_readings": "Show the readings",
+    "show_readings_helper": "Water quality, E. coli, enterococci and Secchi depth."
+  }
+}

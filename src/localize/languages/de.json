@@ -1,0 +1,45 @@
+{
+  "card": {
+    "season_over": "Saison beendet",
+    "in_season": "Badesaison läuft",
+    "no_samples": "Noch keine Proben in dieser Saison",
+    "closed": "Baden verboten",
+    "sampled_on": "Probe vom {date}",
+    "not_measured": "nicht gemessen",
+    "season_axis_label": "Proben der Saison {year}",
+    "water_quality": "Wasserqualität",
+    "e_coli": "E. coli",
+    "enterococci": "Enterokokken",
+    "secchi_depth": "Sichttiefe",
+    "water_temperature": "Wassertemperatur",
+    "rating_year": "Bewertung {year}",
+    "no_rating": "noch nicht bewertet",
+    "below_limit": "unter der Nachweisgrenze",
+    "attribution": "Datenquelle: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT"
+  },
+  "quality": {
+    "excellent": "Ausgezeichnet",
+    "good": "Gut",
+    "sufficient": "Ausreichend",
+    "poor": "Mangelhaft"
+  },
+  "error": {
+    "no_entity": "Wähle im Karteneditor ein Badegewässer aus.",
+    "entity_missing": "Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.",
+    "not_this_integration": "{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration."
+  },
+  "version": {
+    "mismatch": "Diese Karte ist veraltet ({card} statt {integration}).",
+    "reload": "Neu laden"
+  },
+  "editor": {
+    "entity": "Badegewässer",
+    "entity_helper": "Eine beliebige Entität des Badegewässers — die übrigen findet die Karte selbst.",
+    "name": "Titel",
+    "name_helper": "Leer lassen, um den Namen des Badegewässers zu verwenden.",
+    "show_season_track": "Saisonverlauf zeigen",
+    "show_season_track_helper": "Die Proben der Saison als Zeitachse.",
+    "show_readings": "Messwerte zeigen",
+    "show_readings_helper": "Wasserqualität, E. coli, Enterokokken und Sichttiefe."
+  }
+}
