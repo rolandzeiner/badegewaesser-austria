@@ -1,0 +1,15 @@
+{
+  "domain": "badegewaesser_austria",
+  "name": "Badegewässer Austria",
+  "after_dependencies": ["frontend", "http", "lovelace"],
+  "codeowners": ["@rolandzeiner"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/rolandzeiner/badegewaesser-austria",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/rolandzeiner/badegewaesser-austria/issues",
+  "loggers": ["custom_components.badegewaesser_austria"],
+  "requirements": [],
+  "version": "1.0.0"
+}

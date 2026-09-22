@@ -1,0 +1,169 @@
+# Unified .gitignore for the *-austria HACS portfolio — Lit 3 +
+# TypeScript + Rolldown card alongside a HA Python integration.
+# Lifted from wiener-linien-austria 2026-09-22; the scripts/ allow-list
+# below is the only per-repo part, so re-read it when adding a script
+# that a workflow or the build invokes.
+
+# ───────────────────────────────────────────────────────────────────
+# Python
+# ───────────────────────────────────────────────────────────────────
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.so
+.Python
+
+# Test / coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+.tox/
+# vitest --coverage output (npm run test:coverage). Also excluded from
+# scripts/dev-push.sh — .gitignore does not filter rsync, so anything
+# dropped in the tree can otherwise ship to the live HA box.
+coverage/
+
+# Build / dist / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+.python-version
+.HA_VERSION
+# uv lockfile — local-dev artifact only. CI installs from
+# requirements_test.txt (pip), not uv. Committing it would tie all
+# contributors to uv and produce a noisy diff on every dep sync.
+uv.lock
+
+# ───────────────────────────────────────────────────────────────────
+# Node / JS / TypeScript
+# ───────────────────────────────────────────────────────────────────
+node_modules/
+.npm/
+*.js.map
+
+# Bundler caches
+.rolldown.cache/
+.vite-cache/
+.parcel-cache/
+
+# ───────────────────────────────────────────────────────────────────
+# OS metadata
+# ───────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+Desktop.ini
+*.swp
+*.swo
+*~
+*.bak
+
+# ───────────────────────────────────────────────────────────────────
+# IDE / editor state
+# ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+.cursor/
+.cursorrules.local
+.continue/
+.windsurf/
+
+# ───────────────────────────────────────────────────────────────────
+# AI assistants — local state, transcripts, plans, project-level skills
+# ───────────────────────────────────────────────────────────────────
+.claude/
+# Defensive: re-ignore project-level skills explicitly so they stay
+# out of git even if someone later adds a !.claude/<something>
+# exception that would un-ignore the parent dir. Portfolio-wide rules
+# belong in the user-level austria-portfolio-workflow skill, not here.
+.claude/skills/
+.claude-cache/
+.claude-*
+.aider*
+
+# ───────────────────────────────────────────────────────────────────
+# Static analysis tooling
+# ───────────────────────────────────────────────────────────────────
+.fallow/
+.fallowrc.json
+.fallowrc.jsonc
+fallow.toml
+
+# ───────────────────────────────────────────────────────────────────
+# Secrets / credentials — NEVER commit
+# ───────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+.secrets
+*.secret
+secrets.json
+secrets.yaml
+auth.json
+credentials.json
+token.json
+*.pem
+*.key
+*.p12
+*.pfx
+tests/fixtures/secrets/
+
+# ───────────────────────────────────────────────────────────────────
+# HA local state — logs, config copies
+# ───────────────────────────────────────────────────────────────────
+.storage/
+home-assistant.log*
+home-assistant_*.log*
+*.log
+config/
+
+# ───────────────────────────────────────────────────────────────────
+# Personal dev tooling — push/sync scripts targeting a dev box, scratch.
+# `scripts/*` ignores everything in scripts/ by default; anything the build
+# actually needs has to be un-ignored below, or `npm run build` fails on a
+# fresh clone and in CI while still working on the machine that wrote it.
+# (The MDI name extractor this block used to un-ignore went away with the v2
+# editor rewrite; its exception went with it.)
+#
+# The same trap caught `check_module_coverage.py`: it was written, wired into
+# `validate.yml`, documented in CONTRIBUTING and cited in quality_scale.yaml —
+# and never committed, so the per-module coverage gate passed locally and the
+# CI step failed with "can't open file". Anything a workflow step invokes has
+# to be named here, not just anything the build needs.
+# ───────────────────────────────────────────────────────────────────
+scripts/*
+!scripts/check_module_coverage.py
+dev-push.sh
+dev/
+test/
+target/
+
+# Personal notes / scratch — *.local.md is the convention
+CLAUDE.local.md
+*.local.md
+local_*.py
+private_*.py
+
+# ───────────────────────────────────────────────────────────────────
+# Dev-only fixture hook (gitignored by design — per-repo file is local)
+# ───────────────────────────────────────────────────────────────────
+custom_components/*/_dev_fixture.py

@@ -1,0 +1,9 @@
+{
+  "name": "Badegewässer Austria",
+  "country": ["AT"],
+  "homeassistant": "2025.6.0",
+  "hacs": "2.0.0",
+  "render_readme": true,
+  "filename": "badegewaesser_austria.zip",
+  "zip_release": true
+}

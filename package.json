@@ -1,0 +1,22 @@
+{
+  "name": "badegewaesser-austria-card",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Lovelace custom card for the Badegewässer Austria HA integration",
+  "type": "module",
+  "scripts": {
+    "build": "rolldown -c",
+    "dev": "rolldown -c -w",
+    "build:push": "./scripts/dev-push.sh --quiet",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "happy-dom": "20.14.5",
+    "rolldown": "1.2.9",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
+  },
+  "dependencies": {
+    "lit": "^3.3.3"
+  }
+}
