@@ -42,14 +42,17 @@ rules:
     status: exempt
     comment: This integration does not have any conditions.
   docs-high-level-description:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      The README opens with what it does and where the data comes from.
   docs-installation-instructions:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Installation (HACS and manual).
   docs-removal-instructions:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Removal, including what removing the last entry withdraws.
   docs-triggers:
     status: exempt
     comment: This integration does not have any triggers.
@@ -90,11 +93,13 @@ rules:
   config-entry-unloading:
     status: done
   docs-configuration-parameters:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Data Updates (both poll intervals) and the card option table.
   docs-installation-parameters:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Setup covers both routes through the config flow.
   entity-unavailable:
     status: done
     comment: >-
@@ -132,26 +137,32 @@ rules:
     status: exempt
     comment: A national cloud dataset; there is nothing on the network to discover.
   docs-data-update:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Data Updates, including why no conditional GET is sent.
   docs-examples:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Automation Examples.
   docs-known-limitations:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Known Limitations — sparse samples, the frozen off-season, the site with no coordinates, the undocumented letters, and that closures have never been seen live.
   docs-supported-devices:
     status: exempt
     comment: No devices; the integration reads one public dataset.
   docs-supported-functions:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Supported Functions and Entities.
   docs-troubleshooting:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Troubleshooting, with the debug-logging block.
   docs-use-cases:
-    status: todo
-    comment: README lands in Phase 5.
+    status: done
+    comment: >-
+      README: Use Cases.
   dynamic-devices:
     status: exempt
     comment: One entry is one bathing water, chosen at setup; no devices appear later.
