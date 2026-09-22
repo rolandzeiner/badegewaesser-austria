@@ -226,49 +226,91 @@ describe("configuration errors", () => {
   });
 });
 
-describe("reading anchoring", () => {
-  it("positions the reading over the newest sample, not at the card edge", async () => {
-    // Regression guard. The first version set a --last-x custom property that
-    // no CSS rule ever consumed, so the reading simply right-aligned: for
-    // Lunzer See the newest sample sits at 68.8% of the axis and the label
-    // rendered at 100%, about 140px adrift on a real card. The design
-    // decision this card is built on is that the number IS the endpoint of
-    // the season, so an unconsumed variable was the whole point going
-    // missing.
+describe("the reading", () => {
+  it("is right-aligned rather than proportionally anchored", async () => {
+    // A detour worth recording. An earlier version tried to place the reading
+    // exactly over the newest sample's dot. That cannot work here: the newest
+    // sample is always near the end of the axis (the season closes 31 August),
+    // so a centred label there overflows the card, and the overflow-safe
+    // approximation landed ~60px short — close enough to look like a bug.
+    // Right alignment lands near the dot for the same reason exact anchoring
+    // failed, and reads as a deliberate edge.
     const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
-    const row = card.shadowRoot?.querySelector<HTMLElement>(".reading-row");
-    expect(row).not.toBeNull();
+    expect(card.shadowRoot?.querySelector(".reading-row")).toBeNull();
+    expect(card.shadowRoot?.querySelector(".reading-block")).not.toBeNull();
+  });
+});
 
-    const before = Number.parseFloat(row!.style.getPropertyValue("--before"));
-    const after = Number.parseFloat(row!.style.getPropertyValue("--after"));
-    expect(Number.isFinite(before)).toBe(true);
-    expect(Number.isFinite(after)).toBe(true);
-    // The two spacers must span the axis, or the label is not proportionally
-    // placed at all.
-    expect(before + after).toBeCloseTo(100, 1);
+describe("the season-track tooltip", () => {
+  const dots = (card: BadegewaesserAustriaCard) =>
+    card.shadowRoot!.querySelectorAll<SVGGElement>(".point");
 
-    // Newest fixture sample is 20 August. On the real axis — 15 May to
-    // 31 August, the window in which readings arrive — that is near the end,
-    // around 90%. It read ~69% while the axis wrongly ran to 30 September.
-    expect(before).toBeGreaterThan(85);
-    expect(before).toBeLessThan(97);
+  it("uses no native SVG <title>", async () => {
+    // A <title> renders as an unthemed OS tooltip box detached from the card,
+    // which is what it looked like. The in-card tooltip replaces it.
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    expect(card.shadowRoot?.querySelector("svg title")).toBeNull();
   });
 
-  it("keeps the reading inside the card for an early-season sample", async () => {
-    // fr units cannot produce a negative track, which is why this needs no
-    // clamping — absolute positioning would have.
-    const hass = makeHass();
-    hass.states["sensor.koenigsdorf_water_temperature"] = {
-      state: "19.0",
-      attributes: {
-        unit_of_measurement: "°C",
-        season_samples: [{ date: "2026-05-20", water_temperature: 19 }],
-      },
-    };
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" }, hass);
-    const row = card.shadowRoot?.querySelector<HTMLElement>(".reading-row");
-    const before = Number.parseFloat(row!.style.getPropertyValue("--before"));
-    expect(before).toBeGreaterThanOrEqual(0);
-    expect(before).toBeLessThan(10);
+  it("shows nothing until a point is hovered", async () => {
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    expect(card.shadowRoot?.querySelector(".tip")).toBeNull();
+  });
+
+  it("shows the hovered point's date and value", async () => {
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const point = dots(card)[0]!;
+    point.dispatchEvent(new Event("pointerenter"));
+    await card.updateComplete;
+
+    const tip = card.shadowRoot?.querySelector(".tip");
+    expect(tip).not.toBeNull();
+    expect(tip!.textContent).toContain("21,4");
+  });
+
+  it("hides again on pointerleave", async () => {
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const point = dots(card)[0]!;
+    point.dispatchEvent(new Event("pointerenter"));
+    await card.updateComplete;
+    point.dispatchEvent(new Event("pointerleave"));
+    await card.updateComplete;
+
+    expect(card.shadowRoot?.querySelector(".tip")).toBeNull();
+  });
+
+  it("gives keyboard focus the same tooltip as hover", async () => {
+    // WCAG: keyboard focus must surface what hover surfaces.
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const point = dots(card)[1]!;
+    expect(point.getAttribute("tabindex")).toBe("0");
+
+    point.dispatchEvent(new Event("focus"));
+    await card.updateComplete;
+    expect(card.shadowRoot?.querySelector(".tip")).not.toBeNull();
+
+    point.dispatchEvent(new Event("blur"));
+    await card.updateComplete;
+    expect(card.shadowRoot?.querySelector(".tip")).toBeNull();
+  });
+
+  it("labels every point for a screen reader", async () => {
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    for (const point of dots(card)) {
+      expect(point.getAttribute("aria-label")).toMatch(/\d/);
+    }
+  });
+});
+
+describe("attribution", () => {
+  it("names the source and the licence, without the full legal name", async () => {
+    // CC BY 3.0 AT asks for attribution in the manner specified; AGES plus the
+    // licence does that. The full legal name lives in the README, where it
+    // does not wrap the footer onto two lines.
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const footer = card.shadowRoot?.querySelector(".attribution")?.textContent ?? "";
+    expect(footer).toContain("AGES");
+    expect(footer).toContain("CC BY 3.0 AT");
+    expect(footer).not.toContain("Ernährungssicherheit");
   });
 });

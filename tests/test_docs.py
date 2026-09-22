@@ -128,10 +128,16 @@ def test_docs_never_mention_the_old_window() -> None:
     assert "30 Sep" not in README
 
 
-def test_attribution_block_is_the_licence_text_verbatim() -> None:
-    """CC BY 3.0 AT asks for exactly one thing; it has to be exact."""
+def test_attribution_is_short_on_screen_and_full_in_the_docs() -> None:
+    """CC BY 3.0 AT asks for exactly one thing, so both forms have to be right.
+
+    The on-screen string names the source and the licence, which is what the
+    licence asks for; the full legal name is spelled out once here, where it
+    does not wrap a card footer onto two lines.
+    """
+    assert ATTRIBUTION == "Datenquelle: AGES · CC BY 3.0 AT"
     assert ATTRIBUTION in README
-    assert "CC BY 3.0 AT" in README
+    assert "Österreichische Agentur für Gesundheit und Ernährungssicherheit" in README
     assert "creativecommons.org/licenses/by/3.0/at/" in README
 
 

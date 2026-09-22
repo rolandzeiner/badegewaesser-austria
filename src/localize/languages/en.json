@@ -15,7 +15,7 @@
     "rating_year": "{year} rating",
     "no_rating": "not yet rated",
     "below_limit": "below the detection limit",
-    "attribution": "Data source: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT"
+    "attribution": "Data source: AGES · CC BY 3.0 AT"
   },
   "quality": {
     "excellent": "Excellent",

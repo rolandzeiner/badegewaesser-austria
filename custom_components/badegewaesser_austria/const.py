@@ -265,7 +265,9 @@ RATING_YEARS: Final = (2026, 2025, 2024, 2023, 2022)
 # and not a reading. Sichttiefe has no such sentinel (its minimum is 0.1 m).
 UNMEASURED_TEMPERATURE: Final = 0.0
 
-ATTRIBUTION: Final = (
-    "Datenquelle: AGES — Österreichische Agentur für Gesundheit und "
-    "Ernährungssicherheit GmbH · CC BY 3.0 AT"
-)
+# On-screen attribution. CC BY 3.0 AT asks for attribution "in the manner
+# specified by the author"; naming AGES and the licence does that, and AGES is
+# how the agency names itself. The full legal name is spelled out once in the
+# README's Attribution section, where there is room for it — in a card footer
+# it wrapped to two lines and pushed the licence onto the second.
+ATTRIBUTION: Final = "Datenquelle: AGES · CC BY 3.0 AT"

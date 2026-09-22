@@ -112,51 +112,29 @@ export const cardStyles = css`
     margin-top: var(--ha-space-5, 20px);
   }
 
-  /* Anchors the reading over the newest sample's dot rather than parking it
-     at the right edge. Three grid columns -- a proportional spacer, the label
-     at its natural width, another proportional spacer -- so the label tracks
-     the dot and the fr units guarantee it can never overflow the card, which
-     absolute positioning would not.
-
-     The centring is approximate by design: the spacers split the space LEFT
-     OVER after the label, so the label's centre lands about (0.5 - f) x its
-     own width off the dot. That is roughly 20px on a typical card, against
-     the ~140px it was adrift when the label was simply right-aligned. Exact
-     placement would need either absolute positioning (which needs a measured
-     container height) or a JS width measurement, and neither is worth it for
-     20px. */
-  .reading-row {
-    display: grid;
-    grid-template-columns: var(--before, 1fr) auto var(--after, 0fr);
-  }
-
+  /* Right-aligned, and deliberately so after a detour.
+     
+     An earlier version tried to anchor the reading exactly over the newest
+     sample's dot. Exact anchoring is not achievable here: the newest sample
+     is always near the end of the axis (the season closes 31 August), so a
+     centred label at that position overflows the card and gets clipped. The
+     proportional-spacer approximation that avoided clipping landed about
+     60px short — too close to read as alignment, too far to read as an
+     anchor, i.e. it just looked like a mistake.
+     
+     Right alignment lands near the newest dot anyway, for the same reason
+     exact anchoring failed, and it reads as a deliberate edge rather than an
+     accident. The date line underneath ties it to the series. */
   .reading-block {
-    grid-column: 2;
-    text-align: center;
-    min-width: 0;
+    text-align: right;
   }
 
   .reading {
     display: flex;
     align-items: baseline;
-    justify-content: center;
+    justify-content: flex-end;
     gap: var(--bade-gap);
     white-space: nowrap;
-  }
-
-  .temperature {
-    font-size: var(--ha-font-size-3xl, 1.714rem);
-    font-weight: var(--ha-font-weight-bold, 700);
-    line-height: var(--ha-line-height-condensed, 1.2);
-    color: var(--primary-text-color);
-    /* Deliberately NOT tabular-nums. Equal-width digits make a large
-       standalone figure look loose; the value rows below, which do align
-       vertically, get tabular-nums instead. */
-  }
-
-  .temperature.is-missing {
-    color: var(--secondary-text-color);
-    font-weight: var(--ha-font-weight-normal, 400);
   }
 
   .sampled {

@@ -226,9 +226,13 @@ To uninstall completely, remove the integration in HACS and restart Home Assista
 
 ## Attribution
 
-> Datenquelle: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT
+Every entity and the card footer carry:
 
-Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition, and it appears on every entity and in the card footer.
+> Datenquelle: AGES · CC BY 3.0 AT
+
+In full: **AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH**.
+
+Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition.
 
 ## License
 

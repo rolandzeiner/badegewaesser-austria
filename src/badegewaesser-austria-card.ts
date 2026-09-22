@@ -12,7 +12,6 @@ import { cardStyles } from "./card-styles";
 import { CARD_TAG, CARD_VERSION } from "./const";
 import { localize } from "./localize/localize";
 import {
-  latestFraction,
   renderSeasonTrack,
   seasonTrackDescription,
   seasonTrackStyles,
@@ -57,6 +56,7 @@ export class BadegewaesserAustriaCard extends LitElement {
 
   @state() private _config?: BadegewaesserCardConfig;
   @state() private _staleVersion?: string;
+  @state() private _hoveredPoint: number | null = null;
 
   private _versionChecked = false;
 
@@ -288,42 +288,34 @@ export class BadegewaesserAustriaCard extends LitElement {
       inSeason,
       language,
       formatDate: (date: Date) => formatSampleDate(date, language),
+      hovered: this._hoveredPoint,
+      onHover: (index: number | null) => {
+        this._hoveredPoint = index;
+      },
       formatTemperature: (temp: number | null) =>
         formatNumber(temp, language) === null
           ? localize("card.not_measured", language)
           : `${formatNumber(temp, language)} ${typeof unit === "string" ? unit : "°C"}`,
     };
 
-    // Anchor the reading over the newest sample's dot. No clamping needed:
-    // the grid's fr spacers cannot produce a negative track, so the label
-    // stays inside the card at any width.
-    const anchor = latestFraction(samples);
-
     return html`
       <div class="season">
-        <div
-          class="reading-row"
-          style=${`--before:${(anchor * 100).toFixed(2)}fr;--after:${(
-            (1 - anchor) * 100
-          ).toFixed(2)}fr`}
-        >
-          <div class="reading-block">
-            <div class="reading">
-              <span class=${formatted === null ? "temperature is-missing" : "temperature"}>
-                ${formatted ?? "—"}
-              </span>
-              ${formatted !== null && typeof unit === "string"
-                ? html`<span class="unit">${unit}</span>`
-                : nothing}
-            </div>
-            ${latestDate
-              ? html`<p class="sampled">
-                  ${localize("card.sampled_on", language, {
-                    date: formatSampleDate(latestDate, language),
-                  })}
-                </p>`
+        <div class="reading-block">
+          <div class="reading">
+            <span class=${formatted === null ? "temperature is-missing" : "temperature"}>
+              ${formatted ?? "—"}
+            </span>
+            ${formatted !== null && typeof unit === "string"
+              ? html`<span class="unit">${unit}</span>`
               : nothing}
           </div>
+          ${latestDate
+            ? html`<p class="sampled">
+                ${localize("card.sampled_on", language, {
+                  date: formatSampleDate(latestDate, language),
+                })}
+              </p>`
+            : nothing}
         </div>
         ${renderSeasonTrack(options)}
         <p class="season-status">

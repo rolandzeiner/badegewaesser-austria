@@ -17,7 +17,7 @@
  * element would need its own copy of the token block — the exact drift that
  * silently turned a sibling integration's warning icons white.
  */
-import { css, html, svg, type TemplateResult } from "lit";
+import { css, html, nothing, svg, type TemplateResult } from "lit";
 
 import { localize } from "./localize/localize";
 
@@ -95,6 +95,10 @@ const x = (fraction: number): string => `${(fraction * 100).toFixed(3)}%`;
 
 export interface SeasonTrackOptions {
   samples: readonly SeasonSample[];
+  /** Index of the point being hovered or focused, or null. */
+  hovered?: number | null;
+  /** Called on hover and on keyboard focus, so both behave identically. */
+  onHover?: (index: number | null) => void;
   /** Today, for the in-season fill. */
   now: Date;
   inSeason: boolean;
@@ -131,7 +135,8 @@ export function latestFraction(samples: readonly SeasonSample[]): number {
 }
 
 export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
-  const { samples, now, language, formatDate, formatTemperature } = options;
+  const { samples, now, language, formatDate, formatTemperature, hovered, onHover } =
+    options;
 
   // Progress is read off the axis itself rather than the in-season flag: past
   // 31 August the axis is simply complete, which is what makes an out-of-season
@@ -143,6 +148,7 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
     .map((entry) => ({ ...entry, cx: x(seasonFraction(entry.date)) }));
 
   const lastIndex = points.length - 1;
+  const active = hovered !== null && hovered !== undefined ? points[hovered] : undefined;
   const year = points.at(-1)?.date.getUTCFullYear() ?? now.getUTCFullYear();
   const monthName = (month: number): string =>
     new Intl.DateTimeFormat(language ?? "en", { month: "short", timeZone: "UTC" }).format(
@@ -179,10 +185,18 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
         })}
         ${points.map(
           (point, index) => svg`
-            <g class=${index === lastIndex ? "point is-latest" : "point"}>
-              <title>
-                ${formatDate(point.date)}: ${formatTemperature(point.sample.water_temperature)}
-              </title>
+            <g
+              class=${index === lastIndex ? "point is-latest" : "point"}
+              tabindex="0"
+              role="img"
+              aria-label=${`${formatDate(point.date)}: ${formatTemperature(
+                point.sample.water_temperature,
+              )}`}
+              @pointerenter=${() => onHover?.(index)}
+              @pointerleave=${() => onHover?.(null)}
+              @focus=${() => onHover?.(index)}
+              @blur=${() => onHover?.(null)}
+            >
               <circle
                 class="dot"
                 cx=${point.cx}
@@ -194,6 +208,18 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
           `,
         )}
       </svg>
+      ${active
+        ? html`<div
+            class="tip"
+            role="status"
+            style=${`--tip-x:${active.cx}`}
+          >
+            <span class="tip-date">${formatDate(active.date)}</span>
+            <span class="tip-value"
+              >${formatTemperature(active.sample.water_temperature)}</span
+            >
+          </div>`
+        : nothing}
     </div>
   `;
 }
@@ -202,8 +228,53 @@ export const seasonTrackStyles = css`
   /* The inset the end dots need now that 0% and 100% are the real edges of
      the element rather than padded coordinates inside a viewBox. */
   .track-wrap {
+    position: relative;
     padding-inline: 8px;
     margin-top: var(--ha-space-1, 4px);
+  }
+
+  /* An in-card tooltip rather than an SVG <title>. The native one renders as
+     an OS tooltip box outside the card, unthemed and detached from the point
+     it describes. This one sits above its dot, inherits the theme, and
+     appears on keyboard focus as well as hover — the values also stay
+     reachable as text in the visually-hidden twin, so it enhances rather than
+     gates. */
+  .tip {
+    position: absolute;
+    bottom: 26px;
+    left: clamp(0px, var(--tip-x), 100%);
+    translate: -50% 0;
+    display: flex;
+    gap: var(--ha-space-2, 8px);
+    align-items: baseline;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: var(--bade-radius-sm, 4px);
+    background: var(--ha-card-background, var(--card-background-color, #fff));
+    border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.3));
+    box-shadow: var(--ha-card-box-shadow, 0 2px 6px rgba(0, 0, 0, 0.25));
+    font-size: var(--ha-font-size-s, 0.857rem);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .tip-date {
+    color: var(--secondary-text-color);
+  }
+
+  .tip-value {
+    color: var(--primary-text-color);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .point {
+    cursor: default;
+  }
+
+  .point:focus-visible {
+    outline: 2px solid var(--bade-accent);
+    outline-offset: 2px;
+    border-radius: var(--bade-radius-sm, 4px);
   }
 
   .track {
