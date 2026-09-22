@@ -66,11 +66,17 @@ USER_AGENT: Final = (
 #   MINUTES whether or not anything changed. Measured here on 2026-09-22:
 #       16:17:51Z  Last-Modified 16:10:03Z  VERSION "121623"
 #       16:39:18Z  Last-Modified 16:30:02Z  VERSION "121625"
-#   +2 on the counter across 20 minutes, i.e. one regeneration per 10 min, on
-#   a payload whose content did not change. So `Last-Modified` churns faster
-#   than any sane poll interval and a 304 can never fire at 6 h or 24 h.
-#   Storing an `If-Modified-Since` would buy nothing and cost a validator
-#   store, a cache, and a branch that is never taken.
+#       16:51:13Z  replayed the 16:30:02Z validator -> HTTP 200, full 24 KB
+#                  Last-Modified now 16:50:03Z, VERSION "121627"
+#                  raw bytes differ; VERSION-stripped digests IDENTICAL
+#   The third line is the one that settles it: a validator only 21 MINUTES
+#   OLD — far younger than any interval this integration would ever poll at —
+#   comes back 200 with the whole body, over content that had not changed at
+#   all. The counter advanced +4 across 34 minutes: one regeneration per 10
+#   minutes. So `Last-Modified` churns faster than any sane poll interval and
+#   a 304 can never fire at 6 h or 24 h. Storing an `If-Modified-Since` would
+#   buy nothing and cost a validator store, a cache, and a branch that is
+#   never taken.
 #
 #   `VERSION` is a REGENERATION COUNTER, not a content version — it increments
 #   across a byte-identical payload, so it is not a change signal either. Note
