@@ -9,6 +9,7 @@ import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import { cardStyles } from "./card-styles";
+import { normaliseConfig, resolveDeviceId } from "./config";
 import { CARD_TAG, CARD_VERSION } from "./const";
 import { localize } from "./localize/localize";
 import {
@@ -65,24 +66,22 @@ export class BadegewaesserAustriaCard extends LitElement {
     return document.createElement("badegewaesser-austria-card-editor");
   }
 
-  public static getStubConfig(
-    hass: HomeAssistant,
-  ): Record<string, unknown> {
+  public static getStubConfig(hass: HomeAssistant): Record<string, unknown> {
+    // Seed with a real bathing water so the picker preview shows data rather
+    // than an error card.
     const first = Object.values(hass.entities ?? {}).find(
-      (entry) => entry.platform === PLATFORM,
+      (entry) => entry.platform === PLATFORM && entry.device_id,
     );
-    return { entity: first?.entity_id ?? "" };
+    return { device: first?.device_id ?? "" };
   }
 
   public setConfig(config: BadegewaesserCardConfig): void {
     if (!config) {
-      throw new Error(localize("error.no_entity", undefined));
+      throw new Error(localize("error.no_device", undefined));
     }
-    this._config = {
-      show_season_track: true,
-      show_readings: true,
-      ...config,
-    };
+    // Through the shared normaliser, so the editor cannot show a different
+    // set of defaults than the card renders.
+    this._config = normaliseConfig(config);
   }
 
   public getCardSize(): number {
@@ -145,16 +144,12 @@ export class BadegewaesserAustriaCard extends LitElement {
    */
   private _siteEntities(): SiteEntities | undefined {
     const hass = this.hass;
-    const configured = this._config?.entity;
-    if (!hass || !configured) return undefined;
-
-    const registry = hass.entities ?? {};
-    const anchor = registry[configured];
-    if (!anchor?.device_id) return undefined;
+    const deviceId = resolveDeviceId(hass, this._config);
+    if (!hass || !deviceId) return undefined;
 
     const found: SiteEntities = {};
-    for (const entry of Object.values(registry)) {
-      if (entry.device_id !== anchor.device_id) continue;
+    for (const entry of Object.values(hass.entities ?? {})) {
+      if (entry.device_id !== deviceId) continue;
       if (entry.platform !== PLATFORM) continue;
       if (!entry.translation_key) continue;
       found[entry.translation_key] = hass.states[entry.entity_id];
@@ -163,8 +158,7 @@ export class BadegewaesserAustriaCard extends LitElement {
   }
 
   private _deviceName(): string | undefined {
-    const configured = this._config?.entity;
-    const deviceId = configured ? this.hass?.entities?.[configured]?.device_id : undefined;
+    const deviceId = resolveDeviceId(this.hass, this._config);
     const device = deviceId ? this.hass?.devices?.[deviceId] : undefined;
     return device?.name_by_user ?? device?.name;
   }
@@ -176,22 +170,29 @@ export class BadegewaesserAustriaCard extends LitElement {
 
     const language = languageOf(hass);
 
-    if (!config.entity) {
-      return this._renderAlert(localize("error.no_entity", language));
+    if (!config.device && !config.entity) {
+      return this._renderAlert(localize("error.no_device", language));
     }
-    const registryEntry = hass.entities?.[config.entity];
-    if (!registryEntry || !hass.states[config.entity]) {
-      return this._renderAlert(
-        localize("error.entity_missing", language, { entity: config.entity }),
-      );
-    }
-    if (registryEntry.platform !== PLATFORM) {
-      return this._renderAlert(
-        localize("error.not_this_integration", language, { entity: config.entity }),
-      );
+    // A legacy entity-shaped config must still say something useful when the
+    // entity it names has been deleted or belongs elsewhere.
+    if (!config.device && config.entity) {
+      const registryEntry = hass.entities?.[config.entity];
+      if (!registryEntry || !hass.states[config.entity]) {
+        return this._renderAlert(
+          localize("error.entity_missing", language, { entity: config.entity }),
+        );
+      }
+      if (registryEntry.platform !== PLATFORM) {
+        return this._renderAlert(
+          localize("error.not_this_integration", language, { entity: config.entity }),
+        );
+      }
     }
 
     const entities = this._siteEntities() ?? {};
+    if (Object.keys(entities).length === 0) {
+      return this._renderAlert(localize("error.device_missing", language));
+    }
     const temperature = entities[KEY.temperature];
     const closed = entities[KEY.closed];
     const season = entities[KEY.season];
@@ -264,8 +265,7 @@ export class BadegewaesserAustriaCard extends LitElement {
   }
 
   private _renderPlace(): TemplateResult | typeof nothing {
-    const configured = this._config?.entity;
-    const deviceId = configured ? this.hass?.entities?.[configured]?.device_id : undefined;
+    const deviceId = resolveDeviceId(this.hass, this._config);
     const model = deviceId ? this.hass?.devices?.[deviceId]?.model : undefined;
     return model ? html`<p class="place">${model}</p>` : nothing;
   }
@@ -407,8 +407,10 @@ cards.customCards.push({
   // card is only ever suggested for its own entities; suggesting for every
   // sensor is the documented anti-pattern.
   getEntitySuggestion: (hass, entityId) => {
-    if (hass.entities?.[entityId]?.platform !== PLATFORM) return null;
-    return { config: { type: `custom:${CARD_TAG}`, entity: entityId } };
+    const entry = hass.entities?.[entityId];
+    if (entry?.platform !== PLATFORM || !entry.device_id) return null;
+    // HA hands us an entity; the card is about the bathing water it belongs to.
+    return { config: { type: `custom:${CARD_TAG}`, device: entry.device_id } };
   },
 });
 

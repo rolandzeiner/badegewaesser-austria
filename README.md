@@ -122,14 +122,17 @@ The card is installed and registered automatically. Add it from the card picker,
 
 ```yaml
 type: custom:badegewaesser-austria-card
-entity: sensor.naturbadesee_konigsdorf_water_temperature
+device: 1a2b3c4d5e6f7890abcdef1234567890
 ```
+
+The editor's picker fills this in for you — pick the bathing water by name.
 
 ### Card configuration
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `entity` | string | *required* | Any entity of the bathing water. The card finds the other seven itself. |
+| `device` | string | *required* | The bathing water's device. The card finds all eight of its entities itself. |
+| `entity` | string | — | Legacy alternative to `device`: any one entity of the bathing water. Still honoured so older cards keep working. |
 | `name` | string | the lake's name | Overrides the card title. |
 | `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
 | `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth. |

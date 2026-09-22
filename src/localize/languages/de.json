@@ -24,17 +24,18 @@
     "poor": "Mangelhaft"
   },
   "error": {
-    "no_entity": "Wähle im Karteneditor ein Badegewässer aus.",
     "entity_missing": "Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.",
-    "not_this_integration": "{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration."
+    "not_this_integration": "{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration.",
+    "no_device": "Wähle im Karteneditor ein Badegewässer aus.",
+    "device_missing": "Dieses Badegewässer gibt es nicht mehr. Wähle im Karteneditor ein anderes aus."
   },
   "version": {
     "mismatch": "Diese Karte ist veraltet ({card} statt {integration}).",
     "reload": "Neu laden"
   },
   "editor": {
-    "entity": "Badegewässer",
-    "entity_helper": "Eine beliebige Entität des Badegewässers — die übrigen findet die Karte selbst.",
+    "device": "Badegewässer",
+    "device_helper": "Welchen See oder Fluss die Karte zeigen soll.",
     "name": "Titel",
     "name_helper": "Leer lassen, um den Namen des Badegewässers zu verwenden.",
     "show_season_track": "Saisonverlauf zeigen",

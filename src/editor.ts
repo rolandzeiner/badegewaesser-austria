@@ -9,6 +9,7 @@
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
+import { normaliseConfig } from "./config";
 import { localize } from "./localize/localize";
 import type {
   BadegewaesserCardConfig,
@@ -21,12 +22,17 @@ import { PLATFORM, languageOf } from "./utils";
 
 const SCHEMA: HaFormSchema[] = [
   {
-    name: "entity",
+    name: "device",
     required: true,
-    // Pinned to this integration. Without the filter the picker offers every
-    // entity in the instance, and picking a wrong one produces a card that
-    // renders an error instead of data.
-    selector: { entity: { integration: PLATFORM } },
+    // A DEVICE picker, not an entity one. The field is called "Badegewässer",
+    // and an entity picker answered it with all eight sensors of the lake --
+    // Enterokokken, Sichttiefe, Badesaison and so on -- which is an
+    // unanswerable question: any of them works, and nothing on screen said so.
+    // One device is one bathing water, which is the thing being chosen.
+    //
+    // `filter` rather than a top-level `integration`: the top-level form is
+    // marked legacy in HA's selector module ("remains feature frozen").
+    selector: { device: { filter: { integration: PLATFORM } } },
   },
   { name: "name", selector: { text: {} } },
   {
@@ -58,7 +64,7 @@ export class BadegewaesserAustriaCardEditor extends LitElement {
     return html`
       <ha-form
         .hass=${this.hass}
-        .data=${this._config}
+        .data=${normaliseConfig(this._config)}
         .schema=${SCHEMA}
         .computeLabel=${this._computeLabel}
         .computeHelper=${this._computeHelper}
@@ -79,6 +85,9 @@ export class BadegewaesserAustriaCardEditor extends LitElement {
   };
 
   private _valueChanged(event: CustomEvent<{ value: BadegewaesserCardConfig }>): void {
+    // The emitted value already carries the defaults, because `data` did.
+    // Feeding ha-form the raw config instead is what made both toggles render
+    // OFF on a freshly added card while both sections were visibly on.
     // Must be composed to cross the Shadow DOM boundary; without it Lovelace
     // never hears the change and the editor silently discards every edit.
     fireEvent(this, "config-changed", { config: event.detail.value });

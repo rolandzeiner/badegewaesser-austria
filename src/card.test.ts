@@ -107,8 +107,10 @@ describe("registration", () => {
     const entry = (window as { customCards?: { type: string; getEntitySuggestion?: Function }[] })
       .customCards?.find((row) => row.type === CARD_TAG);
     const hass = makeHass();
+    // HA hands the hook an entity; the card is about the bathing water that
+    // entity belongs to, so the suggestion resolves to its device.
     expect(entry?.getEntitySuggestion?.(hass, "sensor.koenigsdorf_water_temperature")).toEqual({
-      config: { type: `custom:${CARD_TAG}`, entity: "sensor.koenigsdorf_water_temperature" },
+      config: { type: `custom:${CARD_TAG}`, device: DEVICE },
     });
     expect(entry?.getEntitySuggestion?.(hass, "sensor.someone_elses_thing")).toBeNull();
   });
@@ -131,7 +133,7 @@ describe("rendering", () => {
   it("finds all eight siblings through the device, not the entity_id", async () => {
     // Users rename entity_ids. A card that string-munged a suffix would break
     // silently the first time somebody did.
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     const body = text(card);
     expect(body).toContain("Naturbadesee Königsdorf");
     expect(body).toContain("Burgenland");
@@ -141,23 +143,23 @@ describe("rendering", () => {
   });
 
   it("works when anchored to any entity of the bathing water", async () => {
-    const card = await mount({ entity: "binary_sensor.koenigsdorf_closed" });
+    const card = await mount({ device: DEVICE });
     expect(text(card)).toContain("26,2");
   });
 
   it("renders a below-limit count as a limit, not a measurement", async () => {
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     expect(text(card)).toContain("<15");
   });
 
   it("carries the CC BY attribution", async () => {
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     expect(text(card)).toContain("AGES");
     expect(text(card)).toContain("CC BY 3.0 AT");
   });
 
   it("gives the track a text twin for screen readers", async () => {
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     const hidden = card.shadowRoot?.querySelector(".visually-hidden")?.textContent ?? "";
     expect(hidden).toContain("26,2");
     expect(hidden).toContain("21,4");
@@ -165,7 +167,7 @@ describe("rendering", () => {
 
   it("looks finished out of season rather than empty", async () => {
     // The state the card is in for roughly nine and a half months a year.
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     const body = text(card);
     expect(body).toContain("Saison beendet");
     expect(body).toContain("26,2");
@@ -178,7 +180,7 @@ describe("rendering", () => {
       state: "on",
       attributes: { closure_reason: "Blaualgen — Badeverbot" },
     };
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" }, hass);
+    const card = await mount({ device: DEVICE }, hass);
     const body = text(card);
     expect(body).toContain("Baden verboten");
     expect(body).toContain("Blaualgen");
@@ -190,13 +192,13 @@ describe("rendering", () => {
       state: "unknown",
       attributes: { unit_of_measurement: "°C", season_samples: SAMPLES },
     };
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" }, hass);
+    const card = await mount({ device: DEVICE }, hass);
     expect(text(card)).toContain("—");
   });
 
   it("honours the section toggles", async () => {
     const card = await mount({
-      entity: "sensor.koenigsdorf_water_temperature",
+      device: DEVICE,
       show_readings: false,
     });
     expect(text(card)).not.toContain("Enterokokken");
@@ -235,7 +237,7 @@ describe("the reading", () => {
     // approximation landed ~60px short — close enough to look like a bug.
     // Right alignment lands near the dot for the same reason exact anchoring
     // failed, and reads as a deliberate edge.
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     expect(card.shadowRoot?.querySelector(".reading-row")).toBeNull();
     expect(card.shadowRoot?.querySelector(".reading-block")).not.toBeNull();
   });
@@ -248,17 +250,17 @@ describe("the season-track tooltip", () => {
   it("uses no native SVG <title>", async () => {
     // A <title> renders as an unthemed OS tooltip box detached from the card,
     // which is what it looked like. The in-card tooltip replaces it.
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     expect(card.shadowRoot?.querySelector("svg title")).toBeNull();
   });
 
   it("shows nothing until a point is hovered", async () => {
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     expect(card.shadowRoot?.querySelector(".tip")).toBeNull();
   });
 
   it("shows the hovered point's date and value", async () => {
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     const point = dots(card)[0]!;
     point.dispatchEvent(new Event("pointerenter"));
     await card.updateComplete;
@@ -269,7 +271,7 @@ describe("the season-track tooltip", () => {
   });
 
   it("hides again on pointerleave", async () => {
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     const point = dots(card)[0]!;
     point.dispatchEvent(new Event("pointerenter"));
     await card.updateComplete;
@@ -281,7 +283,7 @@ describe("the season-track tooltip", () => {
 
   it("gives keyboard focus the same tooltip as hover", async () => {
     // WCAG: keyboard focus must surface what hover surfaces.
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     const point = dots(card)[1]!;
     expect(point.getAttribute("tabindex")).toBe("0");
 
@@ -295,7 +297,7 @@ describe("the season-track tooltip", () => {
   });
 
   it("labels every point for a screen reader", async () => {
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     for (const point of dots(card)) {
       expect(point.getAttribute("aria-label")).toMatch(/\d/);
     }
@@ -307,10 +309,50 @@ describe("attribution", () => {
     // CC BY 3.0 AT asks for attribution in the manner specified; AGES plus the
     // licence does that. The full legal name lives in the README, where it
     // does not wrap the footer onto two lines.
-    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    const card = await mount({ device: DEVICE });
     const footer = card.shadowRoot?.querySelector(".attribution")?.textContent ?? "";
     expect(footer).toContain("AGES");
     expect(footer).toContain("CC BY 3.0 AT");
     expect(footer).not.toContain("Ernährungssicherheit");
+  });
+});
+
+describe("editor defaults", () => {
+  it("normalises a raw config the same way the card renders it", async () => {
+    // The bug: the card applied its defaults inside setConfig, but the editor
+    // handed Lovelace's RAW config to ha-form — which knows nothing about the
+    // card's defaults. So a freshly added card showed both toggles OFF while
+    // both sections were plainly visible. One normaliser now serves both.
+    const { normaliseConfig, DEFAULTS } = await import("./config");
+
+    const raw = { type: `custom:${CARD_TAG}`, device: DEVICE };
+    expect(normaliseConfig(raw).show_season_track).toBe(DEFAULTS.show_season_track);
+    expect(normaliseConfig(raw).show_readings).toBe(DEFAULTS.show_readings);
+  });
+
+  it("does not override a value the user actually set", async () => {
+    const { normaliseConfig } = await import("./config");
+    const raw = { type: "x", device: DEVICE, show_readings: false };
+    expect(normaliseConfig(raw).show_readings).toBe(false);
+    expect(normaliseConfig(raw).show_season_track).toBe(true);
+  });
+});
+
+describe("legacy entity-shaped configs", () => {
+  it("still resolves a card configured before the device picker", async () => {
+    // Somebody's dashboard already has one of these. It must keep working.
+    const card = await mount({ entity: "sensor.koenigsdorf_water_temperature" });
+    expect(text(card)).toContain("26,2");
+    expect(text(card)).toContain("Naturbadesee Königsdorf");
+  });
+
+  it("still names a deleted entity rather than rendering blank", async () => {
+    const card = await mount({ entity: "sensor.gone" });
+    expect(text(card)).toContain("sensor.gone");
+  });
+
+  it("reports a bathing water that no longer exists", async () => {
+    const card = await mount({ device: "device-that-went-away" });
+    expect(text(card)).toContain("gibt es nicht mehr");
   });
 });

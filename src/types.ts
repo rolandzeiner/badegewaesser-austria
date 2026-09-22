@@ -62,8 +62,14 @@ export interface LovelaceCardConfig {
   [key: string]: unknown;
 }
 
-/** This card's config. `entity` is any one of a bathing water's entities. */
+/** This card's config. */
 export interface BadegewaesserCardConfig extends LovelaceCardConfig {
+  /** Device id of the bathing water — what the editor writes. */
+  device?: string;
+  /**
+   * Any one entity of the bathing water. The original shape, kept working for
+   * cards configured before the editor moved to a device picker.
+   */
   entity?: string;
   name?: string;
   show_season_track?: boolean;
