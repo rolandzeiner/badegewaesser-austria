@@ -216,7 +216,7 @@ logger:
 
 - **Samples are sparse.** Each bathing water is sampled 4 to 9 times a season, about 20 days apart. This is not live data and the card does not pretend otherwise — every reading is shown with the date it was taken.
 - **Nothing changes from September to mid-May.** No samples are taken, so the newest reading stays put until the following summer.
-- **One bathing water has no coordinates.** AGES publishes `0` / `0` for *Wolfgangsee, St. Gilgen – Gamsjaga*, so it never appears in the "near you" list. You can still add it by province.
+- **One bathing water's position comes from its profile.** AGES publishes `0` / `0` for *Wolfgangsee, St. Gilgen – Gamsjaga*. The integration uses the sampling point from the site's bathing-water profile instead, until AGES publishes one.
 - **A few historical ratings use letters AGES does not document.** Two sites carry an `F` or a `G` in an older year. The integration will not publish a letter it cannot interpret, so it falls back to the most recent year it can, and keeps the original in `rating_raw`.
 - **The per-sample assessment is a raw number.** Each sample carries a 1, 2 or 3 whose meaning AGES does not publish; sources disagree on whether the scale even has four levels. It is exposed as `sample_assessment` without a label rather than guessed at.
 - **Closures have not been seen in live data.** `TGESPERRT` was `0` for all 260 sites when this integration was written, so the closure banner is built to the documented shape rather than an observed one.

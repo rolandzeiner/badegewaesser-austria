@@ -25,6 +25,7 @@ from homeassistant.util.json import json_loads
 from .const import (
     API_URL,
     BELOW_DETECTION_OPERATOR,
+    COORDINATE_FALLBACKS,
     RATING_CLASSES,
     RATING_KEY_PATTERN,
     UNMEASURED_TEMPERATURE,
@@ -110,7 +111,8 @@ class BathingSite:
     municipality: str
     # None when upstream has no usable position. One site ("Wolfgangsee,
     # St. Gilgen - Gamsjaga") ships LONGITUDE/LATITUDE of "0", which is Null
-    # Island rather than a coordinate — see `_parse_coordinate`.
+    # Island rather than a coordinate — see `_parse_coordinate`. That one is
+    # filled from its profile instead; see `COORDINATE_FALLBACKS`.
     latitude: float | None
     longitude: float | None
     contact: Contact
@@ -302,14 +304,19 @@ def _parse_site(raw: dict[str, Any], bundesland: str) -> BathingSite | None:
     rating, rating_year, rating_raw, rating_raw_year = _resolve_rating(raw)
     closure_reason = _as_str(raw.get("SPERRGRUND"))
 
+    latitude = _parse_coordinate(raw.get("LATITUDE"))
+    longitude = _parse_coordinate(raw.get("LONGITUDE"))
+    if (latitude is None or longitude is None) and site_id in COORDINATE_FALLBACKS:
+        latitude, longitude = COORDINATE_FALLBACKS[site_id]
+
     return BathingSite(
         site_id=site_id,
         name=name,
         bundesland=bundesland,
         district=_as_str(raw.get("BEZIRK")),
         municipality=_as_str(raw.get("GEMEINDE")),
-        latitude=_parse_coordinate(raw.get("LATITUDE")),
-        longitude=_parse_coordinate(raw.get("LONGITUDE")),
+        latitude=latitude,
+        longitude=longitude,
         contact=Contact(
             authority=_as_str(raw.get("ANSPRECHSTELLE")),
             street=_as_str(raw.get("STRASSE_NUMMER")),

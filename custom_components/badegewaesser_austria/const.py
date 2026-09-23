@@ -268,6 +268,17 @@ SAMPLE_ASSESSMENT_IS_UNDOCUMENTED: Final = True
 # are ignored entirely.
 RATING_KEY_PATTERN: Final = r"QUALITAET_(\d{4})"
 
+# Positions for sites whose upstream coordinates are "0"/"0", taken from the
+# site's own bathing-water profile (section 1.18, "Koordinaten der
+# Probenahmestelle im Bezugssystem ETRS89" — within a metre of WGS84 here).
+# Used only while upstream sends no position, so an upstream fix wins
+# automatically. Measured 2026-09-23: this is the only such site of 260.
+#   https://www.ages.at/fileadmin/badegewaesser/pdf/AT3230004400240040.pdf
+COORDINATE_FALLBACKS: Final[dict[str, tuple[float, float]]] = {
+    # Wolfgangsee, St. Gilgen - Gamsjaga
+    "AT3230004400240040": (47.7489768867, 13.4191829076),
+}
+
 # Upstream sends 0 for an unmeasured water temperature. Two of 1362 samples do
 # this, in months when an Austrian lake cannot be at 0 °C, so it is a sentinel
 # and not a reading. Sichttiefe has no such sentinel (its minimum is 0.1 m).

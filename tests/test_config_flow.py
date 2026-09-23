@@ -123,13 +123,19 @@ async def test_site_labels_carry_the_municipality(hass: HomeAssistant) -> None:
 # --- near me ---------------------------------------------------------------
 
 
-async def test_nearby_excludes_sites_with_no_position(hass: HomeAssistant) -> None:
+async def test_nearby_excludes_sites_with_no_position(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The Null Island site must not be ranked as if (0, 0) were a location.
 
     Upstream sends "0"/"0" for one of the 260 sites. Taken literally that is
     ~5000 km away in the Gulf of Guinea, so it would sort last rather than
-    look obviously broken — a silent wrong answer.
+    look obviously broken — a silent wrong answer. That site now takes its
+    profile position, so the fallback is emptied to test the general rule.
     """
+    monkeypatch.setattr(
+        "custom_components.badegewaesser_austria.api.COORDINATE_FALLBACKS", {}
+    )
     hass.config.latitude = 48.2082
     hass.config.longitude = 16.3738
 

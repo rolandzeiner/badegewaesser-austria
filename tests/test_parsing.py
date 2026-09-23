@@ -88,17 +88,45 @@ def test_real_temperatures_survive(sites: dict) -> None:
 # --- coordinates -----------------------------------------------------------
 
 
-def test_null_island_coordinates_become_no_position(sites: dict) -> None:
+def test_null_island_coordinates_become_no_position(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """ "0"/"0" is missing data, not a location off West Africa.
 
     Exactly one of the 260 live sites is in this state. Taken literally it
     sits ~5000 km from Austria, which would quietly win any "nearest bathing
     water" ranking — so the config flow must be able to tell it apart from a
-    real position.
+    real position. The fallback table is emptied because that one site now
+    has a profile position; this is the rule for any site that does not.
     """
-    site = sites[NULL_ISLAND]
+    monkeypatch.setattr(
+        "custom_components.badegewaesser_austria.api.COORDINATE_FALLBACKS", {}
+    )
+    site = parse_document(json.loads(fixture_bytes()))[NULL_ISLAND]
     assert site.latitude is None
     assert site.longitude is None
+
+
+def test_null_island_site_takes_its_profile_position(sites: dict) -> None:
+    """Gamsjaga's position comes from its bathing-water profile, section 1.18."""
+    site = sites[NULL_ISLAND]
+    assert site.latitude == pytest.approx(47.7489768867)
+    assert site.longitude == pytest.approx(13.4191829076)
+
+
+def test_upstream_position_wins_over_the_fallback() -> None:
+    """Once AGES publishes real coordinates, the hardcoded pair steps aside."""
+    payload = json.loads(fixture_bytes())
+    for land in payload["BUNDESLAENDER"]:
+        for row in land["BADEGEWAESSER"]:
+            if row["BADEGEWAESSERID"] == NULL_ISLAND:
+                row["LATITUDE"], row["LONGITUDE"] = "47.76", "13.37"
+
+    site = parse_document(payload)[NULL_ISLAND]
+    assert (site.latitude, site.longitude) == (
+        pytest.approx(47.76),
+        pytest.approx(13.37),
+    )
 
 
 def test_real_coordinates_are_parsed(sites: dict) -> None:
