@@ -107,8 +107,22 @@ export class BadegewaesserAustriaCard extends LitElement {
     this._config = normaliseConfig(config);
   }
 
+  /**
+   * Height in masonry units of 50px, per section actually shown.
+   *
+   * Measured in a browser on 2026-09-23 with every section on: 529px at
+   * 500px wide, 514px at 300px, so about 11. This returned 4 until then,
+   * which told masonry the card was less than half its height. The photo's
+   * share grows with width (it is 20:7), so 4 is its size at a typical column.
+   */
   public getCardSize(): number {
-    return 4;
+    const config = this._config;
+    let size = 2; // padding and the attribution footer
+    const photo = this.hass ? this._siteEntities()?.[KEY.photo] : undefined;
+    if (config?.show_photo !== false && (!this.hass || hasValue(photo))) size += 4;
+    if (config?.show_season_track !== false) size += 2;
+    if (config?.show_readings !== false) size += 3;
+    return size;
   }
 
   public getGridOptions(): Record<string, unknown> {

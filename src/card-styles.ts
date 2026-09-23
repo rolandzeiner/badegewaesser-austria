@@ -55,17 +55,45 @@ export const cardStyles = css`
     --bade-radius-md: var(--ha-border-radius-md, 8px);
 
     display: block;
+    /* Fill the grid cell the dashboard gives us. A sections view puts a fixed
+       height on the cell wrapper whenever rows is numeric -- and the user
+       causes that by dragging the height handle, since a stored grid_options
+       overrides getGridOptions(). Because of display: block above, this
+       element is ha-card's containing block, so ha-card's block-size: 100%
+       resolves against this line; without it the percentage computes to auto
+       and the card paints over the card below. Resolves to auto in an
+       auto-height cell, so it costs nothing there. The two declarations only
+       work as a pair: ha-lovelace-card, references/gotchas.md. */
+    block-size: 100%;
   }
 
   ha-card {
     /* The card can sit in a 280px sidebar column or a full-width section, and
        it must reflow to its own width rather than the viewport's. */
     container-type: inline-size;
+    /* Takes the height :host took from the cell. In a cell shorter than the
+       content, the photo and banners keep their size and the body scrolls,
+       instead of the card spilling over its neighbour. */
+    block-size: 100%;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ha-card > * {
+    flex-shrink: 0;
   }
 
   .body {
     padding: var(--bade-pad-y) var(--bade-pad-x);
+  }
+
+  /* min-block-size: 0 is what lets a flex child shrink below its content,
+     without which overflow-y never engages. */
+  ha-card > .body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    overflow-y: auto;
   }
 
   /* -- photo header ----------------------------------------------------- */

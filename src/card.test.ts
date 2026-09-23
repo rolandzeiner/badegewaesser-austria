@@ -13,6 +13,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import "./badegewaesser-austria-card";
 import "./editor";
+import { cardStyles } from "./card-styles";
 import { CARD_TAG } from "./const";
 import type { BadegewaesserAustriaCard } from "./badegewaesser-austria-card";
 import type { BadegewaesserAustriaCardEditor } from "./editor";
@@ -314,6 +315,48 @@ describe("the season-track tooltip", () => {
     const track = card.shadowRoot!.querySelector("svg.track")!;
     expect(track.getAttribute("role")).toBe("group");
     expect(track.getAttribute("aria-label")).toBeTruthy();
+  });
+});
+
+describe("the grid cell", () => {
+  // A sections view gives the card a fixed-height cell whenever rows is
+  // numeric, and the user causes that by dragging the height handle: a stored
+  // grid_options overrides getGridOptions(). Only the PAIR of declarations
+  // makes the card fill that cell instead of painting over the card below
+  // (ha-lovelace-card, references/gotchas.md). This card shipped without
+  // either, the fourth time the portfolio met the bug. happy-dom does no
+  // layout, so the guard is on the CSS itself.
+  const rule = (selector: string): string => {
+    const css = cardStyles.cssText;
+    const start = css.indexOf(`${selector} {`);
+    return start < 0 ? "" : css.slice(start, css.indexOf("}", start));
+  };
+
+  it("takes the cell's height on the host", () => {
+    expect(rule(":host")).toMatch(/display:\s*block/);
+    expect(rule(":host")).toMatch(/block-size:\s*100%/);
+  });
+
+  it("resolves ha-card against it and clips inside the card", () => {
+    expect(rule("ha-card")).toMatch(/block-size:\s*100%/);
+    expect(rule("ha-card")).toMatch(/overflow:\s*hidden/);
+  });
+
+  it("tells masonry its real height, section by section", async () => {
+    // 50px units. Measured: ~11 with everything on; it returned 4 before.
+    const hass = makeHass();
+    const plain = await mount({ device: DEVICE }, hass);
+    expect(plain.getCardSize()).toBe(7); // no photo entity in this hass
+    const bare = await mount(
+      { device: DEVICE, show_season_track: false, show_readings: false },
+      hass,
+    );
+    expect(bare.getCardSize()).toBe(2);
+  });
+
+  it("scrolls the body rather than cutting it off in a short cell", () => {
+    expect(rule("ha-card > .body")).toMatch(/min-block-size:\s*0/);
+    expect(rule("ha-card > .body")).toMatch(/overflow-y:\s*auto/);
   });
 });
 
