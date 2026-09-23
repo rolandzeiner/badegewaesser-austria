@@ -17,6 +17,7 @@
     "below_limit": "unter der Nachweisgrenze",
     "attribution": "Datenquelle: AGES · CC BY 3.0 AT",
     "photo_alt": "Badestelle {name}",
+    "photo_credit": "Fotonachweis",
     "photo_source": "Quelle: AGES Badegewässer-Monitoring"
   },
   "quality": {

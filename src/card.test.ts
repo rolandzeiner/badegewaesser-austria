@@ -317,15 +317,16 @@ describe("the season-track tooltip", () => {
   });
 });
 
-describe("the photo", () => {
+describe("the photo header", () => {
   const PHOTO = "image.koenigsdorf_photo";
   const STAMP = "2016-05-12T10:38:28+00:00";
+  const CREDIT = "Foto: © Amt der Burgenländischen Landesregierung";
 
   function withPhoto(
     state = STAMP,
     attributes: Record<string, unknown> = {
       entity_picture: `/api/image_proxy/${PHOTO}?token=first`,
-      attribution: "Foto: © Amt der Burgenländischen Landesregierung",
+      attribution: CREDIT,
     },
   ): HomeAssistant {
     const hass = makeHass();
@@ -339,16 +340,18 @@ describe("the photo", () => {
     return hass;
   }
 
-  const img = (card: BadegewaesserAustriaCard) =>
-    card.shadowRoot?.querySelector<HTMLImageElement>(".photo img") ?? null;
-  const caption = (card: BadegewaesserAustriaCard) =>
-    card.shadowRoot!.querySelector<HTMLElement>(".photo-credit")!;
+  const q = <T extends Element = HTMLElement>(card: BadegewaesserAustriaCard, selector: string) =>
+    card.shadowRoot?.querySelector<T>(selector) ?? null;
+  const img = (card: BadegewaesserAustriaCard) => q<HTMLImageElement>(card, ".hero-img");
+  const tip = (card: BadegewaesserAustriaCard) => q(card, ".photo-tip")!;
+  const button = (card: BadegewaesserAustriaCard) => q<HTMLButtonElement>(card, ".photo-info-button")!;
 
   it("is absent when the bathing water has no photo", async () => {
     // AGES has none for one site, and an install without the photo folder
-    // has none at all. Neither may leave an empty frame behind.
+    // has none at all. The card then keeps its plain heading.
     const card = await mount({ device: DEVICE });
-    expect(card.shadowRoot?.querySelector(".photo")).toBeNull();
+    expect(q(card, ".hero")).toBeNull();
+    expect(q(card, ".body .title")?.textContent).toBe("Naturbadesee Königsdorf");
   });
 
   it("loads through the image proxy, described by the bathing water's name", async () => {
@@ -357,21 +360,96 @@ describe("the photo", () => {
     expect(img(card)?.getAttribute("alt")).toBe("Badestelle Naturbadesee Königsdorf");
   });
 
-  it("shows its credit on the photo, not only on hover", async () => {
+  it("puts the name, the Bundesland and the temperature on the photo", async () => {
     const card = await mount({ device: DEVICE }, withPhoto());
-    expect(caption(card).textContent?.trim()).toBe(
-      "Foto: © Amt der Burgenländischen Landesregierung",
-    );
+    expect(q(card, ".hero-title")?.textContent).toBe("Naturbadesee Königsdorf");
+    expect(q(card, ".hero-place")?.textContent).toBe("Burgenland");
+    expect(q(card, ".hero-value")?.textContent?.trim()).toBe("26,2");
+    expect(q(card, ".hero-unit")?.textContent).toBe("°C");
+    expect(q(card, ".hero-sampled")?.textContent).toContain("Probe vom");
+  });
+
+  it("does not repeat them in the body", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    expect(q(card, ".body .title")).toBeNull();
+    expect(q(card, ".body .temperature")).toBeNull();
+    // Only the date stays, for cards too narrow to show it on the photo.
+    expect(q(card, ".hero-fallback .sampled")?.textContent).toContain("Probe vom");
+  });
+
+  it("keeps the credit off the photo, behind an info button", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    expect(button(card).getAttribute("aria-label")).toBe("Fotonachweis");
+    expect(tip(card).hasAttribute("hidden")).toBe(true);
+    expect(tip(card).textContent).toContain("Amt der Burgenländischen Landesregierung");
+    expect(tip(card).textContent).toContain("Quelle: AGES Badegewässer-Monitoring");
+  });
+
+  it("announces the credit to a screen reader without opening it", async () => {
+    // A hidden element still supplies an accessible description.
+    const card = await mount({ device: DEVICE }, withPhoto());
+    expect(button(card).getAttribute("aria-describedby")).toBe(tip(card).id);
+    expect(tip(card).getAttribute("role")).toBe("tooltip");
+  });
+
+  it("opens on hover and stays open while the pointer is on it", async () => {
+    // WCAG 1.4.13: the wrapper holds both the button and the tooltip, so
+    // moving from one to the other never closes it.
+    const card = await mount({ device: DEVICE }, withPhoto());
+    const wrapper = q(card, ".photo-info")!;
+    wrapper.dispatchEvent(new Event("pointerenter"));
+    await card.updateComplete;
+    expect(tip(card).hasAttribute("hidden")).toBe(false);
+
+    wrapper.dispatchEvent(new Event("pointerleave"));
+    await card.updateComplete;
+    expect(tip(card).hasAttribute("hidden")).toBe(true);
+  });
+
+  it("opens on keyboard focus, and Escape closes it", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    button(card).dispatchEvent(new Event("focus"));
+    await card.updateComplete;
+    expect(tip(card).hasAttribute("hidden")).toBe(false);
+
+    button(card).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await card.updateComplete;
+    expect(tip(card).hasAttribute("hidden")).toBe(true);
+  });
+
+  it("stays open after a tap, which is all a phone can do", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    const wrapper = q(card, ".photo-info")!;
+    // A touch fires pointerenter and pointerleave around the click.
+    wrapper.dispatchEvent(new Event("pointerenter"));
+    wrapper.dispatchEvent(new Event("pointerleave"));
+    button(card).click();
+    await card.updateComplete;
+    expect(tip(card).hasAttribute("hidden")).toBe(false);
+
+    button(card).click();
+    await card.updateComplete;
+    expect(tip(card).hasAttribute("hidden")).toBe(true);
+  });
+
+  it("closes when focus moves on, pinned or not", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    button(card).click();
+    await card.updateComplete;
+    button(card).dispatchEvent(new Event("blur"));
+    await card.updateComplete;
+    expect(tip(card).hasAttribute("hidden")).toBe(true);
   });
 
   it("honours the photo toggle", async () => {
     const card = await mount({ device: DEVICE, show_photo: false }, withPhoto());
-    expect(card.shadowRoot?.querySelector(".photo")).toBeNull();
+    expect(q(card, ".hero")).toBeNull();
+    expect(q(card, ".body .title")).not.toBeNull();
   });
 
   it("is absent while its entity is unavailable", async () => {
     const card = await mount({ device: DEVICE }, withPhoto("unavailable"));
-    expect(card.shadowRoot?.querySelector(".photo")).toBeNull();
+    expect(q(card, ".hero")).toBeNull();
   });
 
   it("keeps its URL when only the access token rotates", async () => {
@@ -380,7 +458,7 @@ describe("the photo", () => {
     const card = await mount({ device: DEVICE }, withPhoto());
     card.hass = withPhoto(STAMP, {
       entity_picture: `/api/image_proxy/${PHOTO}?token=second`,
-      attribution: "Foto: © AGES",
+      attribution: CREDIT,
     });
     await card.updateComplete;
     expect(img(card)?.getAttribute("src")).toContain("token=first");
@@ -390,7 +468,7 @@ describe("the photo", () => {
     const card = await mount({ device: DEVICE }, withPhoto());
     card.hass = withPhoto("2026-09-23T08:00:00+00:00", {
       entity_picture: `/api/image_proxy/${PHOTO}?token=second`,
-      attribution: "Foto: © AGES",
+      attribution: CREDIT,
     });
     await card.updateComplete;
     expect(img(card)?.getAttribute("src")).toContain("token=second");
@@ -400,7 +478,7 @@ describe("the photo", () => {
     const card = await mount({ device: DEVICE }, withPhoto());
     card.hass = withPhoto(STAMP, {
       entity_picture: `/api/image_proxy/${PHOTO}?token=second`,
-      attribution: "Foto: © AGES",
+      attribution: CREDIT,
     });
     await card.updateComplete;
     img(card)!.dispatchEvent(new Event("error"));
@@ -408,41 +486,13 @@ describe("the photo", () => {
     expect(img(card)?.getAttribute("src")).toContain("token=second");
   });
 
-  it("drops out rather than showing a broken image", async () => {
+  it("falls back to the plain heading rather than a broken image", async () => {
     const card = await mount({ device: DEVICE }, withPhoto());
     img(card)!.dispatchEvent(new Event("error"));
     await card.updateComplete;
-    expect(card.shadowRoot?.querySelector(".photo")).toBeNull();
-  });
-
-  it("names the source in a tooltip on hover", async () => {
-    const card = await mount({ device: DEVICE }, withPhoto());
-    expect(card.shadowRoot?.querySelector(".photo-tip")).toBeNull();
-
-    caption(card).dispatchEvent(new Event("pointerenter"));
-    await card.updateComplete;
-    const tip = card.shadowRoot?.querySelector(".photo-tip")?.textContent ?? "";
-    expect(tip).toContain("Amt der Burgenländischen Landesregierung");
-    expect(tip).toContain("Quelle: AGES Badegewässer-Monitoring");
-
-    caption(card).dispatchEvent(new Event("pointerleave"));
-    await card.updateComplete;
-    expect(card.shadowRoot?.querySelector(".photo-tip")).toBeNull();
-  });
-
-  it("gives keyboard focus the same tooltip, and Escape dismisses it", async () => {
-    const card = await mount({ device: DEVICE }, withPhoto());
-    expect(caption(card).getAttribute("tabindex")).toBe("0");
-
-    caption(card).dispatchEvent(new Event("focus"));
-    await card.updateComplete;
-    const tip = card.shadowRoot?.querySelector(".photo-tip");
-    expect(tip?.getAttribute("role")).toBe("tooltip");
-    expect(caption(card).getAttribute("aria-describedby")).toBe(tip?.id);
-
-    caption(card).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await card.updateComplete;
-    expect(card.shadowRoot?.querySelector(".photo-tip")).toBeNull();
+    expect(q(card, ".hero")).toBeNull();
+    expect(q(card, ".body .title")?.textContent).toBe("Naturbadesee Königsdorf");
+    expect(q(card, ".body .temperature")).not.toBeNull();
   });
 });
 

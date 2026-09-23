@@ -61,6 +61,10 @@ export class BadegewaesserAustriaCard extends LitElement {
   @state() private _hoveredPoint: number | null = null;
   @state() private _photoTip = false;
   @state() private _photoFailed?: string;
+  // Why the credit tooltip is open. Hover and focus open it for as long as
+  // they last; a click or tap pins it, because touch has no hover.
+  private _photoTipHovered = false;
+  private _photoTipPinned = false;
 
   private _versionChecked = false;
   // The photo URL in use, and the photo state it belongs to. See _photoUrl.
@@ -207,19 +211,25 @@ export class BadegewaesserAustriaCard extends LitElement {
     const inSeason = season?.state === "on";
     const isClosed = closed?.state === "on";
 
+    const photo = entities[KEY.photo];
+    const photoSrc = config.show_photo === false ? undefined : this._photoUrl(photo);
+    const hero = photoSrc !== undefined && this._photoFailed !== photoSrc;
+
     return html`
       <ha-card>
-        ${config.show_photo === false
-          ? nothing
-          : this._renderPhoto(entities[KEY.photo], title, language)}
+        ${hero
+          ? this._renderHero(photoSrc, photo, title, temperature, samples, language)
+          : nothing}
         ${this._renderVersionBanner(language)}
         ${isClosed ? this._renderClosure(closed, language) : nothing}
         <div class="body">
-          <h2 class="title">${title}</h2>
-          ${this._renderPlace()}
+          ${hero
+            ? nothing
+            : html`<h2 class="title">${title}</h2>
+                ${this._renderPlace()}`}
           ${config.show_season_track === false
             ? nothing
-            : this._renderSeason(temperature, samples, inSeason, language)}
+            : this._renderSeason(temperature, samples, inSeason, language, hero)}
           ${config.show_readings === false
             ? nothing
             : this._renderReadings(entities, language)}
@@ -274,33 +284,35 @@ export class BadegewaesserAustriaCard extends LitElement {
   }
 
   /**
-   * The bathing spot's photo, with its credit on it.
+   * The photo as the card's header, with the bathing water's name, its
+   * Bundesland and the water temperature laid over it.
    *
    * The picture comes from the site's `image` entity through Home Assistant's
-   * image proxy, so the browser talks to nobody but Home Assistant. The credit
-   * is the entity's attribution and sits on the photo itself: the photos are
-   * not ours, and a credit only reachable by hovering would not be one. The
-   * tooltip adds where the photo came from and shows a credit the caption had
-   * to truncate.
+   * image proxy, so the browser talks to nobody but Home Assistant. Each text
+   * block carries its own scrim, sized to the block rather than to the photo,
+   * so the contrast holds however bright the picture is underneath: see the
+   * hero section of card-styles.ts for the measurement.
    */
-  private _renderPhoto(
-    entity: HassEntity | undefined,
+  private _renderHero(
+    src: string,
+    photo: HassEntity | undefined,
     title: string,
+    temperature: HassEntity | undefined,
+    samples: SeasonSample[],
     language: string | undefined,
-  ): TemplateResult | typeof nothing {
-    const src = this._photoUrl(entity);
-    if (!src || this._photoFailed === src) return nothing;
-    const attribution = entity?.attributes["attribution"];
+  ): TemplateResult {
+    const attribution = photo?.attributes["attribution"];
     const credit = typeof attribution === "string" ? attribution : "";
-    const show = (): void => {
-      this._photoTip = true;
-    };
-    const hide = (): void => {
-      this._photoTip = false;
-    };
+    const deviceId = resolveDeviceId(this.hass, this._config);
+    const place = deviceId ? this.hass?.devices?.[deviceId]?.model : undefined;
+    const formatted = formatNumber(numericState(temperature), language);
+    const unit = temperature?.attributes["unit_of_measurement"];
+    const latest = samples.at(-1);
+
     return html`
-      <figure class="photo">
+      <div class="hero">
         <img
+          class="hero-img"
           src=${src}
           alt=${localize("card.photo_alt", language, { name: title })}
           width="600"
@@ -308,30 +320,87 @@ export class BadegewaesserAustriaCard extends LitElement {
           decoding="async"
           @error=${() => this._onPhotoError(src)}
         />
-        ${credit
-          ? html`<figcaption
-              class="photo-credit"
-              tabindex="0"
-              aria-describedby="photo-tip"
-              @pointerenter=${show}
-              @pointerleave=${hide}
-              @focus=${show}
-              @blur=${hide}
-              @keydown=${(event: KeyboardEvent) => {
-                // WCAG 1.4.13: content shown on hover or focus can be dismissed.
-                if (event.key === "Escape") hide();
-              }}
-            >
-              ${credit}
-            </figcaption>`
-          : nothing}
-        ${credit && this._photoTip
-          ? html`<div class="photo-tip" id="photo-tip" role="tooltip">
-              <span>${credit}</span>
-              <span class="photo-tip-source">${localize("card.photo_source", language)}</span>
-            </div>`
-          : nothing}
-      </figure>
+        <div class="hero-caption">
+          <h2 class="hero-title">${title}</h2>
+          ${place ? html`<p class="hero-place">${place}</p>` : nothing}
+        </div>
+        <div class="hero-reading">
+          <div class="hero-reading-box">
+          <p class=${formatted === null ? "hero-temperature is-missing" : "hero-temperature"}>
+            <span class="hero-value">${formatted ?? "—"}</span>
+            ${formatted !== null && typeof unit === "string"
+              ? html`<span class="hero-unit">${unit}</span>`
+              : nothing}
+          </p>
+          ${latest
+            ? html`<p class="hero-sampled">
+                ${localize("card.sampled_on", language, {
+                  date: formatSampleDate(new Date(`${latest.date}T00:00:00Z`), language),
+                })}
+              </p>`
+            : nothing}
+          </div>
+        </div>
+        ${credit ? this._renderPhotoCredit(credit, language) : nothing}
+      </div>
+    `;
+  }
+
+  /**
+   * The photo credit, behind an info button in the photo's corner.
+   *
+   * The tooltip follows the WAI-ARIA tooltip pattern and WCAG 1.4.13: it
+   * opens on hover and on keyboard focus, stays open while the pointer is on
+   * it, and Escape closes it. A click or tap pins it open, which is the only
+   * way to reach it on a phone. It stays in the DOM while closed, so a screen
+   * reader announces the credit as the button's description either way.
+   */
+  private _renderPhotoCredit(credit: string, language: string | undefined): TemplateResult {
+    const update = (): void => {
+      this._photoTip = this._photoTipHovered || this._photoTipPinned;
+    };
+    const close = (): void => {
+      this._photoTipHovered = false;
+      this._photoTipPinned = false;
+      update();
+    };
+    return html`
+      <div
+        class="photo-info"
+        @pointerenter=${() => {
+          this._photoTipHovered = true;
+          update();
+        }}
+        @pointerleave=${() => {
+          this._photoTipHovered = false;
+          update();
+        }}
+      >
+        <button
+          type="button"
+          class="photo-info-button"
+          aria-label=${localize("card.photo_credit", language)}
+          aria-describedby="photo-tip"
+          @click=${() => {
+            this._photoTipPinned = !this._photoTipPinned;
+            update();
+          }}
+          @focus=${() => {
+            this._photoTipHovered = true;
+            update();
+          }}
+          @blur=${close}
+          @keydown=${(event: KeyboardEvent) => {
+            if (event.key === "Escape") close();
+          }}
+        >
+          <ha-icon icon="mdi:information-outline" aria-hidden="true"></ha-icon>
+        </button>
+        <div class="photo-tip" id="photo-tip" role="tooltip" ?hidden=${!this._photoTip}>
+          <span>${credit}</span>
+          <span class="photo-tip-source">${localize("card.photo_source", language)}</span>
+        </div>
+      </div>
     `;
   }
 
@@ -377,6 +446,7 @@ export class BadegewaesserAustriaCard extends LitElement {
     samples: SeasonSample[],
     inSeason: boolean,
     language: string | undefined,
+    hero = false,
   ): TemplateResult {
     const value = numericState(temperature);
     const formatted = formatNumber(value, language);
@@ -400,17 +470,21 @@ export class BadegewaesserAustriaCard extends LitElement {
           : `${formatNumber(temp, language)} ${typeof unit === "string" ? unit : "°C"}`,
     };
 
+    // With the photo header the temperature sits on the photo. The date stays
+    // here too, shown only where the card is too narrow for it on the photo.
     return html`
       <div class="season">
-        <div class="reading-block">
-          <div class="reading">
-            <span class=${formatted === null ? "temperature is-missing" : "temperature"}>
-              ${formatted ?? "—"}
-            </span>
-            ${formatted !== null && typeof unit === "string"
-              ? html`<span class="unit">${unit}</span>`
-              : nothing}
-          </div>
+        <div class=${hero ? "reading-block hero-fallback" : "reading-block"}>
+          ${hero
+            ? nothing
+            : html`<div class="reading">
+                <span class=${formatted === null ? "temperature is-missing" : "temperature"}>
+                  ${formatted ?? "—"}
+                </span>
+                ${formatted !== null && typeof unit === "string"
+                  ? html`<span class="unit">${unit}</span>`
+                  : nothing}
+              </div>`}
           ${latestDate
             ? html`<p class="sampled">
                 ${localize("card.sampled_on", language, {

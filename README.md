@@ -39,7 +39,7 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 - **Honest about detection limits** — most samples report "below the laboratory's detection limit" rather than a measured count. The card shows `<15`, and the sensor carries a `below_detection_limit` attribute, so you never read a limit as a measurement *(0.1.0)*
 - **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
 - **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
-- **A photo of the bathing spot** — the picture AGES shows for the site, as an `image` entity and at the top of the card, with its credit on it. 259 of the 260 have one *(0.2.0)*
+- **A photo of the bathing spot** — the picture AGES shows for the site, as an `image` entity and as the card's header, with the name, the Bundesland and the water temperature over it. Its credit is behind the ⓘ button on the photo. 259 of the 260 have one *(0.2.0)*
 
 ## Requirements
 
@@ -136,7 +136,7 @@ The editor's picker fills this in for you — pick the bathing water by name.
 | `device` | string | *required* | The bathing water's device. The card finds all of its entities itself. |
 | `entity` | string | — | Legacy alternative to `device`: any one entity of the bathing water. Still honoured so older cards keep working. |
 | `name` | string | the lake's name | Overrides the card title. |
-| `show_photo` | boolean | `true` | The photo of the bathing spot, with its credit. Only where there is one. |
+| `show_photo` | boolean | `true` | The photo of the bathing spot as the card's header, with the name and temperature over it. Only where there is one. |
 | `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
 | `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth. |
 
@@ -244,7 +244,7 @@ In full: **AGES — Österreichische Agentur für Gesundheit und Ernährungssich
 
 Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition.
 
-The photos are not part of that dataset and not under its licence. They come from the AGES bathing-water pages, and each one carries its own credit, shown on the photo in the card and as the photo entity's attribution. The credit names the rights holder given in the site's bathing-water profile, or else the photographer recorded in the file, or else AGES.
+The photos are not part of that dataset and not under its licence. They come from the AGES bathing-water pages, and each one carries its own credit, behind the ⓘ button on the photo in the card and as the photo entity's attribution. The credit names the rights holder given in the site's bathing-water profile, or else the photographer recorded in the file, or else AGES.
 
 ## License
 
