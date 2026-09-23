@@ -48,6 +48,20 @@ const KEY = {
   photo: "photo",
 } as const;
 
+/**
+ * Status icon for the water-quality verdict, in the tile's label row. It sits
+ * beside words, never in place of them: colour and shape say "fine" or
+ * "careful" at a glance, the verdict below says which of the four classes it
+ * is. In the label row rather than beside the verdict because "Ausgezeichnet"
+ * plus an icon does not fit half a sidebar-width card.
+ */
+const QUALITY_ICON: Readonly<Record<string, string>> = {
+  excellent: "mdi:check-circle",
+  good: "mdi:check-circle",
+  sufficient: "mdi:alert-circle",
+  poor: "mdi:close-circle",
+};
+
 type SiteEntities = Partial<Record<string, HassEntity>>;
 
 @customElement(CARD_TAG)
@@ -460,6 +474,7 @@ export class BadegewaesserAustriaCard extends LitElement {
       onHover: (index: number | null) => {
         this._hoveredPoint = index;
       },
+      formatLabel: (temp: number) => `${formatNumber(temp, language) ?? ""}°`,
       formatTemperature: (temp: number | null) =>
         formatNumber(temp, language) === null
           ? localize("card.not_measured", language)
@@ -506,40 +521,60 @@ export class BadegewaesserAustriaCard extends LitElement {
     `;
   }
 
+  /**
+   * The readings as a two-by-two grid: the verdict and the Secchi depth on
+   * top, the two bacteria counts, which share a unit, underneath.
+   *
+   * Each tile is label, value, detail -- the label small above so the eye
+   * lands on the number. Still a description list, so a screen reader hears
+   * each label with its value. No boxes: the grid and the type carry the
+   * structure.
+   */
   private _renderReadings(
     entities: SiteEntities,
     language: string | undefined,
   ): TemplateResult {
     const quality = entities[KEY.quality];
-    const eColi = entities[KEY.eColi];
-    const enterococci = entities[KEY.enterococci];
     const secchi = entities[KEY.secchi];
-
     const ratingYear = quality?.attributes["rating_year"];
-    const qualityText = hasValue(quality)
-      ? localize(`quality.${quality?.state}`, language)
-      : localize("card.no_rating", language);
+    const hasQuality = hasValue(quality);
+    const state = quality?.state ?? "";
+    const secchiUnit = secchi?.attributes["unit_of_measurement"];
 
     return html`
-      <dl class="readings">
-        <dt>${localize("card.water_quality", language)}</dt>
-        <dd>
-          ${qualityText}
+      <dl class="tiles">
+        <div class="tile">
+          <dt>
+            ${hasQuality && state in QUALITY_ICON
+              ? html`<ha-icon
+                  class=${`quality-icon is-${state}`}
+                  icon=${QUALITY_ICON[state]}
+                  aria-hidden="true"
+                ></ha-icon>`
+              : nothing}${localize("card.water_quality", language)}
+          </dt>
+          <dd class="tile-value">
+            ${hasQuality
+              ? localize(`quality.${state}`, language)
+              : localize("card.no_rating", language)}
+          </dd>
           ${typeof ratingYear === "number"
-            ? html`<span class="qualifier"
-                >${localize("card.rating_year", language, { year: ratingYear })}</span
-              >`
+            ? html`<dd class="tile-detail">
+                ${localize("card.rating_year", language, { year: ratingYear })}
+              </dd>`
             : nothing}
-        </dd>
-        ${this._renderCount(KEY.eColi, eColi, language)}
-        ${this._renderCount(KEY.enterococci, enterococci, language)}
-        <dt>${localize("card.secchi_depth", language)}</dt>
-        <dd>
-          ${formatNumber(numericState(secchi), language, 2) ?? "—"}
-          ${hasValue(secchi) && typeof secchi?.attributes["unit_of_measurement"] === "string"
-            ? html`<span class="unit">${secchi.attributes["unit_of_measurement"]}</span>`
-            : nothing}
-        </dd>
+        </div>
+        <div class="tile">
+          <dt>${localize("card.secchi_depth", language)}</dt>
+          <dd class="tile-value">
+            ${formatNumber(numericState(secchi), language, 2) ?? "—"}${hasValue(secchi) &&
+            typeof secchiUnit === "string"
+              ? html`<span class="unit">${secchiUnit}</span>`
+              : nothing}
+          </dd>
+        </div>
+        ${this._renderCount(KEY.eColi, entities[KEY.eColi], language)}
+        ${this._renderCount(KEY.enterococci, entities[KEY.enterococci], language)}
       </dl>
     `;
   }
@@ -553,16 +588,17 @@ export class BadegewaesserAustriaCard extends LitElement {
     const text = formatCount(numericState(entity), below, language);
     const unit = entity?.attributes["unit_of_measurement"];
     return html`
-      <dt>${localize(`card.${key}`, language)}</dt>
-      <dd>
-        ${text ?? "—"}
-        ${text !== null && typeof unit === "string"
-          ? html`<span class="unit">${unit}</span>`
-          : nothing}
+      <div class="tile">
+        <dt>${localize(`card.${key}`, language)}</dt>
+        <dd class="tile-value">
+          ${text ?? "—"}${text !== null && typeof unit === "string"
+            ? html`<span class="unit">${unit}</span>`
+            : nothing}
+        </dd>
         ${below
-          ? html`<span class="qualifier">${localize("card.below_limit", language)}</span>`
+          ? html`<dd class="tile-detail">${localize("card.below_limit", language)}</dd>`
           : nothing}
-      </dd>
+      </div>
     `;
   }
 }

@@ -7,7 +7,12 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { latestFraction, seasonFraction, seasonTrackDescription } from "./season-track";
+import {
+  labelledIndices,
+  latestFraction,
+  seasonFraction,
+  seasonTrackDescription,
+} from "./season-track";
 
 const at = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
@@ -82,6 +87,7 @@ describe("seasonTrackDescription", () => {
     language: "de",
     formatDate: (date: Date) => date.toISOString().slice(0, 10),
     formatTemperature: (value: number | null) => (value === null ? "—" : `${value} °C`),
+    formatLabel: (value: number) => `${value}°`,
   };
 
   it("lists every point as text, so a tooltip is never the only way to read one", () => {
@@ -99,5 +105,58 @@ describe("seasonTrackDescription", () => {
   it("says so when the season has no samples yet", () => {
     const text = seasonTrackDescription({ ...options, samples: [] });
     expect(text).toBe("Noch keine Proben in dieser Saison");
+  });
+});
+
+describe("labelledIndices", () => {
+  // Lunzer See, 2026: five samples, about three weeks apart.
+  const lunz = [
+    { fraction: 0.23, value: 16.8 },
+    { fraction: 0.35, value: 19.5 },
+    { fraction: 0.49, value: 21.0 },
+    { fraction: 0.68, value: 23.2 },
+    { fraction: 0.87, value: 21.5 },
+  ];
+
+  it("labels where the season started, how warm it got and where it ended", () => {
+    expect([...labelledIndices(lunz)].sort()).toEqual([0, 3, 4]);
+  });
+
+  it("never labels every point", () => {
+    // Wien sites are sampled up to nine times.
+    const wien = Array.from({ length: 9 }, (_, i) => ({ fraction: i / 8, value: 20 + i }));
+    expect(labelledIndices(wien).size).toBeLessThanOrEqual(3);
+  });
+
+  it("lets the latest win when the warmest sits right beside it", () => {
+    const close = [
+      { fraction: 0.2, value: 17 },
+      { fraction: 0.8, value: 25 },
+      { fraction: 0.86, value: 24 },
+    ];
+    expect([...labelledIndices(close)].sort()).toEqual([0, 2]);
+  });
+
+  it("labels the warmest once when it is also the latest", () => {
+    const rising = [
+      { fraction: 0.2, value: 17 },
+      { fraction: 0.5, value: 20 },
+      { fraction: 0.85, value: 24 },
+    ];
+    expect([...labelledIndices(rising)].sort()).toEqual([0, 2]);
+  });
+
+  it("skips samples without a temperature", () => {
+    const gaps = [
+      { fraction: 0.2, value: null },
+      { fraction: 0.5, value: 20 },
+      { fraction: 0.85, value: null },
+    ];
+    expect([...labelledIndices(gaps)]).toEqual([1]);
+  });
+
+  it("labels nothing when nothing was measured", () => {
+    expect(labelledIndices([]).size).toBe(0);
+    expect(labelledIndices([{ fraction: 0.5, value: null }]).size).toBe(0);
   });
 });

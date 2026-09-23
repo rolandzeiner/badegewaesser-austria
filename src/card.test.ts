@@ -317,6 +317,89 @@ describe("the season-track tooltip", () => {
   });
 });
 
+describe("the readings", () => {
+  const tiles = (card: BadegewaesserAustriaCard) =>
+    [...(card.shadowRoot?.querySelectorAll<HTMLElement>(".tiles .tile") ?? [])];
+
+  it("sets the verdict and the Secchi depth above the two bacteria counts", async () => {
+    const card = await mount({ device: DEVICE });
+    const labels = tiles(card).map((tile) => tile.querySelector("dt")?.textContent?.trim());
+    expect(labels).toEqual(["Wasserqualität", "Sichttiefe", "E. coli", "Enterokokken"]);
+  });
+
+  it("keeps each label paired with its value for a screen reader", async () => {
+    // A <div> may wrap each <dt>/<dd> group inside a <dl>; the pairing holds.
+    const card = await mount({ device: DEVICE });
+    expect(card.shadowRoot?.querySelector("dl.tiles")).not.toBeNull();
+    for (const tile of tiles(card)) {
+      expect(tile.querySelector("dt")).not.toBeNull();
+      expect(tile.querySelector("dd.tile-value")).not.toBeNull();
+    }
+  });
+
+  it("puts the detail under the value, not beside it", async () => {
+    const card = await mount({ device: DEVICE });
+    const [quality, , , enterococci] = tiles(card);
+    expect(quality?.querySelector(".tile-detail")?.textContent).toContain("Bewertung 2025");
+    expect(enterococci?.querySelector(".tile-value")?.textContent).toContain("<15");
+    expect(enterococci?.querySelector(".tile-detail")?.textContent).toContain(
+      "unter der Nachweisgrenze",
+    );
+  });
+
+  it("marks the verdict with an icon beside words, never instead of them", async () => {
+    const card = await mount({ device: DEVICE });
+    const quality = tiles(card)[0]!;
+    const icon = quality.querySelector("dt ha-icon");
+    expect(icon?.getAttribute("icon")).toBe("mdi:check-circle");
+    expect(icon?.classList.contains("is-excellent")).toBe(true);
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
+    expect(quality.querySelector("dt")?.textContent).toContain("Wasserqualität");
+    expect(quality.querySelector(".tile-value")?.textContent?.trim()).toBe("Ausgezeichnet");
+  });
+
+  it.each([
+    ["sufficient", "mdi:alert-circle"],
+    ["poor", "mdi:close-circle"],
+  ])("warns with a different shape for %s", async (state, icon) => {
+    const hass = makeHass();
+    hass.states["sensor.koenigsdorf_water_quality"] = {
+      state,
+      attributes: { rating_year: 2025 },
+    };
+    const card = await mount({ device: DEVICE }, hass);
+    expect(tiles(card)[0]!.querySelector("ha-icon")?.getAttribute("icon")).toBe(icon);
+  });
+
+  it("shows no icon when there is no rating to mark", async () => {
+    const hass = makeHass();
+    hass.states["sensor.koenigsdorf_water_quality"] = { state: "unknown", attributes: {} };
+    const card = await mount({ device: DEVICE }, hass);
+    const quality = tiles(card)[0]!;
+    expect(quality.querySelector("ha-icon")).toBeNull();
+    expect(quality.textContent).toContain("noch nicht bewertet");
+  });
+});
+
+describe("the season track's labels", () => {
+  it("prints the first, the warmest and the latest value above their dots", async () => {
+    // SAMPLES: 21,4 (Jun) · 24,9 (Jul) · 26,2 (Aug, also the warmest).
+    const card = await mount({ device: DEVICE });
+    const labels = [...(card.shadowRoot?.querySelectorAll(".value-label") ?? [])].map(
+      (label) => label.textContent,
+    );
+    expect(labels).toEqual(["21,4°", "26,2°"]);
+    expect(card.shadowRoot?.querySelector(".value-label.is-latest")?.textContent).toBe("26,2°");
+  });
+
+  it("leaves the labels to the points' own names for a screen reader", async () => {
+    const card = await mount({ device: DEVICE });
+    for (const label of card.shadowRoot?.querySelectorAll(".value-label") ?? []) {
+      expect(label.getAttribute("aria-hidden")).toBe("true");
+    }
+  });
+});
+
 describe("the photo header", () => {
   const PHOTO = "image.koenigsdorf_photo";
   const STAMP = "2016-05-12T10:38:28+00:00";

@@ -9,8 +9,12 @@
  * complete, and the last dot sits where it ended.
  *
  * Deliberately NOT a temperature line chart. With 4 to 9 points a y-scale
- * either lies about precision or wastes the card's height; the value the
- * reader wants is the newest one, and it is labelled directly.
+ * either lies about precision or wastes the card's height. Instead three
+ * values are printed straight above their dots -- the season's first sample,
+ * its warmest and its latest -- which tells where it started, how warm it got
+ * and where it ended without hovering, which a phone cannot do. Only three,
+ * on purpose (dataviz: never a number on every point); the rest stay on
+ * hover, on focus and in the text twin. See labelledIndices.
  *
  * Rendered as a function into the CARD's shadow root rather than as its own
  * element. Custom properties do not cross shadow boundaries, so a separate
@@ -46,8 +50,16 @@ const AXIS_END = { month: 8, day: 31 };
 // non-uniformly — at a rendered width of ~460px the x scale was 1.53 against a
 // y scale of 1.0, so every circle came out an ellipse and the month labels
 // were stretched with them.
-const TRACK_Y = 14;
-const LABEL_Y = 38;
+// Value labels on top, then the track, then the month names.
+const VALUE_Y = 12;
+const TRACK_Y = 28;
+const LABEL_Y = 52;
+
+// How close two labelled dots may sit, as a fraction of the axis: about 15 of
+// its 108 days. A label such as "23,2°" is ~34px wide, and the narrowest card
+// the grid allows leaves the axis ~240px, so anything closer would overlap.
+// Conservative on a wide card, which can only ever lose a label, not garble one.
+const MIN_LABEL_GAP = 0.14;
 
 // dataviz: markers at least 8px. These are radii, so 4 and 6 give 8px and
 // 12px marks.
@@ -90,6 +102,42 @@ const parseDate = (iso: string): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+/**
+ * Which samples get their value printed above the dot.
+ *
+ * The season's first sample, its warmest and its latest. When two would sit
+ * closer than MIN_LABEL_GAP the more telling one wins: the latest, then the
+ * warmest, then the first. A tie for warmest goes to the later sample.
+ */
+export function labelledIndices(
+  points: ReadonlyArray<{ fraction: number; value: number | null }>,
+): Set<number> {
+  const measured = points
+    .map((point, index) => ({ ...point, index }))
+    .filter((point): point is { fraction: number; value: number; index: number } =>
+      point.value !== null,
+    );
+  const latest = measured.at(-1);
+  const first = measured[0];
+  if (!latest || !first) return new Set();
+  const warmest = measured.reduce((best, point) => (point.value >= best.value ? point : best));
+
+  const chosen: typeof measured = [];
+  for (const candidate of [latest, warmest, first]) {
+    const clashes = chosen.some(
+      (kept) =>
+        kept.index === candidate.index ||
+        Math.abs(kept.fraction - candidate.fraction) < MIN_LABEL_GAP,
+    );
+    if (!clashes) chosen.push(candidate);
+  }
+  return new Set(chosen.map((point) => point.index));
+}
+
+/** Keeps a label near either end of the axis inside it. */
+const labelAnchor = (fraction: number): string =>
+  fraction < 0.07 ? "start" : fraction > 0.93 ? "end" : "middle";
+
 /** A position on the axis as a percentage of the rendered width. */
 const x = (fraction: number): string => `${(fraction * 100).toFixed(3)}%`;
 
@@ -106,6 +154,8 @@ export interface SeasonTrackOptions {
   /** Formats a sample date for the accessible description and tooltips. */
   formatDate: (date: Date) => string;
   formatTemperature: (value: number | null) => string;
+  /** The short form printed above a dot, e.g. "21,5°". */
+  formatLabel: (value: number) => string;
 }
 
 /**
@@ -135,8 +185,16 @@ export function latestFraction(samples: readonly SeasonSample[]): number {
 }
 
 export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
-  const { samples, now, language, formatDate, formatTemperature, hovered, onHover } =
-    options;
+  const {
+    samples,
+    now,
+    language,
+    formatDate,
+    formatTemperature,
+    formatLabel,
+    hovered,
+    onHover,
+  } = options;
 
   // Progress is read off the axis itself rather than the in-season flag: past
   // 31 August the axis is simply complete, which is what makes an out-of-season
@@ -145,7 +203,16 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
   const points = samples
     .map((sample) => ({ sample, date: parseDate(sample.date) }))
     .filter((entry): entry is { sample: SeasonSample; date: Date } => entry.date !== null)
-    .map((entry) => ({ ...entry, cx: x(seasonFraction(entry.date)) }));
+    .map((entry) => {
+      const fraction = seasonFraction(entry.date);
+      return { ...entry, fraction, cx: x(fraction) };
+    });
+  const labelled = labelledIndices(
+    points.map((point) => ({
+      fraction: point.fraction,
+      value: point.sample.water_temperature,
+    })),
+  );
 
   const lastIndex = points.length - 1;
   const active = hovered !== null && hovered !== undefined ? points[hovered] : undefined;
@@ -186,6 +253,19 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
             y=${LABEL_Y}
             text-anchor=${index === 0 ? "start" : "middle"}
           >${monthName(month)}</text>`;
+        })}
+        ${points.map((point, index) => {
+          const value = point.sample.water_temperature;
+          // aria-hidden: each point already announces its own value.
+          return labelled.has(index) && value !== null
+            ? svg`<text
+                class=${index === lastIndex ? "value-label is-latest" : "value-label"}
+                x=${point.cx}
+                y=${VALUE_Y}
+                text-anchor=${labelAnchor(point.fraction)}
+                aria-hidden="true"
+              >${formatLabel(value)}</text>`
+            : nothing;
         })}
         ${points.map(
           (point, index) => svg`
@@ -245,7 +325,8 @@ export const seasonTrackStyles = css`
      gates. */
   .tip {
     position: absolute;
-    bottom: 26px;
+    /* Over the dot and its value label, which it stands in for. */
+    bottom: 40px;
     left: clamp(0px, var(--tip-x), 100%);
     translate: -50% 0;
     display: flex;
@@ -291,7 +372,7 @@ export const seasonTrackStyles = css`
        draws a 8px CIRCLE at any card width. With a viewBox plus
        preserveAspectRatio="none" the x and y scales differ and every dot
        renders as a horizontally stretched ellipse. */
-    height: 44px;
+    height: 60px;
     overflow: visible;
   }
 
@@ -325,6 +406,19 @@ export const seasonTrackStyles = css`
     fill: var(--secondary-text-color);
     font-size: 10px;
     font-family: var(--ha-font-family-body, inherit);
+  }
+
+  /* Text tokens, never the mark's colour: the dot carries identity, the
+     label only the value. The latest reads in full ink, the others quieter. */
+  .value-label {
+    fill: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s, 0.857rem);
+    font-family: var(--ha-font-family-body, inherit);
+  }
+
+  .value-label.is-latest {
+    fill: var(--primary-text-color);
+    font-weight: var(--ha-font-weight-medium, 500);
   }
 
   @media (forced-colors: active) {

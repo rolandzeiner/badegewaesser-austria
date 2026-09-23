@@ -180,12 +180,12 @@ export const cardStyles = css`
     white-space: nowrap;
   }
 
-  /* The one loud element. Light weight and tabular figures, so 19,8 and 21,5
-     take the same width and the row does not shift between samples. */
+  /* The one loud element, in light weight. Proportional figures: tabular
+     ones give every digit the width of a 0, which makes "21,5" look loose at
+     this size (dataviz: tabular only where numbers stack in a column). */
   .hero-value {
     font-size: var(--ha-font-size-5xl, 2.857rem);
     font-weight: var(--ha-font-weight-light, 300);
-    font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
   }
 
@@ -367,41 +367,76 @@ export const cardStyles = css`
 
   /* -- readings --------------------------------------------------------- */
 
-  .readings {
+  /* Two by two at every width, and still no boxes: four readings in four
+     identical rounded tiles is the generic default and reads as a template.
+     Whitespace and the type scale carry the grid. */
+  .tiles {
     display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: var(--ha-space-4, 16px);
-    row-gap: var(--ha-space-2, 8px);
-    margin-top: var(--ha-space-5, 20px);
-    font-size: var(--ha-font-size-m, 1rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ha-space-5, 20px) var(--ha-space-4, 16px);
+    margin: var(--ha-space-5, 20px) 0 0;
   }
 
-  /* No tiles, no borders, no shadows. The grid alignment is the structure --
-     six readings in six identical rounded boxes is the generic default and
-     reads as a template. */
-  .readings dt {
+  .tile {
+    min-width: 0;
+  }
+
+  /* The label is the detail, the value the point: small and quiet above, so
+     the eye lands on the number. */
+  .tile dt {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     color: var(--secondary-text-color);
     font-size: var(--ha-font-size-s, 0.857rem);
-    align-self: baseline;
   }
 
-  .readings dd {
+  .tile dd {
     margin: 0;
+  }
+
+  /* Proportional figures: these are standalone values, not a column of
+     numbers that has to line up. */
+  .tile-value {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-top: 2px;
     color: var(--primary-text-color);
-    /* These DO align vertically row to row, so equal-width digits help. */
-    font-variant-numeric: tabular-nums;
+    font-size: var(--ha-font-size-xl, 1.429rem);
+    font-weight: var(--ha-font-weight-medium, 500);
+    line-height: 1.2;
+  }
+
+  .tile-detail {
+    margin-top: 2px;
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s, 0.857rem);
   }
 
   .unit {
     color: var(--secondary-text-color);
     font-size: var(--ha-font-size-s, 0.857rem);
+    font-weight: var(--ha-font-weight-normal, 400);
     margin-left: 4px;
   }
 
-  .qualifier {
-    color: var(--secondary-text-color);
-    font-size: var(--ha-font-size-s, 0.857rem);
-    margin-left: var(--bade-gap);
+  /* Status colour on the icon only; the words beside it stay in text ink. */
+  .quality-icon {
+    --mdc-icon-size: 1.15em;
+  }
+
+  .quality-icon.is-excellent,
+  .quality-icon.is-good {
+    color: var(--bade-ok);
+  }
+
+  .quality-icon.is-sufficient {
+    color: var(--bade-warn);
+  }
+
+  .quality-icon.is-poor {
+    color: var(--bade-alert);
   }
 
   /* -- attribution ------------------------------------------------------ */
@@ -465,6 +500,9 @@ export const cardStyles = css`
   /* A sidebar column: a smaller figure, and the date moves off the photo to
      the body, where there is room for it. */
   @container (max-width: 360px) {
+    .tile-value {
+      font-size: var(--ha-font-size-l, 1.143rem);
+    }
     .hero-value {
       font-size: var(--ha-font-size-3xl, 2rem);
     }
@@ -480,13 +518,6 @@ export const cardStyles = css`
   }
 
   @container (max-width: 320px) {
-    .readings {
-      grid-template-columns: 1fr;
-      row-gap: 2px;
-    }
-    .readings dd {
-      margin-bottom: var(--ha-space-2, 8px);
-    }
     .temperature {
       font-size: var(--ha-font-size-2xl, 1.429rem);
     }
