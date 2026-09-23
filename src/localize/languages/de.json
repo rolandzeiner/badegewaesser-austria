@@ -1,7 +1,5 @@
 {
   "card": {
-    "season_over": "Saison beendet",
-    "in_season": "Badesaison läuft",
     "no_samples": "Noch keine Proben in dieser Saison",
     "closed": "Baden verboten",
     "sampled_on": "Probe vom {date}",

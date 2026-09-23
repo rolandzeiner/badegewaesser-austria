@@ -1,7 +1,5 @@
 {
   "card": {
-    "season_over": "Season over",
-    "in_season": "Bathing season under way",
     "no_samples": "No samples yet this season",
     "closed": "Swimming prohibited",
     "sampled_on": "Sampled {date}",

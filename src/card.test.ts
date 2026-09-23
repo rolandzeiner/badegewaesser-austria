@@ -173,11 +173,30 @@ describe("rendering", () => {
     expect(hidden).toContain("21,4");
   });
 
+  it("adds no season-status line of its own when there are samples", async () => {
+    // "Saison beendet" was today's date against the statutory season, not
+    // anything AGES published; the Badesaison entity keeps that for automations.
+    const card = await mount({ device: DEVICE });
+    expect(card.shadowRoot?.querySelector(".season-status")).toBeNull();
+    expect(text(card)).not.toContain("Saison beendet");
+  });
+
+  it("explains an empty track", async () => {
+    const hass = makeHass();
+    hass.states["sensor.koenigsdorf_water_temperature"] = {
+      state: "unknown",
+      attributes: { unit_of_measurement: "°C", season_samples: [] },
+    };
+    const card = await mount({ device: DEVICE }, hass);
+    expect(card.shadowRoot?.querySelector(".season-status")?.textContent).toBe(
+      "Noch keine Proben in dieser Saison",
+    );
+  });
+
   it("looks finished out of season rather than empty", async () => {
     // The state the card is in for roughly nine and a half months a year.
     const card = await mount({ device: DEVICE });
     const body = text(card);
-    expect(body).toContain("Saison beendet");
     expect(body).toContain("26,2");
     expect(body).not.toContain("unavailable");
   });
@@ -434,7 +453,7 @@ describe("the grid cell", () => {
     // 50px units. Measured: ~9 with everything on; it returned 4 before.
     const hass = makeHass();
     const plain = await mount({ device: DEVICE }, hass);
-    expect(plain.getCardSize()).toBe(6); // no photo entity in this hass
+    expect(plain.getCardSize()).toBe(5); // no photo entity in this hass
     const bare = await mount(
       { device: DEVICE, show_season_track: false, show_readings: false },
       hass,

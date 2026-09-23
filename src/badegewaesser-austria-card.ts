@@ -193,9 +193,9 @@ export class BadegewaesserAustriaCard extends LitElement {
   /**
    * Height in masonry units of 50px, per section actually shown.
    *
-   * Measured in a browser on 2026-09-23 with every section on: 461px at
-   * 500px wide, 446px at 300px, so about 9 -- the photo 174px, the season
-   * track 88px, the readings 143px, padding and footer the rest. This
+   * Measured in a browser on 2026-09-23 with every section on: 445px at
+   * 500px wide, 430px at 300px, so about 9 -- the photo 174px, the season
+   * track 74px, the readings 143px, padding and footer the rest. This
    * returned 4 until then, less than half the card. The photo grows with
    * width (it is 20:7), so its 4 is generous at a typical column.
    */
@@ -204,7 +204,7 @@ export class BadegewaesserAustriaCard extends LitElement {
     let size = 1; // padding and the attribution footer
     const photo = this.hass ? this._siteEntities()?.[KEY.photo] : undefined;
     if (config?.show_photo !== false && (!this.hass || hasValue(photo))) size += 4;
-    if (config?.show_season_track !== false) size += 2;
+    if (config?.show_season_track !== false) size += 1;
     if (config?.show_readings !== false) size += 3;
     return size;
   }
@@ -656,17 +656,15 @@ export class BadegewaesserAustriaCard extends LitElement {
             : nothing}
         </div>
         ${renderSeasonTrack(options)}
-        <p class="season-status">
-          <ha-icon
-            icon=${inSeason ? "mdi:swim" : "mdi:calendar-check"}
-            aria-hidden="true"
-          ></ha-icon>
-          <span
-            >${samples.length === 0
-              ? localize("card.no_samples", language)
-              : localize(inSeason ? "card.in_season" : "card.season_over", language)}</span
-          >
-        </p>
+        ${
+          // Only an empty track gets a line. "Season over" / "season under way"
+          // used to sit here, but that was today's date against the statutory
+          // season, not anything AGES published -- the Badesaison entity carries
+          // it for automations, and the card now shows only what was measured.
+          samples.length === 0
+            ? html`<p class="season-status">${localize("card.no_samples", language)}</p>`
+            : nothing
+        }
         <p class="visually-hidden">${seasonTrackDescription(options)}</p>
       </div>
     `;
