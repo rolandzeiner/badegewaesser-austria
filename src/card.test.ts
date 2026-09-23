@@ -15,7 +15,12 @@ import "./badegewaesser-austria-card";
 import "./editor";
 import { cardStyles } from "./card-styles";
 import { CARD_TAG } from "./const";
-import { temperatureTrend, type BadegewaesserAustriaCard } from "./badegewaesser-austria-card";
+import {
+  countTrend,
+  secchiTrend,
+  temperatureTrend,
+  type BadegewaesserAustriaCard,
+} from "./badegewaesser-austria-card";
 import type { BadegewaesserAustriaCardEditor } from "./editor";
 import type { HomeAssistant } from "./types";
 
@@ -339,6 +344,65 @@ describe("temperatureTrend", () => {
     expect(temperatureTrend(s(21))).toBeNull();
     expect(temperatureTrend(s(20, null))).toBeNull();
     expect(temperatureTrend([])).toBeNull();
+  });
+});
+
+describe("tile trends", () => {
+  const sample = (fields: Record<string, unknown>) => ({
+    date: "2026-07-01",
+    water_temperature: 20,
+    ...fields,
+  });
+
+  it("reads a Secchi depth change of 0.2 m or more as a move", () => {
+    const deeper = [sample({ secchi_depth: 1.8 }), sample({ secchi_depth: 2.0 })];
+    expect(secchiTrend(deeper)?.direction).toBe("up");
+    const same = [sample({ secchi_depth: 2.0 }), sample({ secchi_depth: 2.1 })];
+    expect(secchiTrend(same)?.direction).toBe("steady");
+  });
+
+  it("treats a bacteria change within 20% as noise", () => {
+    const noise = [sample({ e_coli: 30 }), sample({ e_coli: 34 })];
+    expect(countTrend(noise, "e_coli")?.direction).toBe("steady");
+    const rise = [sample({ e_coli: 15, e_coli_below_limit: true }), sample({ e_coli: 32 })];
+    expect(countTrend(rise, "e_coli")?.direction).toBe("up");
+  });
+
+  it("reads two below-limit counts as the same limit, not a measurement", () => {
+    const limits = [
+      sample({ enterococci: 15, enterococci_below_limit: true }),
+      sample({ enterococci: 10, enterococci_below_limit: true }),
+    ];
+    expect(countTrend(limits, "enterococci")?.direction).toBe("steady");
+  });
+
+  it("shows a fall to below the limit as a fall", () => {
+    const fall = [sample({ e_coli: 64 }), sample({ e_coli: 15, e_coli_below_limit: true })];
+    expect(countTrend(fall, "e_coli")?.direction).toBe("down");
+  });
+
+  it("puts the arrows in the three measurement tiles, not the verdict", async () => {
+    const hass = makeHass();
+    hass.states["sensor.koenigsdorf_water_temperature"] = {
+      state: "26.2",
+      attributes: {
+        unit_of_measurement: "°C",
+        season_samples: [
+          { date: "2026-07-08", water_temperature: 24.9, e_coli: 64, secchi_depth: 1.2, enterococci: 15, enterococci_below_limit: true },
+          { date: "2026-08-20", water_temperature: 26.2, e_coli: 15, e_coli_below_limit: true, secchi_depth: 1.05, enterococci: 15, enterococci_below_limit: true },
+        ],
+      },
+    };
+    const card = await mount({ device: DEVICE }, hass);
+    const icons = [...(card.shadowRoot?.querySelectorAll(".tiles .tile") ?? [])].map(
+      (tile) => tile.querySelector(".tile-trend")?.getAttribute("icon") ?? null,
+    );
+    // Order: quality, Secchi depth, E. coli, enterococci.
+    expect(icons).toEqual([null, "mdi:trending-neutral", "mdi:trending-down", "mdi:trending-neutral"]);
+    const ecoli = card.shadowRoot!.querySelectorAll(".tiles .tile")[2]!;
+    expect(ecoli.querySelector(".visually-hidden")?.textContent).toBe(
+      "Gesunken seit der Probe davor",
+    );
   });
 });
 

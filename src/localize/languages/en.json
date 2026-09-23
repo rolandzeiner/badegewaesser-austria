@@ -19,6 +19,9 @@
     "trend_up": "{delta} warmer than the sample before",
     "trend_down": "{delta} colder than the sample before",
     "trend_steady": "About as warm as the sample before",
+    "tile_trend_up": "Up since the sample before",
+    "tile_trend_down": "Down since the sample before",
+    "tile_trend_steady": "About the same as the sample before",
     "photo_alt": "Bathing spot at {name}",
     "photo_credit": "Photo credit",
     "photo_source": "Source: AGES bathing-water monitoring"

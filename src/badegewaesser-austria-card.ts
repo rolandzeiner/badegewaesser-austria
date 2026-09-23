@@ -63,11 +63,18 @@ const QUALITY_ICON: Readonly<Record<string, string>> = {
 };
 
 /**
- * How the latest temperature moved since the sample before it. Within half a
- * degree counts as steady: readings come to a tenth, and calling 21,4 to 21,5
- * "rising" would be a trend the water does not have.
+ * How far a reading may move since the sample before it and still count as
+ * steady -- an arrow for noise is a trend the water does not have.
+ *
+ * Temperature: readings come to a tenth, so half a degree.
+ * Secchi depth: read off a disc to about 0.1 m, so 0.2 m.
+ * Bacteria: plate counts carry large method uncertainty, so a change within
+ * 20% of the larger count is steady, and "<15" to "<15" is the same limit
+ * twice, not a measurement.
  */
 const TREND_STEADY_C = 0.5;
+const TREND_STEADY_M = 0.2;
+const TREND_STEADY_COUNT = 0.2;
 
 const TREND_ICON = {
   up: "mdi:trending-up",
@@ -77,20 +84,62 @@ const TREND_ICON = {
 
 type Trend = { direction: keyof typeof TREND_ICON; delta: number };
 
-/** The latest measured temperature against the measured one before it. */
-export function temperatureTrend(samples: readonly SeasonSample[]): Trend | null {
-  const latest = samples.at(-1)?.water_temperature;
-  if (latest === null || latest === undefined) return null;
-  const previous = samples
+/**
+ * The newest sample's reading against the last earlier sample that has one.
+ * Null when the newest sample has no reading, or nothing before it does.
+ */
+export function sampleTrend(
+  samples: readonly SeasonSample[],
+  read: (sample: SeasonSample) => number | null | undefined,
+  isSteady: (latest: SeasonSample, previous: SeasonSample, delta: number) => boolean,
+): Trend | null {
+  const last = samples.at(-1);
+  const latest = last ? read(last) : null;
+  if (!last || latest === null || latest === undefined) return null;
+  const previousSample = samples
     .slice(0, -1)
-    .map((sample) => sample.water_temperature)
-    .filter((value): value is number => value !== null)
+    .filter((sample) => {
+      const value = read(sample);
+      return value !== null && value !== undefined;
+    })
     .at(-1);
-  if (previous === undefined) return null;
-  const delta = latest - previous;
-  const direction =
-    delta >= TREND_STEADY_C ? "up" : delta <= -TREND_STEADY_C ? "down" : "steady";
+  if (!previousSample) return null;
+  // Rounded: readings come to a hundredth at most, and 2.0 - 1.8 is
+  // 0.19999... in binary, which would fall just short of a 0.2 threshold.
+  const delta = Math.round((latest - (read(previousSample) ?? latest)) * 1000) / 1000;
+  const direction = isSteady(last, previousSample, delta) ? "steady" : delta > 0 ? "up" : "down";
   return { direction, delta };
+}
+
+export const temperatureTrend = (samples: readonly SeasonSample[]): Trend | null =>
+  sampleTrend(
+    samples,
+    (sample) => sample.water_temperature,
+    (_latest, _previous, delta) => Math.abs(delta) < TREND_STEADY_C,
+  );
+
+export const secchiTrend = (samples: readonly SeasonSample[]): Trend | null =>
+  sampleTrend(
+    samples,
+    (sample) => sample.secchi_depth,
+    (_latest, _previous, delta) => Math.abs(delta) < TREND_STEADY_M,
+  );
+
+/** A count trend; a below-limit count reads as its limit, e.g. "<15" as 15. */
+export function countTrend(
+  samples: readonly SeasonSample[],
+  key: "e_coli" | "enterococci",
+): Trend | null {
+  const below = (sample: SeasonSample): boolean => sample[`${key}_below_limit`] === true;
+  return sampleTrend(
+    samples,
+    (sample) => sample[key],
+    (latest, previous, delta) => {
+      if (below(latest) && below(previous)) return true;
+      const larger = Math.max(latest[key] ?? 0, previous[key] ?? 0);
+      return Math.abs(delta) <= TREND_STEADY_COUNT * larger;
+    },
+  );
 }
 
 type SiteEntities = Partial<Record<string, HassEntity>>;
@@ -312,7 +361,7 @@ export class BadegewaesserAustriaCard extends LitElement {
             : this._renderSeason(temperature, samples, inSeason, language, hero)}
           ${config.show_readings === false
             ? nothing
-            : this._renderReadings(entities, language)}
+            : this._renderReadings(entities, samples, language)}
           ${config.show_attribution === false
             ? nothing
             : html`<p class="attribution">${localize("card.attribution", language)}</p>`}
@@ -525,6 +574,26 @@ export class BadegewaesserAustriaCard extends LitElement {
     this._photoFailed = src;
   }
 
+  /**
+   * A tile's trend arrow, in secondary ink: up and down are facts about the
+   * reading, not verdicts on the water, so neither gets a status colour. The
+   * sentence beside it is for screen readers.
+   */
+  private _renderTrend(
+    trend: Trend | null,
+    language: string | undefined,
+  ): TemplateResult | typeof nothing {
+    if (!trend) return nothing;
+    return html`<ha-icon
+        class="tile-trend"
+        icon=${TREND_ICON[trend.direction]}
+        aria-hidden="true"
+      ></ha-icon
+      ><span class="visually-hidden"
+        >${localize(`card.tile_trend_${trend.direction}`, language)}</span
+      >`;
+  }
+
   private _renderPlace(): TemplateResult | typeof nothing {
     const deviceId = resolveDeviceId(this.hass, this._config);
     const model = deviceId ? this.hass?.devices?.[deviceId]?.model : undefined;
@@ -614,6 +683,7 @@ export class BadegewaesserAustriaCard extends LitElement {
    */
   private _renderReadings(
     entities: SiteEntities,
+    samples: readonly SeasonSample[],
     language: string | undefined,
   ): TemplateResult {
     const quality = entities[KEY.quality];
@@ -649,14 +719,23 @@ export class BadegewaesserAustriaCard extends LitElement {
         <div class="tile">
           <dt>${localize("card.secchi_depth", language)}</dt>
           <dd class="tile-value">
-            ${formatNumber(numericState(secchi), language, 2) ?? "—"}${hasValue(secchi) &&
+            ${hasValue(secchi) ? this._renderTrend(secchiTrend(samples), language) : nothing}${formatNumber(
+              numericState(secchi),
+              language,
+              2,
+            ) ?? "—"}${hasValue(secchi) &&
             typeof secchiUnit === "string"
               ? html`<span class="unit">${secchiUnit}</span>`
               : nothing}
           </dd>
         </div>
-        ${this._renderCount(KEY.eColi, entities[KEY.eColi], language)}
-        ${this._renderCount(KEY.enterococci, entities[KEY.enterococci], language)}
+        ${this._renderCount(KEY.eColi, entities[KEY.eColi], countTrend(samples, "e_coli"), language)}
+        ${this._renderCount(
+          KEY.enterococci,
+          entities[KEY.enterococci],
+          countTrend(samples, "enterococci"),
+          language,
+        )}
       </dl>
     `;
   }
@@ -664,6 +743,7 @@ export class BadegewaesserAustriaCard extends LitElement {
   private _renderCount(
     key: string,
     entity: HassEntity | undefined,
+    trend: Trend | null,
     language: string | undefined,
   ): TemplateResult {
     const below = entity?.attributes["below_detection_limit"] === true;
@@ -673,7 +753,8 @@ export class BadegewaesserAustriaCard extends LitElement {
       <div class="tile">
         <dt>${localize(`card.${key}`, language)}</dt>
         <dd class="tile-value">
-          ${text ?? "—"}${text !== null && typeof unit === "string"
+          ${text !== null ? this._renderTrend(trend, language) : nothing}${text ??
+          "—"}${text !== null && typeof unit === "string"
             ? html`<span class="unit">${unit}</span>`
             : nothing}
         </dd>

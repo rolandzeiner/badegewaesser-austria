@@ -455,15 +455,30 @@ export const cardStyles = css`
 
   /* Proportional figures: these are standalone values, not a column of
      numbers that has to line up. */
+  /* A gap rather than margins between arrow, value and unit: where a narrow
+     tile wraps the unit to a second line, a gap vanishes at the break and
+     the unit starts flush left, where a margin would leave it indented. */
   .tile-value {
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
+    column-gap: 4px;
     margin-top: 2px;
     color: var(--primary-text-color);
     font-size: var(--ha-font-size-xl, 1.429rem);
     font-weight: var(--ha-font-weight-medium, 500);
     line-height: 1.2;
+  }
+
+  /* Sits on the value's baseline, as tall as its digits. */
+  .tile-trend {
+    --mdc-icon-size: 1em;
+    align-self: center;
+    color: var(--secondary-text-color);
+  }
+
+  .tile-value .unit {
+    margin-left: 0;
   }
 
   .tile-detail {

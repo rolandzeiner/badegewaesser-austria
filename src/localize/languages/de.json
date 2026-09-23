@@ -19,6 +19,9 @@
     "trend_up": "{delta} wärmer als bei der Probe davor",
     "trend_down": "{delta} kälter als bei der Probe davor",
     "trend_steady": "Etwa so warm wie bei der Probe davor",
+    "tile_trend_up": "Gestiegen seit der Probe davor",
+    "tile_trend_down": "Gesunken seit der Probe davor",
+    "tile_trend_steady": "Etwa gleich wie bei der Probe davor",
     "photo_alt": "Badestelle {name}",
     "photo_credit": "Fotonachweis",
     "photo_source": "Quelle: AGES Badegewässer-Monitoring"

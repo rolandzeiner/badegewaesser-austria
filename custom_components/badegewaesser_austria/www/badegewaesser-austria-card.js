@@ -17,20 +17,20 @@ f(),{is:p,defineProperty:m,getOwnPropertyDescriptor:h,getOwnPropertyNames:g,getO
 * Copyright 2017 Google LLC
 * SPDX-License-Identifier: BSD-3-Clause
 */
-function se(e,t){if(!O(e)||!e.hasOwnProperty(`raw`))throw Error(`invalid template strings array`);return ue===void 0?t:ue.createHTML(t)}function S(e,t,n=e,r){if(t===F)return t;let i=r===void 0?n._$Cl:n._$Co?.[r],a=D(t)?void 0:t._$litDirective$;return i?.constructor!==a&&(i?._$AO?.(!1),a===void 0?i=void 0:(i=new a(e),i._$AT(e,n,r)),r===void 0?n._$Cl=i:(n._$Co??=[])[r]=i),i!==void 0&&(t=S(e,i._$AS(e,t.values),i,r)),t}var ce,le,C,ue,de,w,fe,pe,T,E,D,O,me,k,A,he,ge,j,_e,ve,ye,M,N,P,F,I,be,L,xe,R,Se,z,B,Ce,we,Te,Ee,De,Oe,ke=t((()=>{ce=globalThis,le=e=>e,C=ce.trustedTypes,ue=C?C.createPolicy(`lit-html`,{createHTML:e=>e}):void 0,de=`$lit$`,w=`lit$${Math.random().toFixed(9).slice(2)}$`,fe=`?`+w,pe=`<${fe}>`,T=document,E=()=>T.createComment(``),D=e=>e===null||typeof e!=`object`&&typeof e!=`function`,O=Array.isArray,me=e=>O(e)||typeof e?.[Symbol.iterator]==`function`,k=`[ 	
-\f\r]`,A=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,he=/-->/g,ge=/>/g,j=RegExp(`>|${k}(?:([^\\s"'>=/]+)(${k}*=${k}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,`g`),_e=/'/g,ve=/"/g,ye=/^(?:script|style|textarea|title)$/i,M=e=>(t,...n)=>({_$litType$:e,strings:t,values:n}),N=M(1),P=M(2),M(3),F=Symbol.for(`lit-noChange`),I=Symbol.for(`lit-nothing`),be=/* @__PURE__ */ new WeakMap,L=T.createTreeWalker(T,129),xe=(e,t)=>{let n=e.length-1,r=[],i,a=t===2?`<svg>`:t===3?`<math>`:``,o=A;for(let t=0;t<n;t++){let n=e[t],s,c,l=-1,u=0;for(;u<n.length&&(o.lastIndex=u,c=o.exec(n),c!==null);)u=o.lastIndex,o===A?c[1]===`!--`?o=he:c[1]===void 0?c[2]===void 0?c[3]!==void 0&&(o=j):(ye.test(c[2])&&(i=RegExp(`</`+c[2],`g`)),o=j):o=ge:o===j?c[0]===`>`?(o=i??A,l=-1):c[1]===void 0?l=-2:(l=o.lastIndex-c[2].length,s=c[1],o=c[3]===void 0?j:c[3]===`"`?ve:_e):o===ve||o===_e?o=j:o===he||o===ge?o=A:(o=j,i=void 0);let d=o===j&&e[t+1].startsWith(`/>`)?` `:``;a+=o===A?n+pe:l>=0?(r.push(s),n.slice(0,l)+de+n.slice(l)+w+d):n+w+(l===-2?t:d)}return[se(e,a+(e[n]||`<?>`)+(t===2?`</svg>`:t===3?`</math>`:``)),r]},R=class e{constructor({strings:t,_$litType$:n},r){let i;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,u]=xe(t,n);if(this.el=e.createElement(l,r),L.currentNode=this.el.content,n===2||n===3){let e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;(i=L.nextNode())!==null&&c.length<s;){if(i.nodeType===1){if(i.hasAttributes())for(let e of i.getAttributeNames())if(e.endsWith(de)){let t=u[o++],n=i.getAttribute(e).split(w),r=/([.?@])?(.*)/.exec(t);c.push({type:1,index:a,name:r[2],strings:n,ctor:r[1]===`.`?Ce:r[1]===`?`?we:r[1]===`@`?Te:B}),i.removeAttribute(e)}else e.startsWith(w)&&(c.push({type:6,index:a}),i.removeAttribute(e));if(ye.test(i.tagName)){let e=i.textContent.split(w),t=e.length-1;if(t>0){i.textContent=C?C.emptyScript:``;for(let n=0;n<t;n++)i.append(e[n],E()),L.nextNode(),c.push({type:2,index:++a});i.append(e[t],E())}}}else if(i.nodeType===8){if(i.data===fe)c.push({type:2,index:a});else{let e=-1;for(;(e=i.data.indexOf(w,e+1))!==-1;)c.push({type:7,index:a}),e+=w.length-1}}a++}}static createElement(e,t){let n=T.createElement(`template`);return n.innerHTML=e,n}},Se=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:n}=this._$AD,r=(e?.creationScope??T).importNode(t,!0);L.currentNode=r;let i=L.nextNode(),a=0,o=0,s=n[0];for(;s!==void 0;){if(a===s.index){let t;s.type===2?t=new z(i,i.nextSibling,this,e):s.type===1?t=new s.ctor(i,s.name,s.strings,this,e):s.type===6&&(t=new Ee(i,this,e)),this._$AV.push(t),s=n[++o]}a!==s?.index&&(i=L.nextNode(),a++)}return L.currentNode=T,r}p(e){let t=0;for(let n of this._$AV)n!==void 0&&(n.strings===void 0?n._$AI(e[t]):(n._$AI(e,n,t),t+=n.strings.length-2)),t++}},z=class e{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,n,r){this.type=2,this._$AH=I,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=n,this.options=r,this._$Cv=r?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=S(this,e,t),D(e)?e===I||e==null||e===``?(this._$AH!==I&&this._$AR(),this._$AH=I):e!==this._$AH&&e!==F&&this._(e):e._$litType$===void 0?e.nodeType===void 0?me(e)?this.k(e):this._(e):this.T(e):this.$(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==I&&D(this._$AH)?this._$AA.nextSibling.data=e:this.T(T.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:n}=e,r=typeof n==`number`?this._$AC(e):(n.el===void 0&&(n.el=R.createElement(se(n.h,n.h[0]),this.options)),n);if(this._$AH?._$AD===r)this._$AH.p(t);else{let e=new Se(r,this),n=e.u(this.options);e.p(t),this.T(n),this._$AH=e}}_$AC(e){let t=be.get(e.strings);return t===void 0&&be.set(e.strings,t=new R(e)),t}k(t){O(this._$AH)||(this._$AH=[],this._$AR());let n=this._$AH,r,i=0;for(let a of t)i===n.length?n.push(r=new e(this.O(E()),this.O(E()),this,this.options)):r=n[i],r._$AI(a),i++;i<n.length&&(this._$AR(r&&r._$AB.nextSibling,i),n.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){let t=le(e).nextSibling;le(e).remove(),e=t}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},B=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,n,r,i){this.type=1,this._$AH=I,this._$AN=void 0,this.element=e,this.name=t,this._$AM=r,this.options=i,n.length>2||n[0]!==``||n[1]!==``?(this._$AH=Array(n.length-1).fill(/* @__PURE__ */ new String),this.strings=n):this._$AH=I}_$AI(e,t=this,n,r){let i=this.strings,a=!1;if(i===void 0)e=S(this,e,t,0),a=!D(e)||e!==this._$AH&&e!==F,a&&(this._$AH=e);else{let r=e,o,s;for(e=i[0],o=0;o<i.length-1;o++)s=S(this,r[n+o],t,o),s===F&&(s=this._$AH[o]),a||=!D(s)||s!==this._$AH[o],s===I?e=I:e!==I&&(e+=(s??``)+i[o+1]),this._$AH[o]=s}a&&!r&&this.j(e)}j(e){e===I?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??``)}},Ce=class extends B{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===I?void 0:e}},we=class extends B{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==I)}},Te=class extends B{constructor(e,t,n,r,i){super(e,t,n,r,i),this.type=5}_$AI(e,t=this){if((e=S(this,e,t,0)??I)===F)return;let n=this._$AH,r=e===I&&n!==I||e.capture!==n.capture||e.once!==n.once||e.passive!==n.passive,i=e!==I&&(n===I||r);r&&this.element.removeEventListener(this.name,this,n),i&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH==`function`?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},Ee=class{constructor(e,t,n){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=n}get _$AU(){return this._$AM._$AU}_$AI(e){S(this,e)}},De=ce.litHtmlPolyfillSupport,De?.(R,z),(ce.litHtmlVersions??=[]).push(`3.3.3`),Oe=(e,t,n)=>{let r=n?.renderBefore??t,i=r._$litPart$;if(i===void 0){let e=n?.renderBefore??null;r._$litPart$=i=new z(t.insertBefore(E(),e),e,void 0,n??{})}return i._$AI(e),i}})),V,H,Ae,je=t((()=>{
+function se(e,t){if(!me(e)||!e.hasOwnProperty(`raw`))throw Error(`invalid template strings array`);return ue===void 0?t:ue.createHTML(t)}function S(e,t,n=e,r){if(t===N)return t;let i=r===void 0?n._$Cl:n._$Co?.[r],a=D(t)?void 0:t._$litDirective$;return i?.constructor!==a&&(i?._$AO?.(!1),a===void 0?i=void 0:(i=new a(e),i._$AT(e,n,r)),r===void 0?n._$Cl=i:(n._$Co??=[])[r]=i),i!==void 0&&(t=S(e,i._$AS(e,t.values),i,r)),t}var ce,le,C,ue,de,w,fe,pe,T,E,D,me,he,O,k,ge,_e,A,ve,ye,be,xe,j,M,N,P,Se,F,Ce,I,we,L,R,Te,Ee,De,Oe,ke,Ae,je=t((()=>{ce=globalThis,le=e=>e,C=ce.trustedTypes,ue=C?C.createPolicy(`lit-html`,{createHTML:e=>e}):void 0,de=`$lit$`,w=`lit$${Math.random().toFixed(9).slice(2)}$`,fe=`?`+w,pe=`<${fe}>`,T=document,E=()=>T.createComment(``),D=e=>e===null||typeof e!=`object`&&typeof e!=`function`,me=Array.isArray,he=e=>me(e)||typeof e?.[Symbol.iterator]==`function`,O=`[ 	
+\f\r]`,k=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,ge=/-->/g,_e=/>/g,A=RegExp(`>|${O}(?:([^\\s"'>=/]+)(${O}*=${O}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,`g`),ve=/'/g,ye=/"/g,be=/^(?:script|style|textarea|title)$/i,xe=e=>(t,...n)=>({_$litType$:e,strings:t,values:n}),j=xe(1),M=xe(2),xe(3),N=Symbol.for(`lit-noChange`),P=Symbol.for(`lit-nothing`),Se=/* @__PURE__ */ new WeakMap,F=T.createTreeWalker(T,129),Ce=(e,t)=>{let n=e.length-1,r=[],i,a=t===2?`<svg>`:t===3?`<math>`:``,o=k;for(let t=0;t<n;t++){let n=e[t],s,c,l=-1,u=0;for(;u<n.length&&(o.lastIndex=u,c=o.exec(n),c!==null);)u=o.lastIndex,o===k?c[1]===`!--`?o=ge:c[1]===void 0?c[2]===void 0?c[3]!==void 0&&(o=A):(be.test(c[2])&&(i=RegExp(`</`+c[2],`g`)),o=A):o=_e:o===A?c[0]===`>`?(o=i??k,l=-1):c[1]===void 0?l=-2:(l=o.lastIndex-c[2].length,s=c[1],o=c[3]===void 0?A:c[3]===`"`?ye:ve):o===ye||o===ve?o=A:o===ge||o===_e?o=k:(o=A,i=void 0);let d=o===A&&e[t+1].startsWith(`/>`)?` `:``;a+=o===k?n+pe:l>=0?(r.push(s),n.slice(0,l)+de+n.slice(l)+w+d):n+w+(l===-2?t:d)}return[se(e,a+(e[n]||`<?>`)+(t===2?`</svg>`:t===3?`</math>`:``)),r]},I=class e{constructor({strings:t,_$litType$:n},r){let i;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,u]=Ce(t,n);if(this.el=e.createElement(l,r),F.currentNode=this.el.content,n===2||n===3){let e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;(i=F.nextNode())!==null&&c.length<s;){if(i.nodeType===1){if(i.hasAttributes())for(let e of i.getAttributeNames())if(e.endsWith(de)){let t=u[o++],n=i.getAttribute(e).split(w),r=/([.?@])?(.*)/.exec(t);c.push({type:1,index:a,name:r[2],strings:n,ctor:r[1]===`.`?Te:r[1]===`?`?Ee:r[1]===`@`?De:R}),i.removeAttribute(e)}else e.startsWith(w)&&(c.push({type:6,index:a}),i.removeAttribute(e));if(be.test(i.tagName)){let e=i.textContent.split(w),t=e.length-1;if(t>0){i.textContent=C?C.emptyScript:``;for(let n=0;n<t;n++)i.append(e[n],E()),F.nextNode(),c.push({type:2,index:++a});i.append(e[t],E())}}}else if(i.nodeType===8){if(i.data===fe)c.push({type:2,index:a});else{let e=-1;for(;(e=i.data.indexOf(w,e+1))!==-1;)c.push({type:7,index:a}),e+=w.length-1}}a++}}static createElement(e,t){let n=T.createElement(`template`);return n.innerHTML=e,n}},we=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:n}=this._$AD,r=(e?.creationScope??T).importNode(t,!0);F.currentNode=r;let i=F.nextNode(),a=0,o=0,s=n[0];for(;s!==void 0;){if(a===s.index){let t;s.type===2?t=new L(i,i.nextSibling,this,e):s.type===1?t=new s.ctor(i,s.name,s.strings,this,e):s.type===6&&(t=new Oe(i,this,e)),this._$AV.push(t),s=n[++o]}a!==s?.index&&(i=F.nextNode(),a++)}return F.currentNode=T,r}p(e){let t=0;for(let n of this._$AV)n!==void 0&&(n.strings===void 0?n._$AI(e[t]):(n._$AI(e,n,t),t+=n.strings.length-2)),t++}},L=class e{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,n,r){this.type=2,this._$AH=P,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=n,this.options=r,this._$Cv=r?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=S(this,e,t),D(e)?e===P||e==null||e===``?(this._$AH!==P&&this._$AR(),this._$AH=P):e!==this._$AH&&e!==N&&this._(e):e._$litType$===void 0?e.nodeType===void 0?he(e)?this.k(e):this._(e):this.T(e):this.$(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==P&&D(this._$AH)?this._$AA.nextSibling.data=e:this.T(T.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:n}=e,r=typeof n==`number`?this._$AC(e):(n.el===void 0&&(n.el=I.createElement(se(n.h,n.h[0]),this.options)),n);if(this._$AH?._$AD===r)this._$AH.p(t);else{let e=new we(r,this),n=e.u(this.options);e.p(t),this.T(n),this._$AH=e}}_$AC(e){let t=Se.get(e.strings);return t===void 0&&Se.set(e.strings,t=new I(e)),t}k(t){me(this._$AH)||(this._$AH=[],this._$AR());let n=this._$AH,r,i=0;for(let a of t)i===n.length?n.push(r=new e(this.O(E()),this.O(E()),this,this.options)):r=n[i],r._$AI(a),i++;i<n.length&&(this._$AR(r&&r._$AB.nextSibling,i),n.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){let t=le(e).nextSibling;le(e).remove(),e=t}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},R=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,n,r,i){this.type=1,this._$AH=P,this._$AN=void 0,this.element=e,this.name=t,this._$AM=r,this.options=i,n.length>2||n[0]!==``||n[1]!==``?(this._$AH=Array(n.length-1).fill(/* @__PURE__ */ new String),this.strings=n):this._$AH=P}_$AI(e,t=this,n,r){let i=this.strings,a=!1;if(i===void 0)e=S(this,e,t,0),a=!D(e)||e!==this._$AH&&e!==N,a&&(this._$AH=e);else{let r=e,o,s;for(e=i[0],o=0;o<i.length-1;o++)s=S(this,r[n+o],t,o),s===N&&(s=this._$AH[o]),a||=!D(s)||s!==this._$AH[o],s===P?e=P:e!==P&&(e+=(s??``)+i[o+1]),this._$AH[o]=s}a&&!r&&this.j(e)}j(e){e===P?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??``)}},Te=class extends R{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===P?void 0:e}},Ee=class extends R{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==P)}},De=class extends R{constructor(e,t,n,r,i){super(e,t,n,r,i),this.type=5}_$AI(e,t=this){if((e=S(this,e,t,0)??P)===N)return;let n=this._$AH,r=e===P&&n!==P||e.capture!==n.capture||e.once!==n.once||e.passive!==n.passive,i=e!==P&&(n===P||r);r&&this.element.removeEventListener(this.name,this,n),i&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH==`function`?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},Oe=class{constructor(e,t,n){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=n}get _$AU(){return this._$AM._$AU}_$AI(e){S(this,e)}},ke=ce.litHtmlPolyfillSupport,ke?.(I,L),(ce.litHtmlVersions??=[]).push(`3.3.3`),Ae=(e,t,n)=>{let r=n?.renderBefore??t,i=r._$litPart$;if(i===void 0){let e=n?.renderBefore??null;r._$litPart$=i=new L(t.insertBefore(E(),e),e,void 0,n??{})}return i._$AI(e),i}})),z,B,Me,Ne=t((()=>{
 /**
 * @license
 * Copyright 2017 Google LLC
 * SPDX-License-Identifier: BSD-3-Clause
 */
-oe(),oe(),ke(),ke(),V=globalThis,H=class extends x{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){let t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=Oe(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return F}},H._$litElement$=!0,H.finalized=!0,V.litElementHydrateSupport?.({LitElement:H}),Ae=V.litElementPolyfillSupport,Ae?.({LitElement:H}),(V.litElementVersions??=[]).push(`4.2.2`)})),Me=t((()=>{})),Ne=t((()=>{
+oe(),oe(),je(),je(),z=globalThis,B=class extends x{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){let t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=Ae(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return N}},B._$litElement$=!0,B.finalized=!0,z.litElementHydrateSupport?.({LitElement:B}),Me=z.litElementPolyfillSupport,Me?.({LitElement:B}),(z.litElementVersions??=[]).push(`4.2.2`)})),Pe=t((()=>{})),V=t((()=>{
 /**
 * @license
 * Copyright 2022 Google LLC
 * SPDX-License-Identifier: BSD-3-Clause
 */
-oe(),ke(),je(),Me()})),Pe,Fe=t((()=>{Pe=e=>(t,n)=>{
+oe(),je(),Ne(),Pe()})),Fe,Ie=t((()=>{Fe=e=>(t,n)=>{
 /**
 * @license
 * Copyright 2017 Google LLC
@@ -42,18 +42,12 @@ n===void 0?customElements.define(e,t):n.addInitializer(()=>{customElements.defin
 * Copyright 2017 Google LLC
 * SPDX-License-Identifier: BSD-3-Clause
 */
-function Ie(e){return(t,n)=>typeof n==`object`?Re(e,t,n):((e,t,n)=>{let r=t.hasOwnProperty(n);return t.constructor.createProperty(n,e),r?Object.getOwnPropertyDescriptor(t,n):void 0})(e,t,n)}var Le,Re,ze=t((()=>{oe(),Le={attribute:!0,type:String,converter:b,reflect:!1,hasChanged:ie},Re=(e=Le,t,n)=>{let{kind:r,metadata:i}=n,a=globalThis.litPropertyMetadata.get(i);if(a===void 0&&globalThis.litPropertyMetadata.set(i,a=/* @__PURE__ */ new Map),r===`setter`&&((e=Object.create(e)).wrapped=!0),a.set(n.name,e),r===`accessor`){let{name:r}=n;return{set(n){let i=t.get.call(this);t.set.call(this,n),this.requestUpdate(r,i,e,!0,n)},init(t){return t!==void 0&&this.C(r,void 0,e,t),t}}}if(r===`setter`){let{name:r}=n;return function(n){let i=this[r];t.call(this,n),this.requestUpdate(r,i,e,!0,n)}}throw Error(`Unsupported decorator location: `+r)}}));
+function Le(e){return(t,n)=>typeof n==`object`?ze(e,t,n):((e,t,n)=>{let r=t.hasOwnProperty(n);return t.constructor.createProperty(n,e),r?Object.getOwnPropertyDescriptor(t,n):void 0})(e,t,n)}var Re,ze,Be=t((()=>{oe(),Re={attribute:!0,type:String,converter:b,reflect:!1,hasChanged:ie},ze=(e=Re,t,n)=>{let{kind:r,metadata:i}=n,a=globalThis.litPropertyMetadata.get(i);if(a===void 0&&globalThis.litPropertyMetadata.set(i,a=/* @__PURE__ */ new Map),r===`setter`&&((e=Object.create(e)).wrapped=!0),a.set(n.name,e),r===`accessor`){let{name:r}=n;return{set(n){let i=t.get.call(this);t.set.call(this,n),this.requestUpdate(r,i,e,!0,n)},init(t){return t!==void 0&&this.C(r,void 0,e,t),t}}}if(r===`setter`){let{name:r}=n;return function(n){let i=this[r];t.call(this,n),this.requestUpdate(r,i,e,!0,n)}}throw Error(`Unsupported decorator location: `+r)}}));
 /**
 * @license
 * Copyright 2017 Google LLC
 * SPDX-License-Identifier: BSD-3-Clause
-*/function U(e){return Ie({...e,state:!0,attribute:!1})}var Be=t((()=>{ze()})),Ve=t((()=>{})),He=t((()=>{
-/**
-* @license
-* Copyright 2017 Google LLC
-* SPDX-License-Identifier: BSD-3-Clause
-*/
-})),Ue=t((()=>{
+*/function H(e){return Le({...e,state:!0,attribute:!1})}var Ve=t((()=>{Be()})),He=t((()=>{})),Ue=t((()=>{
 /**
 * @license
 * Copyright 2017 Google LLC
@@ -74,16 +68,22 @@ function Ie(e){return(t,n)=>typeof n==`object`?Re(e,t,n):((e,t,n)=>{let r=t.hasO
 })),Ke=t((()=>{
 /**
 * @license
-* Copyright 2021 Google LLC
+* Copyright 2017 Google LLC
 * SPDX-License-Identifier: BSD-3-Clause
 */
 })),qe=t((()=>{
 /**
 * @license
+* Copyright 2021 Google LLC
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+})),Je=t((()=>{
+/**
+* @license
 * Copyright 2017 Google LLC
 * SPDX-License-Identifier: BSD-3-Clause
 */
-Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
+Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
   :host {
     /* Required for light-dark() below to resolve against HA's active theme. */
     color-scheme: light dark;
@@ -525,15 +525,30 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
 
   /* Proportional figures: these are standalone values, not a column of
      numbers that has to line up. */
+  /* A gap rather than margins between arrow, value and unit: where a narrow
+     tile wraps the unit to a second line, a gap vanishes at the break and
+     the unit starts flush left, where a margin would leave it indented. */
   .tile-value {
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
+    column-gap: 4px;
     margin-top: 2px;
     color: var(--primary-text-color);
     font-size: var(--ha-font-size-xl, 1.429rem);
     font-weight: var(--ha-font-weight-medium, 500);
     line-height: 1.2;
+  }
+
+  /* Sits on the value's baseline, as tall as its digits. */
+  .tile-trend {
+    --mdc-icon-size: 1em;
+    align-self: center;
+    color: var(--secondary-text-color);
+  }
+
+  .tile-value .unit {
+    margin-left: 0;
   }
 
   .tile-detail {
@@ -673,7 +688,7 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
       border: 1px solid CanvasText;
     }
   }
-`;function Ye(e){return{type:``,...Ze,...e}}function Xe(e,t){if(t){if(t.device)return t.device;if(t.entity)return e?.entities?.[t.entity]?.device_id}}var Ze,Qe=t((()=>{Ze={show_photo:!0,show_season_track:!0,show_readings:!0,show_attribution:!0}}));Qe();const $e=`badegewaesser-austria-card`;var et={card:{season_over:`Saison beendet`,in_season:`Badesaison läuft`,no_samples:`Noch keine Proben in dieser Saison`,closed:`Baden verboten`,sampled_on:`Probe vom {date}`,not_measured:`nicht gemessen`,season_axis_label:`Proben der Saison {year}`,water_quality:`Wasserqualität`,e_coli:`E. coli`,enterococci:`Enterokokken`,secchi_depth:`Sichttiefe`,water_temperature:`Wassertemperatur`,rating_year:`Bewertung {year}`,no_rating:`noch nicht bewertet`,below_limit:`unter der Nachweisgrenze`,attribution:`Datenquelle: AGES · CC BY 3.0 AT`,trend_up:`{delta} wärmer als bei der Probe davor`,trend_down:`{delta} kälter als bei der Probe davor`,trend_steady:`Etwa so warm wie bei der Probe davor`,photo_alt:`Badestelle {name}`,photo_credit:`Fotonachweis`,photo_source:`Quelle: AGES Badegewässer-Monitoring`},quality:{excellent:`Ausgezeichnet`,good:`Gut`,sufficient:`Ausreichend`,poor:`Mangelhaft`},error:{entity_missing:`Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.`,not_this_integration:`{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration.`,no_device:`Wähle im Karteneditor ein Badegewässer aus.`,device_missing:`Dieses Badegewässer gibt es nicht mehr. Wähle im Karteneditor ein anderes aus.`},version:{mismatch:`Diese Karte ist veraltet ({card} statt {integration}).`,reload:`Neu laden`},editor:{device:`Badegewässer`,device_helper:`Welchen See oder Fluss die Karte zeigen soll.`,name:`Titel`,name_helper:`Leer lassen, um den Namen des Badegewässers zu verwenden.`,show_photo:`Foto zeigen`,show_photo_helper:`Ein Bild der Badestelle, sofern es eines gibt.`,show_season_track:`Saisonverlauf zeigen`,show_season_track_helper:`Die Proben der Saison als Zeitachse.`,show_readings:`Messwerte zeigen`,show_readings_helper:`Wasserqualität, E. coli, Enterokokken und Sichttiefe.`,show_attribution:`Datenquelle zeigen`,show_attribution_helper:`Die Quellenangabe der AGES unter den Messwerten. Die Entitäten tragen sie so oder so.`}},tt={card:{season_over:`Season over`,in_season:`Bathing season under way`,no_samples:`No samples yet this season`,closed:`Swimming prohibited`,sampled_on:`Sampled {date}`,not_measured:`not measured`,season_axis_label:`Samples from the {year} season`,water_quality:`Water quality`,e_coli:`E. coli`,enterococci:`Enterococci`,secchi_depth:`Secchi depth`,water_temperature:`Water temperature`,rating_year:`{year} rating`,no_rating:`not yet rated`,below_limit:`below the detection limit`,attribution:`Data source: AGES · CC BY 3.0 AT`,trend_up:`{delta} warmer than the sample before`,trend_down:`{delta} colder than the sample before`,trend_steady:`About as warm as the sample before`,photo_alt:`Bathing spot at {name}`,photo_credit:`Photo credit`,photo_source:`Source: AGES bathing-water monitoring`},quality:{excellent:`Excellent`,good:`Good`,sufficient:`Sufficient`,poor:`Poor`},error:{entity_missing:`The entity {entity} no longer exists. Pick another one in the card editor.`,not_this_integration:`{entity} isn't part of Badegewässer Austria. Pick an entity from this integration.`,no_device:`Pick a bathing water in the card editor.`,device_missing:`That bathing water no longer exists. Pick another one in the card editor.`},version:{mismatch:`This card is out of date ({card} instead of {integration}).`,reload:`Reload`},editor:{device:`Bathing water`,device_helper:`Which lake or river the card should show.`,name:`Title`,name_helper:`Leave empty to use the bathing water's own name.`,show_photo:`Show the photo`,show_photo_helper:`A picture of the bathing spot, where there is one.`,show_season_track:`Show the season track`,show_season_track_helper:`This season's samples on a time axis.`,show_readings:`Show the readings`,show_readings_helper:`Water quality, E. coli, enterococci and Secchi depth.`,show_attribution:`Show the data source`,show_attribution_helper:`The AGES credit under the readings. The entities carry it either way.`}};function W(e,t,n={}){let r=(t??G).toLowerCase().split(`-`)[0]??G,[i,a]=e.split(`.`),o=nt[r]??nt[G],s=nt[G],c=e=>i&&a?e?.[i]?.[a]:void 0,l=c(o)??c(s)??e;return Object.entries(n).reduce((e,[t,n])=>e.replaceAll(`{${t}}`,String(n)),l)}var nt,G,rt=t((()=>{nt={de:et,en:tt},G=`en`}));Ne(),rt();const it={month:5,day:15},at={month:8,day:31},ot=[5,6,7,8],st=e=>{let t=Date.UTC(e.getUTCFullYear(),0,1),n=Date.UTC(e.getUTCFullYear(),e.getUTCMonth(),e.getUTCDate());return Math.round((n-t)/864e5)};function ct(e){let t=e.getUTCFullYear(),n=st(new Date(Date.UTC(t,it.month-1,it.day))),r=st(new Date(Date.UTC(t,at.month-1,at.day)))-n;return r<=0?0:Math.min(1,Math.max(0,(st(e)-n)/r))}const lt=e=>{let t=/* @__PURE__ */ new Date(`${e}T00:00:00Z`);return Number.isNaN(t.getTime())?null:t};function ut(e,t){let n=Array.from({length:3},()=>-1/0);return e.map(e=>{if(e.value===null)return null;let r=n.findIndex(n=>e.fraction-n>=t);return r<0?null:(n[r]=e.fraction,r)})}const K=e=>`${(e*100).toFixed(3)}%`;function dt(e){let{samples:t,formatDate:n,formatTemperature:r,language:i}=e;return t.length===0?W(`card.no_samples`,i):t.map(e=>{let t=lt(e.date);return`${t?n(t):e.date}: ${r(e.water_temperature)}`}).join(`, `)}function ft(e){let{samples:t,now:n,language:r,formatDate:i,formatTemperature:a,formatLabel:o,hovered:s,onHover:c,axisWidth:l}=e,u=ct(n),d=t.map(e=>({sample:e,date:lt(e.date)})).filter(e=>e.date!==null).map(e=>{let t=ct(e.date);return{...e,fraction:t,cx:K(t)}}),f=ut(d.map(e=>({fraction:e.fraction,value:e.sample.water_temperature})),36/(l&&l>0?l:240)),p=Math.max(0,...f.map(e=>e??0))*14,m=24+p,h=d.length-1,g=s==null?void 0:d[s],_=d.at(-1)?.date.getUTCFullYear()??n.getUTCFullYear(),ee=e=>new Intl.DateTimeFormat(r??`en`,{month:`short`,timeZone:`UTC`}).format(new Date(Date.UTC(_,e-1,15)));return N`
+`;function Xe(e){return{type:``,...Qe,...e}}function Ze(e,t){if(t){if(t.device)return t.device;if(t.entity)return e?.entities?.[t.entity]?.device_id}}var Qe,$e=t((()=>{Qe={show_photo:!0,show_season_track:!0,show_readings:!0,show_attribution:!0}}));$e();const et=`badegewaesser-austria-card`;var tt={card:{season_over:`Saison beendet`,in_season:`Badesaison läuft`,no_samples:`Noch keine Proben in dieser Saison`,closed:`Baden verboten`,sampled_on:`Probe vom {date}`,not_measured:`nicht gemessen`,season_axis_label:`Proben der Saison {year}`,water_quality:`Wasserqualität`,e_coli:`E. coli`,enterococci:`Enterokokken`,secchi_depth:`Sichttiefe`,water_temperature:`Wassertemperatur`,rating_year:`Bewertung {year}`,no_rating:`noch nicht bewertet`,below_limit:`unter der Nachweisgrenze`,attribution:`Datenquelle: AGES · CC BY 3.0 AT`,trend_up:`{delta} wärmer als bei der Probe davor`,trend_down:`{delta} kälter als bei der Probe davor`,trend_steady:`Etwa so warm wie bei der Probe davor`,tile_trend_up:`Gestiegen seit der Probe davor`,tile_trend_down:`Gesunken seit der Probe davor`,tile_trend_steady:`Etwa gleich wie bei der Probe davor`,photo_alt:`Badestelle {name}`,photo_credit:`Fotonachweis`,photo_source:`Quelle: AGES Badegewässer-Monitoring`},quality:{excellent:`Ausgezeichnet`,good:`Gut`,sufficient:`Ausreichend`,poor:`Mangelhaft`},error:{entity_missing:`Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.`,not_this_integration:`{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration.`,no_device:`Wähle im Karteneditor ein Badegewässer aus.`,device_missing:`Dieses Badegewässer gibt es nicht mehr. Wähle im Karteneditor ein anderes aus.`},version:{mismatch:`Diese Karte ist veraltet ({card} statt {integration}).`,reload:`Neu laden`},editor:{device:`Badegewässer`,device_helper:`Welchen See oder Fluss die Karte zeigen soll.`,name:`Titel`,name_helper:`Leer lassen, um den Namen des Badegewässers zu verwenden.`,show_photo:`Foto zeigen`,show_photo_helper:`Ein Bild der Badestelle, sofern es eines gibt.`,show_season_track:`Saisonverlauf zeigen`,show_season_track_helper:`Die Proben der Saison als Zeitachse.`,show_readings:`Messwerte zeigen`,show_readings_helper:`Wasserqualität, E. coli, Enterokokken und Sichttiefe.`,show_attribution:`Datenquelle zeigen`,show_attribution_helper:`Die Quellenangabe der AGES unter den Messwerten. Die Entitäten tragen sie so oder so.`}},nt={card:{season_over:`Season over`,in_season:`Bathing season under way`,no_samples:`No samples yet this season`,closed:`Swimming prohibited`,sampled_on:`Sampled {date}`,not_measured:`not measured`,season_axis_label:`Samples from the {year} season`,water_quality:`Water quality`,e_coli:`E. coli`,enterococci:`Enterococci`,secchi_depth:`Secchi depth`,water_temperature:`Water temperature`,rating_year:`{year} rating`,no_rating:`not yet rated`,below_limit:`below the detection limit`,attribution:`Data source: AGES · CC BY 3.0 AT`,trend_up:`{delta} warmer than the sample before`,trend_down:`{delta} colder than the sample before`,trend_steady:`About as warm as the sample before`,tile_trend_up:`Up since the sample before`,tile_trend_down:`Down since the sample before`,tile_trend_steady:`About the same as the sample before`,photo_alt:`Bathing spot at {name}`,photo_credit:`Photo credit`,photo_source:`Source: AGES bathing-water monitoring`},quality:{excellent:`Excellent`,good:`Good`,sufficient:`Sufficient`,poor:`Poor`},error:{entity_missing:`The entity {entity} no longer exists. Pick another one in the card editor.`,not_this_integration:`{entity} isn't part of Badegewässer Austria. Pick an entity from this integration.`,no_device:`Pick a bathing water in the card editor.`,device_missing:`That bathing water no longer exists. Pick another one in the card editor.`},version:{mismatch:`This card is out of date ({card} instead of {integration}).`,reload:`Reload`},editor:{device:`Bathing water`,device_helper:`Which lake or river the card should show.`,name:`Title`,name_helper:`Leave empty to use the bathing water's own name.`,show_photo:`Show the photo`,show_photo_helper:`A picture of the bathing spot, where there is one.`,show_season_track:`Show the season track`,show_season_track_helper:`This season's samples on a time axis.`,show_readings:`Show the readings`,show_readings_helper:`Water quality, E. coli, enterococci and Secchi depth.`,show_attribution:`Show the data source`,show_attribution_helper:`The AGES credit under the readings. The entities carry it either way.`}};function U(e,t,n={}){let r=(t??W).toLowerCase().split(`-`)[0]??W,[i,a]=e.split(`.`),o=rt[r]??rt[W],s=rt[W],c=e=>i&&a?e?.[i]?.[a]:void 0,l=c(o)??c(s)??e;return Object.entries(n).reduce((e,[t,n])=>e.replaceAll(`{${t}}`,String(n)),l)}var rt,W,it=t((()=>{rt={de:tt,en:nt},W=`en`}));V(),it();const at={month:5,day:15},ot={month:8,day:31},st=[5,6,7,8],ct=e=>{let t=Date.UTC(e.getUTCFullYear(),0,1),n=Date.UTC(e.getUTCFullYear(),e.getUTCMonth(),e.getUTCDate());return Math.round((n-t)/864e5)};function lt(e){let t=e.getUTCFullYear(),n=ct(new Date(Date.UTC(t,at.month-1,at.day))),r=ct(new Date(Date.UTC(t,ot.month-1,ot.day)))-n;return r<=0?0:Math.min(1,Math.max(0,(ct(e)-n)/r))}const ut=e=>{let t=/* @__PURE__ */ new Date(`${e}T00:00:00Z`);return Number.isNaN(t.getTime())?null:t};function dt(e,t){let n=Array.from({length:3},()=>-1/0);return e.map(e=>{if(e.value===null)return null;let r=n.findIndex(n=>e.fraction-n>=t);return r<0?null:(n[r]=e.fraction,r)})}const G=e=>`${(e*100).toFixed(3)}%`;function ft(e){let{samples:t,formatDate:n,formatTemperature:r,language:i}=e;return t.length===0?U(`card.no_samples`,i):t.map(e=>{let t=ut(e.date);return`${t?n(t):e.date}: ${r(e.water_temperature)}`}).join(`, `)}function pt(e){let{samples:t,now:n,language:r,formatDate:i,formatTemperature:a,formatLabel:o,hovered:s,onHover:c,axisWidth:l}=e,u=lt(n),d=t.map(e=>({sample:e,date:ut(e.date)})).filter(e=>e.date!==null).map(e=>{let t=lt(e.date);return{...e,fraction:t,cx:G(t)}}),f=dt(d.map(e=>({fraction:e.fraction,value:e.sample.water_temperature})),36/(l&&l>0?l:240)),p=Math.max(0,...f.map(e=>e??0))*14,m=24+p,h=d.length-1,g=s==null?void 0:d[s],_=d.at(-1)?.date.getUTCFullYear()??n.getUTCFullYear(),ee=e=>new Intl.DateTimeFormat(r??`en`,{month:`short`,timeZone:`UTC`}).format(new Date(Date.UTC(_,e-1,15)));return j`
     <div class="track-wrap">
       <!-- role="group", not "img". ARIA makes every descendant of an img
            presentational, so the focusable, labelled points below would take
@@ -681,34 +696,34 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
            WCAG 4.1.2). A group keeps the axis label AND exposes the points. -->
       <svg
         class="track"
-        style=${p?`height:${48+p}px`:I}
+        style=${p?`height:${48+p}px`:P}
         role="group"
-        aria-label=${W(`card.season_axis_label`,r,{year:_})}
+        aria-label=${U(`card.season_axis_label`,r,{year:_})}
       >
         <!-- Solid hairlines only. A dashed rule reads as a threshold or a
              projection when it is just an axis. -->
-        ${P`<line
+        ${M`<line
           class="track-ground"
-          x1=${K(0)} y1=${m} x2=${K(1)} y2=${m}
+          x1=${G(0)} y1=${m} x2=${G(1)} y2=${m}
         />`}
-        ${P`<line
+        ${M`<line
           class="track-filled"
-          x1=${K(0)} y1=${m} x2=${K(u)} y2=${m}
+          x1=${G(0)} y1=${m} x2=${G(u)} y2=${m}
         />`}
-        ${ot.map((e,t)=>{let n=ct(new Date(Date.UTC(_,e-1,t===0?it.day:1)));return P`<text
+        ${st.map((e,t)=>{let n=lt(new Date(Date.UTC(_,e-1,t===0?at.day:1)));return M`<text
             class="month"
-            x=${K(n)}
+            x=${G(n)}
             y=${44+p}
             text-anchor=${t===0?`start`:`middle`}
           >${ee(e)}</text>`})}
-        ${d.map((e,t)=>{let n=e.sample.water_temperature,r=f[t];return r!=null&&n!==null?P`<text
+        ${d.map((e,t)=>{let n=e.sample.water_temperature,r=f[t];return r!=null&&n!==null?M`<text
                 class=${t===h?`value-label is-latest`:`value-label`}
                 x=${e.cx}
                 y=${10+p-r*14}
                 text-anchor="middle"
                 aria-hidden="true"
-              >${o(n)}</text>`:I})}
-        ${d.map((e,t)=>P`
+              >${o(n)}</text>`:P})}
+        ${d.map((e,t)=>M`
             <g
               class=${t===h?`point is-latest`:`point`}
               tabindex="0"
@@ -729,7 +744,7 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
             </g>
           `)}
       </svg>
-      ${g?N`<div
+      ${g?j`<div
             class="tip"
             role="status"
             style=${`--tip-x:${g.cx}`}
@@ -738,9 +753,9 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
             <span class="tip-value"
               >${a(g.sample.water_temperature)}</span
             >
-          </div>`:I}
+          </div>`:P}
     </div>
-  `}const pt=l`
+  `}const mt=l`
   /* The inset the end dots need now that 0% and 100% are the real edges of
      the element rather than padded coordinates inside a viewBox. */
   .track-wrap {
@@ -859,54 +874,54 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
       forced-color-adjust: none;
     }
   }
-`;var mt,ht,q,J,gt,Y,_t,vt,yt=t((()=>{mt=`badegewaesser_austria`,ht=/* @__PURE__ */ new Set([`unknown`,`unavailable`,``,`none`]),q=e=>e!==void 0&&!ht.has(e.state.toLowerCase()),J=e=>{if(!q(e))return null;let t=Number(e?.state);return Number.isFinite(t)?t:null},gt=e=>e?.locale?.language??e?.language,Y=(e,t,n=1)=>e===null?null:new Intl.NumberFormat(t??`en`,{minimumFractionDigits:n,maximumFractionDigits:n}).format(e),_t=(e,t)=>new Intl.DateTimeFormat(t??`en`,{day:`numeric`,month:`long`,timeZone:`UTC`}).format(e),vt=(e,t,n)=>{let r=Y(e,n,0);return r===null?null:t?`<${r}`:r}}));function X(e,t,n,r){var i=arguments.length,a=i<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,n):r,o;if(typeof Reflect==`object`&&typeof Reflect.decorate==`function`)a=Reflect.decorate(e,t,n,r);else for(var s=e.length-1;s>=0;s--)(o=e[s])&&(a=(i<3?o(a):i>3?o(t,n,a):o(t,n))||a);return i>3&&a&&Object.defineProperty(t,n,a),a}var bt=t((()=>{})),xt,St=t((()=>{xt=(e,t,n)=>{e.dispatchEvent(new CustomEvent(t,{detail:n,bubbles:!0,composed:!0}))}})),Ct=/* @__PURE__ */ n({BadegewaesserAustriaCardEditor:()=>Z}),wt,Z,Tt=t((()=>{Ne(),rt(),St(),yt(),bt(),wt=[{name:`device`,required:!0,selector:{device:{filter:{integration:mt}}}},{name:`name`,selector:{text:{}}},{type:`grid`,name:``,flatten:!0,schema:[{name:`show_photo`,selector:{boolean:{}}},{name:`show_season_track`,selector:{boolean:{}}},{name:`show_readings`,selector:{boolean:{}}},{name:`show_attribution`,selector:{boolean:{}}}]}],Z=class extends H{constructor(...e){super(...e),this._computeLabel=e=>W(`editor.${e.name}`,gt(this.hass)),this._computeHelper=e=>{let t=`editor.${e.name}_helper`,n=W(t,gt(this.hass));return n===t?void 0:n}}setConfig(e){this._config=e}render(){return!this.hass||!this._config?I:N`
+`;var ht,gt,K,q,J,Y,_t,vt,yt=t((()=>{ht=`badegewaesser_austria`,gt=/* @__PURE__ */ new Set([`unknown`,`unavailable`,``,`none`]),K=e=>e!==void 0&&!gt.has(e.state.toLowerCase()),q=e=>{if(!K(e))return null;let t=Number(e?.state);return Number.isFinite(t)?t:null},J=e=>e?.locale?.language??e?.language,Y=(e,t,n=1)=>e===null?null:new Intl.NumberFormat(t??`en`,{minimumFractionDigits:n,maximumFractionDigits:n}).format(e),_t=(e,t)=>new Intl.DateTimeFormat(t??`en`,{day:`numeric`,month:`long`,timeZone:`UTC`}).format(e),vt=(e,t,n)=>{let r=Y(e,n,0);return r===null?null:t?`<${r}`:r}}));function X(e,t,n,r){var i=arguments.length,a=i<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,n):r,o;if(typeof Reflect==`object`&&typeof Reflect.decorate==`function`)a=Reflect.decorate(e,t,n,r);else for(var s=e.length-1;s>=0;s--)(o=e[s])&&(a=(i<3?o(a):i>3?o(t,n,a):o(t,n))||a);return i>3&&a&&Object.defineProperty(t,n,a),a}var bt=t((()=>{})),xt,St=t((()=>{xt=(e,t,n)=>{e.dispatchEvent(new CustomEvent(t,{detail:n,bubbles:!0,composed:!0}))}})),Ct=/* @__PURE__ */ n({BadegewaesserAustriaCardEditor:()=>Z}),wt,Z,Tt=t((()=>{V(),it(),St(),yt(),bt(),wt=[{name:`device`,required:!0,selector:{device:{filter:{integration:ht}}}},{name:`name`,selector:{text:{}}},{type:`grid`,name:``,flatten:!0,schema:[{name:`show_photo`,selector:{boolean:{}}},{name:`show_season_track`,selector:{boolean:{}}},{name:`show_readings`,selector:{boolean:{}}},{name:`show_attribution`,selector:{boolean:{}}}]}],Z=class extends B{constructor(...e){super(...e),this._computeLabel=e=>U(`editor.${e.name}`,J(this.hass)),this._computeHelper=e=>{let t=`editor.${e.name}_helper`,n=U(t,J(this.hass));return n===t?void 0:n}}setConfig(e){this._config=e}render(){return!this.hass||!this._config?P:j`
       <ha-form
         .hass=${this.hass}
-        .data=${Ye(this._config)}
+        .data=${Xe(this._config)}
         .schema=${wt}
         .computeLabel=${this._computeLabel}
         .computeHelper=${this._computeHelper}
         @value-changed=${this._valueChanged}
       ></ha-form>
-    `}_valueChanged(e){xt(this,`config-changed`,{config:e.detail.value})}},X([Ie({attribute:!1})],Z.prototype,`hass`,void 0),X([U()],Z.prototype,`_config`,void 0),Z=X([Pe(`badegewaesser-austria-card-editor`)],Z)}));Ne(),qe(),Qe(),rt(),yt(),bt();const Q={temperature:`water_temperature`,quality:`water_quality`,eColi:`e_coli`,enterococci:`enterococci`,secchi:`secchi_depth`,lastSample:`last_sample`,closed:`closed`,season:`bathing_season`,photo:`photo`},Et={excellent:`mdi:check-circle`,good:`mdi:check-circle`,sufficient:`mdi:alert-circle`,poor:`mdi:close-circle`},Dt={up:`mdi:trending-up`,down:`mdi:trending-down`,steady:`mdi:trending-neutral`};function Ot(e){let t=e.at(-1)?.water_temperature;if(t==null)return null;let n=e.slice(0,-1).map(e=>e.water_temperature).filter(e=>e!==null).at(-1);if(n===void 0)return null;let r=t-n;return{direction:r>=.5?`up`:r<=-.5?`down`:`steady`,delta:r}}let $=class extends H{constructor(...e){super(...e),this._hoveredPoint=null,this._photoTip=!1,this._photoTipHovered=!1,this._photoTipPinned=!1,this._versionChecked=!1}static{this.styles=[Je,pt]}static async getConfigElement(){return await Promise.resolve().then(()=>(Tt(),Ct)),document.createElement(`badegewaesser-austria-card-editor`)}static getStubConfig(e){return{device:Object.values(e.entities??{}).find(e=>e.platform===`badegewaesser_austria`&&e.device_id)?.device_id??``}}setConfig(e){if(!e)throw Error(W(`error.no_device`,void 0));this._config=Ye(e)}getCardSize(){let e=this._config,t=1,n=this.hass?this._siteEntities()?.[Q.photo]:void 0;return e?.show_photo!==!1&&(!this.hass||q(n))&&(t+=4),e?.show_season_track!==!1&&(t+=2),e?.show_readings!==!1&&(t+=3),t}getGridOptions(){return{columns:12,min_columns:6,rows:`auto`}}connectedCallback(){super.connectedCallback(),typeof ResizeObserver<`u`&&(this._resizeObserver=new ResizeObserver(e=>{let t=Math.round(e[0]?.contentRect.width??0);t>0&&t!==this._width&&(this._width=t)}),this._resizeObserver.observe(this))}disconnectedCallback(){this._resizeObserver?.disconnect(),this._resizeObserver=void 0,super.disconnectedCallback()}updated(){this._checkVersion()}async _checkVersion(){if(!this._versionChecked&&this.hass?.callWS){this._versionChecked=!0;try{let e=await this.hass.callWS({type:`${mt}/card_version`});e?.version&&e.version!==`0.1.0`&&(this._staleVersion=e.version)}catch{}}}async _reload(){try{if(`caches`in window){let e=await caches.keys();await Promise.all(e.map(e=>caches.delete(e)))}}catch{}location.reload()}_siteEntities(){let e=this.hass,t=Xe(e,this._config);if(!e||!t)return;let n={};for(let r of Object.values(e.entities??{}))r.device_id===t&&r.platform===`badegewaesser_austria`&&r.translation_key&&(n[r.translation_key]=e.states[r.entity_id]);return n}_deviceName(){let e=Xe(this.hass,this._config),t=e?this.hass?.devices?.[e]:void 0;return t?.name_by_user??t?.name}render(){let e=this._config,t=this.hass;if(!e||!t)return I;let n=gt(t);if(!e.device&&!e.entity)return this._renderAlert(W(`error.no_device`,n));if(!e.device&&e.entity){let r=t.entities?.[e.entity];if(!r||!t.states[e.entity])return this._renderAlert(W(`error.entity_missing`,n,{entity:e.entity}));if(r.platform!==`badegewaesser_austria`)return this._renderAlert(W(`error.not_this_integration`,n,{entity:e.entity}))}let r=this._siteEntities()??{};if(Object.keys(r).length===0)return this._renderAlert(W(`error.device_missing`,n));let i=r[Q.temperature],a=r[Q.closed],o=r[Q.season],s=e.name??this._deviceName()??``,c=i?.attributes.season_samples??[],l=o?.state===`on`,u=a?.state===`on`,d=r[Q.photo],f=e.show_photo===!1?void 0:this._photoUrl(d),p=f!==void 0&&this._photoFailed!==f;return N`
+    `}_valueChanged(e){xt(this,`config-changed`,{config:e.detail.value})}},X([Le({attribute:!1})],Z.prototype,`hass`,void 0),X([H()],Z.prototype,`_config`,void 0),Z=X([Fe(`badegewaesser-austria-card-editor`)],Z)}));V(),Je(),$e(),it(),yt(),bt();const Q={temperature:`water_temperature`,quality:`water_quality`,eColi:`e_coli`,enterococci:`enterococci`,secchi:`secchi_depth`,lastSample:`last_sample`,closed:`closed`,season:`bathing_season`,photo:`photo`},Et={excellent:`mdi:check-circle`,good:`mdi:check-circle`,sufficient:`mdi:alert-circle`,poor:`mdi:close-circle`},Dt={up:`mdi:trending-up`,down:`mdi:trending-down`,steady:`mdi:trending-neutral`};function Ot(e,t,n){let r=e.at(-1),i=r?t(r):null;if(!r||i==null)return null;let a=e.slice(0,-1).filter(e=>t(e)!=null).at(-1);if(!a)return null;let o=Math.round((i-(t(a)??i))*1e3)/1e3;return{direction:n(r,a,o)?`steady`:o>0?`up`:`down`,delta:o}}const kt=e=>Ot(e,e=>e.water_temperature,(e,t,n)=>Math.abs(n)<.5),At=e=>Ot(e,e=>e.secchi_depth,(e,t,n)=>Math.abs(n)<.2);function jt(e,t){let n=e=>e[`${t}_below_limit`]===!0;return Ot(e,e=>e[t],(e,r,i)=>{if(n(e)&&n(r))return!0;let a=Math.max(e[t]??0,r[t]??0);return Math.abs(i)<=.2*a})}let $=class extends B{constructor(...e){super(...e),this._hoveredPoint=null,this._photoTip=!1,this._photoTipHovered=!1,this._photoTipPinned=!1,this._versionChecked=!1}static{this.styles=[Ye,mt]}static async getConfigElement(){return await Promise.resolve().then(()=>(Tt(),Ct)),document.createElement(`badegewaesser-austria-card-editor`)}static getStubConfig(e){return{device:Object.values(e.entities??{}).find(e=>e.platform===`badegewaesser_austria`&&e.device_id)?.device_id??``}}setConfig(e){if(!e)throw Error(U(`error.no_device`,void 0));this._config=Xe(e)}getCardSize(){let e=this._config,t=1,n=this.hass?this._siteEntities()?.[Q.photo]:void 0;return e?.show_photo!==!1&&(!this.hass||K(n))&&(t+=4),e?.show_season_track!==!1&&(t+=2),e?.show_readings!==!1&&(t+=3),t}getGridOptions(){return{columns:12,min_columns:6,rows:`auto`}}connectedCallback(){super.connectedCallback(),typeof ResizeObserver<`u`&&(this._resizeObserver=new ResizeObserver(e=>{let t=Math.round(e[0]?.contentRect.width??0);t>0&&t!==this._width&&(this._width=t)}),this._resizeObserver.observe(this))}disconnectedCallback(){this._resizeObserver?.disconnect(),this._resizeObserver=void 0,super.disconnectedCallback()}updated(){this._checkVersion()}async _checkVersion(){if(!this._versionChecked&&this.hass?.callWS){this._versionChecked=!0;try{let e=await this.hass.callWS({type:`${ht}/card_version`});e?.version&&e.version!==`0.1.0`&&(this._staleVersion=e.version)}catch{}}}async _reload(){try{if(`caches`in window){let e=await caches.keys();await Promise.all(e.map(e=>caches.delete(e)))}}catch{}location.reload()}_siteEntities(){let e=this.hass,t=Ze(e,this._config);if(!e||!t)return;let n={};for(let r of Object.values(e.entities??{}))r.device_id===t&&r.platform===`badegewaesser_austria`&&r.translation_key&&(n[r.translation_key]=e.states[r.entity_id]);return n}_deviceName(){let e=Ze(this.hass,this._config),t=e?this.hass?.devices?.[e]:void 0;return t?.name_by_user??t?.name}render(){let e=this._config,t=this.hass;if(!e||!t)return P;let n=J(t);if(!e.device&&!e.entity)return this._renderAlert(U(`error.no_device`,n));if(!e.device&&e.entity){let r=t.entities?.[e.entity];if(!r||!t.states[e.entity])return this._renderAlert(U(`error.entity_missing`,n,{entity:e.entity}));if(r.platform!==`badegewaesser_austria`)return this._renderAlert(U(`error.not_this_integration`,n,{entity:e.entity}))}let r=this._siteEntities()??{};if(Object.keys(r).length===0)return this._renderAlert(U(`error.device_missing`,n));let i=r[Q.temperature],a=r[Q.closed],o=r[Q.season],s=e.name??this._deviceName()??``,c=i?.attributes.season_samples??[],l=o?.state===`on`,u=a?.state===`on`,d=r[Q.photo],f=e.show_photo===!1?void 0:this._photoUrl(d),p=f!==void 0&&this._photoFailed!==f;return j`
       <ha-card>
-        ${p?this._renderHero(f,d,s,i,c,n):I}
+        ${p?this._renderHero(f,d,s,i,c,n):P}
         ${this._renderVersionBanner(n)}
-        ${u?this._renderClosure(a,n):I}
+        ${u?this._renderClosure(a,n):P}
         <div class="body">
-          ${p?I:N`<h2 class="title">${s}</h2>
+          ${p?P:j`<h2 class="title">${s}</h2>
                 ${this._renderPlace()}`}
-          ${e.show_season_track===!1?I:this._renderSeason(i,c,l,n,p)}
-          ${e.show_readings===!1?I:this._renderReadings(r,n)}
-          ${e.show_attribution===!1?I:N`<p class="attribution">${W(`card.attribution`,n)}</p>`}
+          ${e.show_season_track===!1?P:this._renderSeason(i,c,l,n,p)}
+          ${e.show_readings===!1?P:this._renderReadings(r,c,n)}
+          ${e.show_attribution===!1?P:j`<p class="attribution">${U(`card.attribution`,n)}</p>`}
         </div>
       </ha-card>
-    `}_renderAlert(e){return N`
+    `}_renderAlert(e){return j`
       <ha-card>
         <div class="body"><ha-alert alert-type="error">${e}</ha-alert></div>
       </ha-card>
-    `}_renderVersionBanner(e){return this._staleVersion?N`
+    `}_renderVersionBanner(e){return this._staleVersion?j`
       <div class="version-banner">
         <ha-icon icon="mdi:refresh" aria-hidden="true"></ha-icon>
         <span
-          >${W(`version.mismatch`,e,{card:`0.1.0`,integration:this._staleVersion})}</span
+          >${U(`version.mismatch`,e,{card:`0.1.0`,integration:this._staleVersion})}</span
         >
         <button type="button" @click=${this._reload}>
-          ${W(`version.reload`,e)}
+          ${U(`version.reload`,e)}
         </button>
       </div>
-    `:I}_renderClosure(e,t){let n=e?.attributes.closure_reason;return N`
+    `:P}_renderClosure(e,t){let n=e?.attributes.closure_reason;return j`
       <div class="closure">
         <ha-icon icon="mdi:close-octagon" aria-hidden="true"></ha-icon>
-        <span>${W(`card.closed`,t)}</span>
-        ${typeof n==`string`&&n?N`<span class="closure-reason">${n}</span>`:I}
+        <span>${U(`card.closed`,t)}</span>
+        ${typeof n==`string`&&n?j`<span class="closure-reason">${n}</span>`:P}
       </div>
-    `}_renderHero(e,t,n,r,i,a){let o=t?.attributes.attribution,s=typeof o==`string`?o:``,c=Xe(this.hass,this._config),l=c?this.hass?.devices?.[c]?.model:void 0,u=Y(J(r),a),d=r?.attributes.unit_of_measurement,f=i.at(-1),p=u===null?null:Ot(i);return N`
+    `}_renderHero(e,t,n,r,i,a){let o=t?.attributes.attribution,s=typeof o==`string`?o:``,c=Ze(this.hass,this._config),l=c?this.hass?.devices?.[c]?.model:void 0,u=Y(q(r),a),d=r?.attributes.unit_of_measurement,f=i.at(-1),p=u===null?null:kt(i);return j`
       <div class="hero">
         <img
           class="hero-img"
           src=${e}
-          alt=${W(`card.photo_alt`,a,{name:n})}
+          alt=${U(`card.photo_alt`,a,{name:n})}
           width="600"
           height="210"
           decoding="async"
@@ -914,24 +929,24 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
         />
         <div class="hero-caption">
           <h2 class="hero-title">${n}</h2>
-          ${l?N`<p class="hero-place">${l}</p>`:I}
+          ${l?j`<p class="hero-place">${l}</p>`:P}
           <p class=${u===null?`hero-temperature is-missing`:`hero-temperature`}>
-            ${p?N`<ha-icon
+            ${p?j`<ha-icon
                     class="hero-trend"
                     icon=${Dt[p.direction]}
                     aria-hidden="true"
                   ></ha-icon
                   ><span class="visually-hidden"
-                    >${W(`card.trend_${p.direction}`,a,{delta:`${Y(Math.abs(p.delta),a)??``} °C`})}</span
-                  >`:I}<span class="hero-value">${u??`—`}</span>${u!==null&&typeof d==`string`?N`<span class="hero-unit">${d}</span>`:I}
+                    >${U(`card.trend_${p.direction}`,a,{delta:`${Y(Math.abs(p.delta),a)??``} °C`})}</span
+                  >`:P}<span class="hero-value">${u??`—`}</span>${u!==null&&typeof d==`string`?j`<span class="hero-unit">${d}</span>`:P}
           </p>
-          ${f?N`<p class="hero-sampled">
-                ${W(`card.sampled_on`,a,{date:_t(/* @__PURE__ */ new Date(`${f.date}T00:00:00Z`),a)})}
-              </p>`:I}
+          ${f?j`<p class="hero-sampled">
+                ${U(`card.sampled_on`,a,{date:_t(/* @__PURE__ */ new Date(`${f.date}T00:00:00Z`),a)})}
+              </p>`:P}
         </div>
-        ${s?this._renderPhotoCredit(s,a):I}
+        ${s?this._renderPhotoCredit(s,a):P}
       </div>
-    `}_renderPhotoCredit(e,t){let n=()=>{this._photoTip=this._photoTipHovered||this._photoTipPinned},r=()=>{this._photoTipHovered=!1,this._photoTipPinned=!1,n()};return N`
+    `}_renderPhotoCredit(e,t){let n=()=>{this._photoTip=this._photoTipHovered||this._photoTipPinned},r=()=>{this._photoTipHovered=!1,this._photoTipPinned=!1,n()};return j`
       <div
         class="photo-info"
         @pointerenter=${()=>{this._photoTipHovered=!0,n()}}
@@ -940,7 +955,7 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
         <button
           type="button"
           class="photo-info-button"
-          aria-label=${W(`card.photo_credit`,t)}
+          aria-label=${U(`card.photo_credit`,t)}
           aria-describedby="photo-tip"
           @click=${()=>{this._photoTipPinned=!this._photoTipPinned,n()}}
           @focus=${()=>{this._photoTipHovered=!0,n()}}
@@ -951,66 +966,73 @@ Fe(),ze(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke()}));qe(),Ne();const Je=l`
         </button>
         <div class="photo-tip" id="photo-tip" role="tooltip" ?hidden=${!this._photoTip}>
           <span>${e}</span>
-          <span class="photo-tip-source">${W(`card.photo_source`,t)}</span>
+          <span class="photo-tip-source">${U(`card.photo_source`,t)}</span>
         </div>
       </div>
-    `}_photoUrl(e){let t=e?.attributes.entity_picture;if(e&&q(e)&&typeof t==`string`)return this._photo?.state!==e.state&&(this._photo={state:e.state,url:t}),this._photo.url}_onPhotoError(e){let t=this._siteEntities()?.[Q.photo]?.attributes.entity_picture;if(typeof t==`string`&&t!==e){this._photo=void 0,this.requestUpdate();return}this._photoFailed=e}_renderPlace(){let e=Xe(this.hass,this._config),t=e?this.hass?.devices?.[e]?.model:void 0;return t?N`<p class="place">${t}</p>`:I}_renderSeason(e,t,n,r,i=!1){let a=J(e),o=Y(a,r),s=e?.attributes.unit_of_measurement,c=t.at(-1),l=c?/* @__PURE__ */ new Date(`${c.date}T00:00:00Z`):null,u={samples:t,now:/* @__PURE__ */ new Date,inSeason:n,language:r,formatDate:e=>_t(e,r),hovered:this._hoveredPoint,onHover:e=>{this._hoveredPoint=e},formatLabel:e=>`${Y(e,r)??``}°`,axisWidth:this._width?this._width-48:void 0,formatTemperature:e=>Y(e,r)===null?W(`card.not_measured`,r):`${Y(e,r)} ${typeof s==`string`?s:`°C`}`};return N`
+    `}_photoUrl(e){let t=e?.attributes.entity_picture;if(e&&K(e)&&typeof t==`string`)return this._photo?.state!==e.state&&(this._photo={state:e.state,url:t}),this._photo.url}_onPhotoError(e){let t=this._siteEntities()?.[Q.photo]?.attributes.entity_picture;if(typeof t==`string`&&t!==e){this._photo=void 0,this.requestUpdate();return}this._photoFailed=e}_renderTrend(e,t){return e?j`<ha-icon
+        class="tile-trend"
+        icon=${Dt[e.direction]}
+        aria-hidden="true"
+      ></ha-icon
+      ><span class="visually-hidden"
+        >${U(`card.tile_trend_${e.direction}`,t)}</span
+      >`:P}_renderPlace(){let e=Ze(this.hass,this._config),t=e?this.hass?.devices?.[e]?.model:void 0;return t?j`<p class="place">${t}</p>`:P}_renderSeason(e,t,n,r,i=!1){let a=q(e),o=Y(a,r),s=e?.attributes.unit_of_measurement,c=t.at(-1),l=c?/* @__PURE__ */ new Date(`${c.date}T00:00:00Z`):null,u={samples:t,now:/* @__PURE__ */ new Date,inSeason:n,language:r,formatDate:e=>_t(e,r),hovered:this._hoveredPoint,onHover:e=>{this._hoveredPoint=e},formatLabel:e=>`${Y(e,r)??``}°`,axisWidth:this._width?this._width-48:void 0,formatTemperature:e=>Y(e,r)===null?U(`card.not_measured`,r):`${Y(e,r)} ${typeof s==`string`?s:`°C`}`};return j`
       <div class="season">
         <div class=${i?`reading-block hero-fallback`:`reading-block`}>
-          ${i?I:N`<div class="reading">
+          ${i?P:j`<div class="reading">
                 <span class=${o===null?`temperature is-missing`:`temperature`}>
                   ${o??`—`}
                 </span>
-                ${o!==null&&typeof s==`string`?N`<span class="unit">${s}</span>`:I}
+                ${o!==null&&typeof s==`string`?j`<span class="unit">${s}</span>`:P}
               </div>`}
-          ${l?N`<p class="sampled">
-                ${W(`card.sampled_on`,r,{date:_t(l,r)})}
-              </p>`:I}
+          ${l?j`<p class="sampled">
+                ${U(`card.sampled_on`,r,{date:_t(l,r)})}
+              </p>`:P}
         </div>
-        ${ft(u)}
+        ${pt(u)}
         <p class="season-status">
           <ha-icon
             icon=${n?`mdi:swim`:`mdi:calendar-check`}
             aria-hidden="true"
           ></ha-icon>
           <span
-            >${t.length===0?W(`card.no_samples`,r):W(n?`card.in_season`:`card.season_over`,r)}</span
+            >${t.length===0?U(`card.no_samples`,r):U(n?`card.in_season`:`card.season_over`,r)}</span
           >
         </p>
-        <p class="visually-hidden">${dt(u)}</p>
+        <p class="visually-hidden">${ft(u)}</p>
       </div>
-    `}_renderReadings(e,t){let n=e[Q.quality],r=e[Q.secchi],i=n?.attributes.rating_year,a=q(n),o=n?.state??``,s=r?.attributes.unit_of_measurement;return N`
+    `}_renderReadings(e,t,n){let r=e[Q.quality],i=e[Q.secchi],a=r?.attributes.rating_year,o=K(r),s=r?.state??``,c=i?.attributes.unit_of_measurement;return j`
       <dl class="tiles">
         <div class="tile">
           <dt>
-            ${a&&o in Et?N`<ha-icon
-                  class=${`quality-icon is-${o}`}
-                  icon=${Et[o]}
+            ${o&&s in Et?j`<ha-icon
+                  class=${`quality-icon is-${s}`}
+                  icon=${Et[s]}
                   aria-hidden="true"
-                ></ha-icon>`:I}${W(`card.water_quality`,t)}
+                ></ha-icon>`:P}${U(`card.water_quality`,n)}
           </dt>
           <dd class="tile-value">
-            ${W(a?`quality.${o}`:`card.no_rating`,t)}
+            ${U(o?`quality.${s}`:`card.no_rating`,n)}
           </dd>
-          ${typeof i==`number`?N`<dd class="tile-detail">
-                ${W(`card.rating_year`,t,{year:i})}
-              </dd>`:I}
+          ${typeof a==`number`?j`<dd class="tile-detail">
+                ${U(`card.rating_year`,n,{year:a})}
+              </dd>`:P}
         </div>
         <div class="tile">
-          <dt>${W(`card.secchi_depth`,t)}</dt>
+          <dt>${U(`card.secchi_depth`,n)}</dt>
           <dd class="tile-value">
-            ${Y(J(r),t,2)??`—`}${q(r)&&typeof s==`string`?N`<span class="unit">${s}</span>`:I}
+            ${K(i)?this._renderTrend(At(t),n):P}${Y(q(i),n,2)??`—`}${K(i)&&typeof c==`string`?j`<span class="unit">${c}</span>`:P}
           </dd>
         </div>
-        ${this._renderCount(Q.eColi,e[Q.eColi],t)}
-        ${this._renderCount(Q.enterococci,e[Q.enterococci],t)}
+        ${this._renderCount(Q.eColi,e[Q.eColi],jt(t,`e_coli`),n)}
+        ${this._renderCount(Q.enterococci,e[Q.enterococci],jt(t,`enterococci`),n)}
       </dl>
-    `}_renderCount(e,t,n){let r=t?.attributes.below_detection_limit===!0,i=vt(J(t),r,n),a=t?.attributes.unit_of_measurement;return N`
+    `}_renderCount(e,t,n,r){let i=t?.attributes.below_detection_limit===!0,a=vt(q(t),i,r),o=t?.attributes.unit_of_measurement;return j`
       <div class="tile">
-        <dt>${W(`card.${e}`,n)}</dt>
+        <dt>${U(`card.${e}`,r)}</dt>
         <dd class="tile-value">
-          ${i??`—`}${i!==null&&typeof a==`string`?N`<span class="unit">${a}</span>`:I}
+          ${a===null?P:this._renderTrend(n,r)}${a??`—`}${a!==null&&typeof o==`string`?j`<span class="unit">${o}</span>`:P}
         </dd>
-        ${r?N`<dd class="tile-detail">${W(`card.below_limit`,n)}</dd>`:I}
+        ${i?j`<dd class="tile-detail">${U(`card.below_limit`,r)}</dd>`:P}
       </div>
-    `}};X([Ie({attribute:!1})],$.prototype,`hass`,void 0),X([U()],$.prototype,`_config`,void 0),X([U()],$.prototype,`_staleVersion`,void 0),X([U()],$.prototype,`_hoveredPoint`,void 0),X([U()],$.prototype,`_photoTip`,void 0),X([U()],$.prototype,`_photoFailed`,void 0),X([U()],$.prototype,`_width`,void 0),$=X([Pe($e)],$);const kt=window;kt.customCards=kt.customCards??[],kt.customCards.push({type:$e,name:`Badegewässer Austria`,description:`Wasserqualität und Temperatur eines österreichischen Badegewässers`,preview:!0,documentationURL:`https://github.com/rolandzeiner/badegewaesser-austria`,getEntitySuggestion:(e,t)=>{let n=e.entities?.[t];return n?.platform!==`badegewaesser_austria`||!n.device_id?null:{config:{type:`custom:${$e}`,device:n.device_id}}}});export{$ as BadegewaesserAustriaCard,Ot as temperatureTrend};
+    `}};X([Le({attribute:!1})],$.prototype,`hass`,void 0),X([H()],$.prototype,`_config`,void 0),X([H()],$.prototype,`_staleVersion`,void 0),X([H()],$.prototype,`_hoveredPoint`,void 0),X([H()],$.prototype,`_photoTip`,void 0),X([H()],$.prototype,`_photoFailed`,void 0),X([H()],$.prototype,`_width`,void 0),$=X([Fe(et)],$);const Mt=window;Mt.customCards=Mt.customCards??[],Mt.customCards.push({type:et,name:`Badegewässer Austria`,description:`Wasserqualität und Temperatur eines österreichischen Badegewässers`,preview:!0,documentationURL:`https://github.com/rolandzeiner/badegewaesser-austria`,getEntitySuggestion:(e,t)=>{let n=e.entities?.[t];return n?.platform!==`badegewaesser_austria`||!n.device_id?null:{config:{type:`custom:${et}`,device:n.device_id}}}});export{$ as BadegewaesserAustriaCard,jt as countTrend,Ot as sampleTrend,At as secchiTrend,kt as temperatureTrend};
