@@ -168,3 +168,10 @@ private_*.py
 # Dev-only fixture hook (gitignored by design — per-repo file is local)
 # ───────────────────────────────────────────────────────────────────
 custom_components/*/_dev_fixture.py
+
+# Bathing-water photos: AGES's site pictures, built by scripts/build_photos.py.
+# Deliberately untracked until AGES consents in writing to their
+# reproduction (https://www.ages.at/impressum). dev-push still syncs them to
+# the dev box; git history never sees them, so withdrawing is `rm -r`.
+custom_components/badegewaesser_austria/photos/
+.photo-cache/

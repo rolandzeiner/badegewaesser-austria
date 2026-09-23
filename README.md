@@ -39,6 +39,7 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 - **Honest about detection limits** — most samples report "below the laboratory's detection limit" rather than a measured count. The card shows `<15`, and the sensor carries a `below_detection_limit` attribute, so you never read a limit as a measurement *(0.1.0)*
 - **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
 - **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
+- **A photo of the bathing spot** — the picture AGES shows for the site, as an `image` entity and at the top of the card, with its credit on it. 259 of the 260 have one *(0.2.0)*
 
 ## Requirements
 
@@ -73,7 +74,7 @@ To change how often it checks, open the entry's **Configure** dialog. See [Data 
 
 ## Entities
 
-Each bathing water becomes one device with eight entities.
+Each bathing water becomes one device with eight entities, plus a photo where AGES has one.
 
 | Entity | Type | Notes |
 |---|---|---|
@@ -85,6 +86,7 @@ Each bathing water becomes one device with eight entities.
 | Last sample | `sensor` | When the newest sample was taken. |
 | Closed | `binary_sensor` | On when the authority has banned swimming. `closure_reason` says why. |
 | Bathing season | `binary_sensor` | On between 15 June and 31 August, the season defined in Badegewässerverordnung § 4. |
+| Photo | `image` | The bathing spot, where AGES has a photo. Its attribution names who to credit. |
 
 ### Water quality
 
@@ -131,9 +133,10 @@ The editor's picker fills this in for you — pick the bathing water by name.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `device` | string | *required* | The bathing water's device. The card finds all eight of its entities itself. |
+| `device` | string | *required* | The bathing water's device. The card finds all of its entities itself. |
 | `entity` | string | — | Legacy alternative to `device`: any one entity of the bathing water. Still honoured so older cards keep working. |
 | `name` | string | the lake's name | Overrides the card title. |
+| `show_photo` | boolean | `true` | The photo of the bathing spot, with its credit. Only where there is one. |
 | `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
 | `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth. |
 
@@ -200,6 +203,9 @@ AGES no longer lists that site. It may come back on the next update, or it may h
 **The temperature shows a dash.**
 That sample has no temperature. AGES reports `0` when nothing was measured, and the integration treats that as missing rather than as 0 °C.
 
+**The card shows no photo.**
+AGES has no photo for *Naturbadesee Königsdorf*. For any other bathing water, check that **Show the photo** is on in the card editor.
+
 **The card looks out of date and offers to reload.**
 Your browser cached an older version of the card than the integration ships. Click **Reload**. If it comes back, clear the browser cache for your Home Assistant URL.
 
@@ -223,19 +229,21 @@ logger:
 
 ## Removal
 
-Go to **Settings → Devices & services → Badegewässer Austria**, open the entry's menu and choose **Delete**. That removes its device and all eight entities. Removing the last entry also withdraws the Lovelace card resource.
+Go to **Settings → Devices & services → Badegewässer Austria**, open the entry's menu and choose **Delete**. That removes its device and all of its entities. Removing the last entry also withdraws the Lovelace card resource.
 
 To uninstall completely, remove the integration in HACS and restart Home Assistant.
 
 ## Attribution
 
-Every entity and the card footer carry:
+Every entity except the photo, and the card footer, carry:
 
 > Datenquelle: AGES · CC BY 3.0 AT
 
 In full: **AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH**.
 
 Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition.
+
+The photos are not part of that dataset and not under its licence. They come from the AGES bathing-water pages, and each one carries its own credit, shown on the photo in the card and as the photo entity's attribution. The credit names the rights holder given in the site's bathing-water profile, or else the photographer recorded in the file, or else AGES.
 
 ## License
 

@@ -290,3 +290,20 @@ UNMEASURED_TEMPERATURE: Final = 0.0
 # README's Attribution section, where there is room for it — in a card footer
 # it wrapped to two lines and pushed the licence onto the second.
 ATTRIBUTION: Final = "Datenquelle: AGES · CC BY 3.0 AT"
+
+# ---------------------------------------------------------------------------
+# Photos
+# ---------------------------------------------------------------------------
+
+# One photo per bathing water, built by `scripts/build_photos.py` into
+# `photos/<BADEGEWAESSERID>.webp` with a `credits.json` beside them. They are
+# AGES's site pictures and are NOT covered by the CC BY 3.0 AT data licence
+# above, so they carry their own credit instead of ATTRIBUTION. The folder is
+# gitignored until AGES consents to their reproduction; without it the image
+# platform creates nothing and every other entity is unaffected.
+PHOTO_DIR_NAME: Final = "photos"
+PHOTO_CREDITS_FILE: Final = "credits.json"
+PHOTO_CONTENT_TYPE: Final = "image/webp"
+# AGES claims the rights to everything on its site (https://www.ages.at/impressum),
+# so it is the credit of last resort when the build found no better one.
+PHOTO_FALLBACK_CREDIT: Final = "© AGES"

@@ -68,6 +68,74 @@ export const cardStyles = css`
     padding: var(--bade-pad-y) var(--bade-pad-x);
   }
 
+  /* -- photo ------------------------------------------------------------ */
+
+  .photo {
+    position: relative;
+    margin: 0;
+  }
+
+  /* Every photo is built at 600x210 (20:7). The ratio is pinned here as well,
+     so the card keeps its height while the image loads instead of jumping. */
+  .photo img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 20 / 7;
+    object-fit: cover;
+    background: var(--bade-track);
+  }
+
+  /* The credit sits on the photo because it belongs to the photo. The scrim
+     keeps white text legible over any picture: over pure white, 60% black
+     leaves #666, and white on #666 is 5.7:1 -- above the 4.5:1 floor. */
+  .photo-credit {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 2px var(--bade-gap);
+    border-top-left-radius: var(--bade-radius-sm);
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: var(--ha-font-size-s, 0.857rem);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Inset, because the card clips anything past its edge. */
+  .photo-credit:focus-visible {
+    outline-offset: -2px;
+  }
+
+  /* Same look as the season-track tooltip, anchored above the credit. */
+  .photo-tip {
+    position: absolute;
+    right: var(--bade-gap);
+    bottom: 28px;
+    max-width: calc(100% - 2 * var(--bade-gap));
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 8px;
+    border-radius: var(--bade-radius-sm);
+    background: var(--ha-card-background, var(--card-background-color, #fff));
+    border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.3));
+    box-shadow: var(--ha-card-box-shadow, 0 2px 6px rgba(0, 0, 0, 0.25));
+    color: var(--primary-text-color);
+    font-size: var(--ha-font-size-s, 0.857rem);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .photo-tip-source {
+    color: var(--secondary-text-color);
+  }
+
   /* -- heading ---------------------------------------------------------- */
 
   .title {

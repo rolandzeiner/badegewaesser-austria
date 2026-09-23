@@ -15,7 +15,9 @@
     "rating_year": "{year} rating",
     "no_rating": "not yet rated",
     "below_limit": "below the detection limit",
-    "attribution": "Data source: AGES · CC BY 3.0 AT"
+    "attribution": "Data source: AGES · CC BY 3.0 AT",
+    "photo_alt": "Bathing spot at {name}",
+    "photo_source": "Source: AGES bathing-water monitoring"
   },
   "quality": {
     "excellent": "Excellent",
@@ -38,6 +40,8 @@
     "device_helper": "Which lake or river the card should show.",
     "name": "Title",
     "name_helper": "Leave empty to use the bathing water's own name.",
+    "show_photo": "Show the photo",
+    "show_photo_helper": "A picture of the bathing spot, where there is one.",
     "show_season_track": "Show the season track",
     "show_season_track_helper": "This season's samples on a time axis.",
     "show_readings": "Show the readings",

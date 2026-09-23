@@ -72,6 +72,7 @@ export interface BadegewaesserCardConfig extends LovelaceCardConfig {
    */
   entity?: string;
   name?: string;
+  show_photo?: boolean;
   show_season_track?: boolean;
   show_readings?: boolean;
 }

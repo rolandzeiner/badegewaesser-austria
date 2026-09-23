@@ -15,7 +15,9 @@
     "rating_year": "Bewertung {year}",
     "no_rating": "noch nicht bewertet",
     "below_limit": "unter der Nachweisgrenze",
-    "attribution": "Datenquelle: AGES · CC BY 3.0 AT"
+    "attribution": "Datenquelle: AGES · CC BY 3.0 AT",
+    "photo_alt": "Badestelle {name}",
+    "photo_source": "Quelle: AGES Badegewässer-Monitoring"
   },
   "quality": {
     "excellent": "Ausgezeichnet",
@@ -38,6 +40,8 @@
     "device_helper": "Welchen See oder Fluss die Karte zeigen soll.",
     "name": "Titel",
     "name_helper": "Leer lassen, um den Namen des Badegewässers zu verwenden.",
+    "show_photo": "Foto zeigen",
+    "show_photo_helper": "Ein Bild der Badestelle, sofern es eines gibt.",
     "show_season_track": "Saisonverlauf zeigen",
     "show_season_track_helper": "Die Proben der Saison als Zeitachse.",
     "show_readings": "Messwerte zeigen",

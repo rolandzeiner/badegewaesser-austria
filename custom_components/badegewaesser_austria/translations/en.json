@@ -95,6 +95,11 @@
           "on": "In season"
         }
       }
+    },
+    "image": {
+      "photo": {
+        "name": "Photo"
+      }
     }
   },
   "issues": {

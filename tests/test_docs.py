@@ -150,16 +150,23 @@ def test_every_feature_bullet_carries_a_version_marker() -> None:
         assert re.search(r"\*\(\d+\.\d+\.\d+\)\*", bullet), bullet
 
 
-def test_first_release_markers_all_say_the_current_version() -> None:
-    """Nothing has shipped yet, so every marker names the version in flight.
+def test_release_markers_name_a_shipped_or_the_next_version() -> None:
+    """A marker names a version that shipped, or the one being built.
 
-    Markers freeze once a release goes out; until then they simply track
-    manifest.json, which is why this compares against INTEGRATION_VERSION
-    rather than a literal.
+    Until 0.1.0 shipped, every marker simply equalled the manifest. Since then
+    a new feature carries the NEXT version while manifest.json still says the
+    last release — the workflow bumps once per cycle, just before the release
+    PR. So a marker is valid if it is not newer than the manifest, or if it is
+    exactly one patch, minor or major step past it. A typo such as 0.12.0
+    is neither.
     """
+    major, minor, patch = (int(part) for part in INTEGRATION_VERSION.split("."))
+    current = (major, minor, patch)
+    upcoming = {(major, minor, patch + 1), (major, minor + 1, 0), (major + 1, 0, 0)}
     section = README.split("## Supported Functions")[1].split("## Requirements")[0]
     for marker in re.findall(r"\*\((\d+\.\d+\.\d+)\)\*", section):
-        assert marker == INTEGRATION_VERSION
+        version = tuple(int(part) for part in marker.split("."))
+        assert version <= current or version in upcoming, marker
 
 
 @pytest.mark.parametrize(

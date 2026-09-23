@@ -317,6 +317,135 @@ describe("the season-track tooltip", () => {
   });
 });
 
+describe("the photo", () => {
+  const PHOTO = "image.koenigsdorf_photo";
+  const STAMP = "2016-05-12T10:38:28+00:00";
+
+  function withPhoto(
+    state = STAMP,
+    attributes: Record<string, unknown> = {
+      entity_picture: `/api/image_proxy/${PHOTO}?token=first`,
+      attribution: "Foto: © Amt der Burgenländischen Landesregierung",
+    },
+  ): HomeAssistant {
+    const hass = makeHass();
+    hass.states[PHOTO] = { entity_id: PHOTO, state, attributes };
+    hass.entities![PHOTO] = {
+      entity_id: PHOTO,
+      device_id: DEVICE,
+      platform: PLATFORM,
+      translation_key: "photo",
+    };
+    return hass;
+  }
+
+  const img = (card: BadegewaesserAustriaCard) =>
+    card.shadowRoot?.querySelector<HTMLImageElement>(".photo img") ?? null;
+  const caption = (card: BadegewaesserAustriaCard) =>
+    card.shadowRoot!.querySelector<HTMLElement>(".photo-credit")!;
+
+  it("is absent when the bathing water has no photo", async () => {
+    // AGES has none for one site, and an install without the photo folder
+    // has none at all. Neither may leave an empty frame behind.
+    const card = await mount({ device: DEVICE });
+    expect(card.shadowRoot?.querySelector(".photo")).toBeNull();
+  });
+
+  it("loads through the image proxy, described by the bathing water's name", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    expect(img(card)?.getAttribute("src")).toBe(`/api/image_proxy/${PHOTO}?token=first`);
+    expect(img(card)?.getAttribute("alt")).toBe("Badestelle Naturbadesee Königsdorf");
+  });
+
+  it("shows its credit on the photo, not only on hover", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    expect(caption(card).textContent?.trim()).toBe(
+      "Foto: © Amt der Burgenländischen Landesregierung",
+    );
+  });
+
+  it("honours the photo toggle", async () => {
+    const card = await mount({ device: DEVICE, show_photo: false }, withPhoto());
+    expect(card.shadowRoot?.querySelector(".photo")).toBeNull();
+  });
+
+  it("is absent while its entity is unavailable", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto("unavailable"));
+    expect(card.shadowRoot?.querySelector(".photo")).toBeNull();
+  });
+
+  it("keeps its URL when only the access token rotates", async () => {
+    // HA rotates the token every five minutes. Following it would download
+    // the same photo again each time.
+    const card = await mount({ device: DEVICE }, withPhoto());
+    card.hass = withPhoto(STAMP, {
+      entity_picture: `/api/image_proxy/${PHOTO}?token=second`,
+      attribution: "Foto: © AGES",
+    });
+    await card.updateComplete;
+    expect(img(card)?.getAttribute("src")).toContain("token=first");
+  });
+
+  it("takes the new URL when the photo itself changes", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    card.hass = withPhoto("2026-09-23T08:00:00+00:00", {
+      entity_picture: `/api/image_proxy/${PHOTO}?token=second`,
+      attribution: "Foto: © AGES",
+    });
+    await card.updateComplete;
+    expect(img(card)?.getAttribute("src")).toContain("token=second");
+  });
+
+  it("retries an expired URL with the current one", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    card.hass = withPhoto(STAMP, {
+      entity_picture: `/api/image_proxy/${PHOTO}?token=second`,
+      attribution: "Foto: © AGES",
+    });
+    await card.updateComplete;
+    img(card)!.dispatchEvent(new Event("error"));
+    await card.updateComplete;
+    expect(img(card)?.getAttribute("src")).toContain("token=second");
+  });
+
+  it("drops out rather than showing a broken image", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    img(card)!.dispatchEvent(new Event("error"));
+    await card.updateComplete;
+    expect(card.shadowRoot?.querySelector(".photo")).toBeNull();
+  });
+
+  it("names the source in a tooltip on hover", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    expect(card.shadowRoot?.querySelector(".photo-tip")).toBeNull();
+
+    caption(card).dispatchEvent(new Event("pointerenter"));
+    await card.updateComplete;
+    const tip = card.shadowRoot?.querySelector(".photo-tip")?.textContent ?? "";
+    expect(tip).toContain("Amt der Burgenländischen Landesregierung");
+    expect(tip).toContain("Quelle: AGES Badegewässer-Monitoring");
+
+    caption(card).dispatchEvent(new Event("pointerleave"));
+    await card.updateComplete;
+    expect(card.shadowRoot?.querySelector(".photo-tip")).toBeNull();
+  });
+
+  it("gives keyboard focus the same tooltip, and Escape dismisses it", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    expect(caption(card).getAttribute("tabindex")).toBe("0");
+
+    caption(card).dispatchEvent(new Event("focus"));
+    await card.updateComplete;
+    const tip = card.shadowRoot?.querySelector(".photo-tip");
+    expect(tip?.getAttribute("role")).toBe("tooltip");
+    expect(caption(card).getAttribute("aria-describedby")).toBe(tip?.id);
+
+    caption(card).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await card.updateComplete;
+    expect(card.shadowRoot?.querySelector(".photo-tip")).toBeNull();
+  });
+});
+
 describe("attribution", () => {
   it("names the source and the licence, without the full legal name", async () => {
     // CC BY 3.0 AT asks for attribution in the manner specified; AGES plus the
@@ -339,6 +468,7 @@ describe("editor defaults", () => {
     const { normaliseConfig, DEFAULTS } = await import("./config");
 
     const raw = { type: `custom:${CARD_TAG}`, device: DEVICE };
+    expect(normaliseConfig(raw).show_photo).toBe(DEFAULTS.show_photo);
     expect(normaliseConfig(raw).show_season_track).toBe(DEFAULTS.show_season_track);
     expect(normaliseConfig(raw).show_readings).toBe(DEFAULTS.show_readings);
   });

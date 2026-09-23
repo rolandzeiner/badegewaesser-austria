@@ -45,6 +45,7 @@ const KEY = {
   lastSample: "last_sample",
   closed: "closed",
   season: "bathing_season",
+  photo: "photo",
 } as const;
 
 type SiteEntities = Partial<Record<string, HassEntity>>;
@@ -58,8 +59,12 @@ export class BadegewaesserAustriaCard extends LitElement {
   @state() private _config?: BadegewaesserCardConfig;
   @state() private _staleVersion?: string;
   @state() private _hoveredPoint: number | null = null;
+  @state() private _photoTip = false;
+  @state() private _photoFailed?: string;
 
   private _versionChecked = false;
+  // The photo URL in use, and the photo state it belongs to. See _photoUrl.
+  private _photo: { state: string; url: string } | undefined;
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("./editor");
@@ -196,6 +201,7 @@ export class BadegewaesserAustriaCard extends LitElement {
     const temperature = entities[KEY.temperature];
     const closed = entities[KEY.closed];
     const season = entities[KEY.season];
+    const title = config.name ?? this._deviceName() ?? "";
 
     const samples = (temperature?.attributes["season_samples"] ?? []) as SeasonSample[];
     const inSeason = season?.state === "on";
@@ -203,10 +209,13 @@ export class BadegewaesserAustriaCard extends LitElement {
 
     return html`
       <ha-card>
+        ${config.show_photo === false
+          ? nothing
+          : this._renderPhoto(entities[KEY.photo], title, language)}
         ${this._renderVersionBanner(language)}
         ${isClosed ? this._renderClosure(closed, language) : nothing}
         <div class="body">
-          <h2 class="title">${config.name ?? this._deviceName() ?? ""}</h2>
+          <h2 class="title">${title}</h2>
           ${this._renderPlace()}
           ${config.show_season_track === false
             ? nothing
@@ -262,6 +271,99 @@ export class BadegewaesserAustriaCard extends LitElement {
           : nothing}
       </div>
     `;
+  }
+
+  /**
+   * The bathing spot's photo, with its credit on it.
+   *
+   * The picture comes from the site's `image` entity through Home Assistant's
+   * image proxy, so the browser talks to nobody but Home Assistant. The credit
+   * is the entity's attribution and sits on the photo itself: the photos are
+   * not ours, and a credit only reachable by hovering would not be one. The
+   * tooltip adds where the photo came from and shows a credit the caption had
+   * to truncate.
+   */
+  private _renderPhoto(
+    entity: HassEntity | undefined,
+    title: string,
+    language: string | undefined,
+  ): TemplateResult | typeof nothing {
+    const src = this._photoUrl(entity);
+    if (!src || this._photoFailed === src) return nothing;
+    const attribution = entity?.attributes["attribution"];
+    const credit = typeof attribution === "string" ? attribution : "";
+    const show = (): void => {
+      this._photoTip = true;
+    };
+    const hide = (): void => {
+      this._photoTip = false;
+    };
+    return html`
+      <figure class="photo">
+        <img
+          src=${src}
+          alt=${localize("card.photo_alt", language, { name: title })}
+          width="600"
+          height="210"
+          decoding="async"
+          @error=${() => this._onPhotoError(src)}
+        />
+        ${credit
+          ? html`<figcaption
+              class="photo-credit"
+              tabindex="0"
+              aria-describedby="photo-tip"
+              @pointerenter=${show}
+              @pointerleave=${hide}
+              @focus=${show}
+              @blur=${hide}
+              @keydown=${(event: KeyboardEvent) => {
+                // WCAG 1.4.13: content shown on hover or focus can be dismissed.
+                if (event.key === "Escape") hide();
+              }}
+            >
+              ${credit}
+            </figcaption>`
+          : nothing}
+        ${credit && this._photoTip
+          ? html`<div class="photo-tip" id="photo-tip" role="tooltip">
+              <span>${credit}</span>
+              <span class="photo-tip-source">${localize("card.photo_source", language)}</span>
+            </div>`
+          : nothing}
+      </figure>
+    `;
+  }
+
+  /**
+   * The photo's proxy URL, renewed only when the photo itself changes.
+   *
+   * `entity_picture` carries an access token that Home Assistant rotates every
+   * five minutes. Following it would download the same photo again every five
+   * minutes for as long as a dashboard stays open. The state — the photo's
+   * timestamp — is what says the picture changed, so the URL is kept until it
+   * moves. A new card always starts from the current URL.
+   */
+  private _photoUrl(entity: HassEntity | undefined): string | undefined {
+    const url = entity?.attributes["entity_picture"];
+    if (!entity || !hasValue(entity) || typeof url !== "string") return undefined;
+    if (this._photo?.state !== entity.state) {
+      this._photo = { state: entity.state, url };
+    }
+    return this._photo.url;
+  }
+
+  private _onPhotoError(src: string): void {
+    // A kept URL can outlive its token (HA honours only the last two), for
+    // instance when the photo toggle re-creates the image. Retry once with the
+    // current URL before concluding that the photo itself is the problem.
+    const current = this._siteEntities()?.[KEY.photo]?.attributes["entity_picture"];
+    if (typeof current === "string" && current !== src) {
+      this._photo = undefined;
+      this.requestUpdate();
+      return;
+    }
+    this._photoFailed = src;
   }
 
   private _renderPlace(): TemplateResult | typeof nothing {

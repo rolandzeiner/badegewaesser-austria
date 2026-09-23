@@ -23,6 +23,9 @@
           "on": "mdi:swim"
         }
       }
+    },
+    "image": {
+      "photo": { "default": "mdi:image" }
     }
   }
 }
