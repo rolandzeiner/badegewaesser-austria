@@ -141,25 +141,9 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
   /* -- photo header ----------------------------------------------------- */
 
   .hero {
-    /* The shade is the lake at dusk rather than neutral black: the accent's
-       hue taken down to near-black, so the darkening reads as part of the
-       photo instead of a grey film over it. */
-    --bade-shade: 4 22 28;
-    --bade-scrim: rgb(var(--bade-shade) / 0.62);
-    /* Room the temperature column claims, the fade each scrim spends inside
-       its own padding, and the band above and below the temperature that
-       keeps it clear of the info button while staying exactly centred. */
-    --hero-reading-w: 7.5rem;
+    --bade-scrim: rgb(0 0 0 / 0.62);
+    /* How far above the text the bottom band spends fading out. */
     --hero-fade: 2.5rem;
-    --hero-clear: 2.75rem;
-    /* An eased fade rather than a straight one: a linear ramp from 62% to
-       nothing leaves a visible edge where it starts, and the scrim reads as a
-       panel laid on the photo instead of shade within it. */
-    --hero-fade-stops: rgb(var(--bade-shade) / 0.46)
-        calc(100% - var(--hero-fade) * 0.75),
-      rgb(var(--bade-shade) / 0.28) calc(100% - var(--hero-fade) * 0.5),
-      rgb(var(--bade-shade) / 0.11) calc(100% - var(--hero-fade) * 0.25),
-      transparent;
 
     position: relative;
     isolation: isolate;
@@ -179,54 +163,66 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
     background: var(--bade-track);
   }
 
-  /* The vignette. Decoration only: none of the contrast below depends on it. */
+  /* The shading: black from the right edge fading out towards the left, and
+     a soft vignette at the corners. Both are atmosphere; the contrast the
+     text needs comes from the band below, not from these. */
   .hero::before {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: radial-gradient(
-      ellipse 90% 115% at 38% 35%,
-      transparent 55%,
-      rgb(var(--bade-shade) / 0.5) 100%
-    );
+    background:
+      linear-gradient(
+        to left,
+        rgb(0 0 0 / 0.7),
+        rgb(0 0 0 / 0.42) 25%,
+        rgb(0 0 0 / 0.14) 50%,
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 90% 115% at 38% 35%,
+        transparent 55%,
+        rgb(0 0 0 / 0.4) 100%
+      );
   }
 
-  /* CONTRAST, for every line of text on the photo. Each text block sits on
-     its own scrim, sized to the block, at 62% of the shade: a band under the
-     name, a halo behind the temperature. Composited over pure
-     white -- the brightest thing a photo can put underneath -- that leaves
-     rgb(99 111 114), relative luminance 0.152, and white on it measures
-     5.19:1. That clears the 4.5:1 floor for normal text, so it holds for the
-     12px lines as well as the large figure; 0.55 would not (4.11:1). Each
-     fade lies outside the text, never under it. */
+  /* One row along the bottom: the name on the left and the temperature on
+     the right share a baseline, and the Bundesland and the sample date share
+     the one below it.
+
+     CONTRAST: the row sits on a band that is 62% black wherever there is
+     text, fading out only above it. Over pure white -- the brightest thing a
+     photo can put underneath -- that leaves rgb(97 97 97), relative luminance
+     0.120, and white on it measures 6.2:1: over the 4.5:1 floor for normal
+     text, so it holds for the 12px lines as well as the large figure. 55%
+     would still pass (4.7:1); 50% would not for the small lines (3.9:1). */
   .hero-caption {
     position: absolute;
     inset-inline: 0;
     bottom: 0;
-    padding: var(--hero-fade)
-      calc(var(--hero-reading-w) + var(--bade-pad-x) + var(--bade-gap))
-      var(--ha-space-3, 12px) var(--bade-pad-x);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title temperature"
+      "place sampled";
+    column-gap: var(--bade-pad-x);
+    align-items: last baseline;
+    padding: var(--hero-fade) var(--bade-pad-x) var(--ha-space-3, 12px);
     background: linear-gradient(
       to top,
       var(--bade-scrim) calc(100% - var(--hero-fade)),
-      var(--hero-fade-stops)
+      rgb(0 0 0 / 0.46) calc(100% - var(--hero-fade) * 0.75),
+      rgb(0 0 0 / 0.28) calc(100% - var(--hero-fade) * 0.5),
+      rgb(0 0 0 / 0.11) calc(100% - var(--hero-fade) * 0.25),
+      transparent
     );
   }
 
-  /* Above the temperature's halo, which a long name can run into. */
-  .hero-title,
-  .hero-place {
-    position: relative;
-    z-index: 2;
-  }
-
+  /* A plain block on purpose. A line clamp (display: -webkit-box) has no
+     baseline to offer the grid, which then top-aligns the name and leaves
+     it floating above the temperature. */
   .hero-title {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
+    grid-area: title;
     margin: 0;
     font-size: var(--ha-font-size-xl, 1.429rem);
     font-weight: var(--ha-font-weight-bold, 600);
@@ -235,60 +231,24 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
   }
 
   .hero-place {
+    grid-area: place;
     margin: 2px 0 0;
     font-size: var(--ha-font-size-s, 0.857rem);
   }
 
-  /* Centred in the photo's height; the equal padding above and below keeps
-     it clear of the info button without moving it off centre. */
-  .hero-reading {
-    position: absolute;
-    inset-block: 0;
-    right: 0;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-end;
-    padding: var(--hero-clear) var(--bade-pad-x);
-  }
-
-  /* A halo rather than a column, so the darkening gathers around the
-     temperature and fades into the vignette instead of standing as a panel.
-     It is a blurred copy of the scrim, extended past the text by twice the
-     blur: a Gaussian is back to 98% of full strength two deviations in from
-     its edge, so the figures themselves sit on at least 0.61 and the 4.9:1
-     above holds. A box-shadow was tried first and left a visible step, since
-     its blur is centred on the box edge rather than outside it. */
-  .hero-reading-box {
-    --halo-blur: 0.75rem;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-  }
-
-  .hero-reading-box::before {
-    content: "";
-    position: absolute;
-    inset: calc(-2 * var(--halo-blur) - 0.25rem);
-    z-index: -1;
-    border-radius: 2rem;
-    background: var(--bade-scrim);
-    filter: blur(var(--halo-blur));
-  }
-
+  /* Inline text rather than a flex row: the row's baseline then comes from
+     the figures. As flex items, the raised unit supplied the baseline and
+     the name lined up with the degree sign instead of the digits. */
   .hero-temperature {
-    display: flex;
-    align-items: flex-start;
-    gap: 2px;
+    grid-area: temperature;
+    justify-self: end;
     margin: 0;
     line-height: 1;
     white-space: nowrap;
   }
 
   /* The one loud element. Light weight and tabular figures, so 19,8 and 21,5
-     take the same width and the column does not shift between samples. */
+     take the same width and the row does not shift between samples. */
   .hero-value {
     font-size: var(--ha-font-size-5xl, 2.857rem);
     font-weight: var(--ha-font-weight-light, 300);
@@ -297,12 +257,15 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
   }
 
   .hero-unit {
-    margin-top: 0.25em;
+    margin-left: 3px;
     font-size: var(--ha-font-size-l, 1.143rem);
+    vertical-align: top;
   }
 
   .hero-sampled {
-    margin: 6px 0 0;
+    grid-area: sampled;
+    justify-self: end;
+    margin: 2px 0 0;
     font-size: var(--ha-font-size-s, 0.857rem);
     white-space: nowrap;
   }
@@ -326,9 +289,9 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
   }
 
   /* 32px: over the 24px WCAG 2.5.8 minimum, and about a fingertip. The
-     disc is its own backdrop, since the corner may be bright sky: at 55% of
-     the shade, over pure white, the white icon measures 4.1:1, above the
-     3:1 WCAG 1.4.11 asks of a control. */
+     disc is its own backdrop, since the corner may be bright sky: at 55%
+     black, over pure white, the white icon measures 4.7:1, above the 3:1
+     WCAG 1.4.11 asks of a control. */
   .photo-info-button {
     display: grid;
     place-items: center;
@@ -337,14 +300,14 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: rgb(var(--bade-shade) / 0.55);
+    background: rgb(0 0 0 / 0.55);
     color: #fff;
     cursor: pointer;
     --mdc-icon-size: 22px;
   }
 
   .photo-info-button:hover {
-    background: rgb(var(--bade-shade) / 0.8);
+    background: rgb(0 0 0 / 0.8);
   }
 
   /* The body's teal ring would disappear against the dark corner. */
@@ -569,11 +532,11 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
   /* A sidebar column: a smaller figure, and the date moves off the photo to
      the body, where there is room for it. */
   @container (max-width: 360px) {
-    .hero {
-      --hero-reading-w: 4.5rem;
-    }
     .hero-value {
       font-size: var(--ha-font-size-3xl, 2rem);
+    }
+    .hero-title {
+      font-size: var(--ha-font-size-l, 1.143rem);
     }
     .hero-sampled {
       display: none;
@@ -835,17 +798,12 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
         <div class="hero-caption">
           <h2 class="hero-title">${n}</h2>
           ${l?j`<p class="hero-place">${l}</p>`:P}
-        </div>
-        <div class="hero-reading">
-          <div class="hero-reading-box">
           <p class=${u===null?`hero-temperature is-missing`:`hero-temperature`}>
-            <span class="hero-value">${u??`—`}</span>
-            ${u!==null&&typeof d==`string`?j`<span class="hero-unit">${d}</span>`:P}
+            <span class="hero-value">${u??`—`}</span>${u!==null&&typeof d==`string`?j`<span class="hero-unit">${d}</span>`:P}
           </p>
           ${f?j`<p class="hero-sampled">
                 ${W(`card.sampled_on`,a,{date:gt(/* @__PURE__ */ new Date(`${f.date}T00:00:00Z`),a)})}
               </p>`:P}
-          </div>
         </div>
         ${s?this._renderPhotoCredit(s,a):P}
       </div>

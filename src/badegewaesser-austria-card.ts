@@ -288,8 +288,8 @@ export class BadegewaesserAustriaCard extends LitElement {
    * Bundesland and the water temperature laid over it.
    *
    * The picture comes from the site's `image` entity through Home Assistant's
-   * image proxy, so the browser talks to nobody but Home Assistant. Each text
-   * block carries its own scrim, sized to the block rather than to the photo,
+   * image proxy, so the browser talks to nobody but Home Assistant. Name and
+   * temperature share one row along the bottom, on a band sized to that row,
    * so the contrast holds however bright the picture is underneath: see the
    * hero section of card-styles.ts for the measurement.
    */
@@ -323,12 +323,9 @@ export class BadegewaesserAustriaCard extends LitElement {
         <div class="hero-caption">
           <h2 class="hero-title">${title}</h2>
           ${place ? html`<p class="hero-place">${place}</p>` : nothing}
-        </div>
-        <div class="hero-reading">
-          <div class="hero-reading-box">
           <p class=${formatted === null ? "hero-temperature is-missing" : "hero-temperature"}>
-            <span class="hero-value">${formatted ?? "—"}</span>
-            ${formatted !== null && typeof unit === "string"
+            <span class="hero-value">${formatted ?? "—"}</span>${formatted !== null &&
+            typeof unit === "string"
               ? html`<span class="hero-unit">${unit}</span>`
               : nothing}
           </p>
@@ -339,7 +336,6 @@ export class BadegewaesserAustriaCard extends LitElement {
                 })}
               </p>`
             : nothing}
-          </div>
         </div>
         ${credit ? this._renderPhotoCredit(credit, language) : nothing}
       </div>
