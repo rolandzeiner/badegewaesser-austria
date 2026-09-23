@@ -16,6 +16,9 @@
     "no_rating": "not yet rated",
     "below_limit": "below the detection limit",
     "attribution": "Data source: AGES · CC BY 3.0 AT",
+    "trend_up": "{delta} warmer than the sample before",
+    "trend_down": "{delta} colder than the sample before",
+    "trend_steady": "About as warm as the sample before",
     "photo_alt": "Bathing spot at {name}",
     "photo_credit": "Photo credit",
     "photo_source": "Source: AGES bathing-water monitoring"
@@ -46,6 +49,8 @@
     "show_season_track": "Show the season track",
     "show_season_track_helper": "This season's samples on a time axis.",
     "show_readings": "Show the readings",
-    "show_readings_helper": "Water quality, E. coli, enterococci and Secchi depth."
+    "show_readings_helper": "Water quality, E. coli, enterococci and Secchi depth.",
+    "show_attribution": "Show the data source",
+    "show_attribution_helper": "The AGES credit under the readings. The entities carry it either way."
   }
 }

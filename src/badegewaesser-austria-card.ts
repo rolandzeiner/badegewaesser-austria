@@ -62,6 +62,37 @@ const QUALITY_ICON: Readonly<Record<string, string>> = {
   poor: "mdi:close-circle",
 };
 
+/**
+ * How the latest temperature moved since the sample before it. Within half a
+ * degree counts as steady: readings come to a tenth, and calling 21,4 to 21,5
+ * "rising" would be a trend the water does not have.
+ */
+const TREND_STEADY_C = 0.5;
+
+const TREND_ICON = {
+  up: "mdi:trending-up",
+  down: "mdi:trending-down",
+  steady: "mdi:trending-neutral",
+} as const;
+
+type Trend = { direction: keyof typeof TREND_ICON; delta: number };
+
+/** The latest measured temperature against the measured one before it. */
+export function temperatureTrend(samples: readonly SeasonSample[]): Trend | null {
+  const latest = samples.at(-1)?.water_temperature;
+  if (latest === null || latest === undefined) return null;
+  const previous = samples
+    .slice(0, -1)
+    .map((sample) => sample.water_temperature)
+    .filter((value): value is number => value !== null)
+    .at(-1);
+  if (previous === undefined) return null;
+  const delta = latest - previous;
+  const direction =
+    delta >= TREND_STEADY_C ? "up" : delta <= -TREND_STEADY_C ? "down" : "steady";
+  return { direction, delta };
+}
+
 type SiteEntities = Partial<Record<string, HassEntity>>;
 
 @customElement(CARD_TAG)
@@ -75,6 +106,9 @@ export class BadegewaesserAustriaCard extends LitElement {
   @state() private _hoveredPoint: number | null = null;
   @state() private _photoTip = false;
   @state() private _photoFailed?: string;
+  // The card's rendered width, for spacing the season track's labels.
+  @state() private _width: number | undefined;
+  private _resizeObserver: ResizeObserver | undefined;
   // Why the credit tooltip is open. Hover and focus open it for as long as
   // they last; a click or tap pins it, because touch has no hover.
   private _photoTipHovered = false;
@@ -110,14 +144,15 @@ export class BadegewaesserAustriaCard extends LitElement {
   /**
    * Height in masonry units of 50px, per section actually shown.
    *
-   * Measured in a browser on 2026-09-23 with every section on: 529px at
-   * 500px wide, 514px at 300px, so about 11. This returned 4 until then,
-   * which told masonry the card was less than half its height. The photo's
-   * share grows with width (it is 20:7), so 4 is its size at a typical column.
+   * Measured in a browser on 2026-09-23 with every section on: 461px at
+   * 500px wide, 446px at 300px, so about 9 -- the photo 174px, the season
+   * track 88px, the readings 143px, padding and footer the rest. This
+   * returned 4 until then, less than half the card. The photo grows with
+   * width (it is 20:7), so its 4 is generous at a typical column.
    */
   public getCardSize(): number {
     const config = this._config;
-    let size = 2; // padding and the attribution footer
+    let size = 1; // padding and the attribution footer
     const photo = this.hass ? this._siteEntities()?.[KEY.photo] : undefined;
     if (config?.show_photo !== false && (!this.hass || hasValue(photo))) size += 4;
     if (config?.show_season_track !== false) size += 2;
@@ -130,6 +165,23 @@ export class BadegewaesserAustriaCard extends LitElement {
     // six columns the container query collapses the readings to one per line
     // and the card is still usable, so that is the honest minimum.
     return { columns: 12, min_columns: 6, rows: "auto" };
+  }
+
+  public override connectedCallback(): void {
+    super.connectedCallback();
+    if (typeof ResizeObserver === "undefined") return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      // Rounded, so sub-pixel jitter does not re-render the card.
+      const width = Math.round(entries[0]?.contentRect.width ?? 0);
+      if (width > 0 && width !== this._width) this._width = width;
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  public override disconnectedCallback(): void {
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = undefined;
+    super.disconnectedCallback();
   }
 
   protected override updated(): void {
@@ -261,7 +313,9 @@ export class BadegewaesserAustriaCard extends LitElement {
           ${config.show_readings === false
             ? nothing
             : this._renderReadings(entities, language)}
-          <p class="attribution">${localize("card.attribution", language)}</p>
+          ${config.show_attribution === false
+            ? nothing
+            : html`<p class="attribution">${localize("card.attribution", language)}</p>`}
         </div>
       </ha-card>
     `;
@@ -336,6 +390,7 @@ export class BadegewaesserAustriaCard extends LitElement {
     const formatted = formatNumber(numericState(temperature), language);
     const unit = temperature?.attributes["unit_of_measurement"];
     const latest = samples.at(-1);
+    const trend = formatted === null ? null : temperatureTrend(samples);
 
     return html`
       <div class="hero">
@@ -352,7 +407,18 @@ export class BadegewaesserAustriaCard extends LitElement {
           <h2 class="hero-title">${title}</h2>
           ${place ? html`<p class="hero-place">${place}</p>` : nothing}
           <p class=${formatted === null ? "hero-temperature is-missing" : "hero-temperature"}>
-            <span class="hero-value">${formatted ?? "—"}</span>${formatted !== null &&
+            ${trend
+              ? html`<ha-icon
+                    class="hero-trend"
+                    icon=${TREND_ICON[trend.direction]}
+                    aria-hidden="true"
+                  ></ha-icon
+                  ><span class="visually-hidden"
+                    >${localize(`card.trend_${trend.direction}`, language, {
+                      delta: `${formatNumber(Math.abs(trend.delta), language) ?? ""} °C`,
+                    })}</span
+                  >`
+              : nothing}<span class="hero-value">${formatted ?? "—"}</span>${formatted !== null &&
             typeof unit === "string"
               ? html`<span class="hero-unit">${unit}</span>`
               : nothing}
@@ -489,6 +555,8 @@ export class BadegewaesserAustriaCard extends LitElement {
         this._hoveredPoint = index;
       },
       formatLabel: (temp: number) => `${formatNumber(temp, language) ?? ""}°`,
+      // The body's side padding and the track's own inset, off the card width.
+      axisWidth: this._width ? this._width - 48 : undefined,
       formatTemperature: (temp: number | null) =>
         formatNumber(temp, language) === null
           ? localize("card.not_measured", language)

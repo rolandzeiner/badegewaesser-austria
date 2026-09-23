@@ -16,6 +16,9 @@
     "no_rating": "noch nicht bewertet",
     "below_limit": "unter der Nachweisgrenze",
     "attribution": "Datenquelle: AGES · CC BY 3.0 AT",
+    "trend_up": "{delta} wärmer als bei der Probe davor",
+    "trend_down": "{delta} kälter als bei der Probe davor",
+    "trend_steady": "Etwa so warm wie bei der Probe davor",
     "photo_alt": "Badestelle {name}",
     "photo_credit": "Fotonachweis",
     "photo_source": "Quelle: AGES Badegewässer-Monitoring"
@@ -46,6 +49,8 @@
     "show_season_track": "Saisonverlauf zeigen",
     "show_season_track_helper": "Die Proben der Saison als Zeitachse.",
     "show_readings": "Messwerte zeigen",
-    "show_readings_helper": "Wasserqualität, E. coli, Enterokokken und Sichttiefe."
+    "show_readings_helper": "Wasserqualität, E. coli, Enterokokken und Sichttiefe.",
+    "show_attribution": "Datenquelle zeigen",
+    "show_attribution_helper": "Die Quellenangabe der AGES unter den Messwerten. Die Entitäten tragen sie so oder so."
   }
 }

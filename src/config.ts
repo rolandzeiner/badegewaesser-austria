@@ -15,6 +15,7 @@ export const DEFAULTS = {
   show_photo: true,
   show_season_track: true,
   show_readings: true,
+  show_attribution: true,
 } as const;
 
 export function normaliseConfig(

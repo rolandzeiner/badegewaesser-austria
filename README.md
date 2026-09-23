@@ -139,6 +139,7 @@ The editor's picker fills this in for you — pick the bathing water by name.
 | `show_photo` | boolean | `true` | The photo of the bathing spot as the card's header, with the name and temperature over it. Only where there is one. |
 | `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
 | `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth. |
+| `show_attribution` | boolean | `true` | The "Datenquelle: AGES · CC BY 3.0 AT" line at the bottom. The entities carry the attribution either way. |
 
 ## Use Cases
 

@@ -49,7 +49,10 @@ export const cardStyles = css`
     --bade-track: light-dark(#e4e9ea, #262b2d);
 
     --bade-pad-x: var(--ha-space-4, 16px);
-    --bade-pad-y: var(--ha-space-4, 16px);
+    /* 12px, not 16: every section below adds its own gap, and at 16 the
+       card spent more height on air than on readings. */
+    --bade-pad-y: var(--ha-space-3, 12px);
+    --bade-section-gap: var(--ha-space-3, 12px);
     --bade-gap: var(--ha-space-2, 8px);
     --bade-radius-sm: var(--ha-border-radius-sm, 4px);
     --bade-radius-md: var(--ha-border-radius-md, 8px);
@@ -100,10 +103,11 @@ export const cardStyles = css`
 
   .hero {
     --bade-scrim: rgb(0 0 0 / 0.55);
-    /* How far above the text the bottom band spends fading out. Short on
-       purpose: the fade is decoration, and at 2.5rem the band covered half
-       the photo. */
-    --hero-fade: 1.25rem;
+    /* How far above the text the bottom band spends fading out. The dark
+       part stays exactly behind the text; this is only the dissolve above
+       it, on an eased curve so it has no visible top edge. A short straight
+       ramp (1.25rem) read as a hard band. */
+    --hero-fade: 3rem;
 
     position: relative;
     isolation: isolate;
@@ -123,8 +127,8 @@ export const cardStyles = css`
     background: var(--bade-track);
   }
 
-  /* The shading: black from the right edge fading out towards the left, and
-     a soft vignette at the corners. Both are atmosphere; the contrast the
+  /* The shading: black from the right edge dissolving towards the left on
+     the same eased curve as the band, and a soft vignette at the corners. Both are atmosphere; the contrast the
      text needs comes from the band below, not from these. */
   .hero::before {
     content: "";
@@ -134,10 +138,19 @@ export const cardStyles = css`
     background:
       linear-gradient(
         to left,
-        rgb(0 0 0 / 0.7),
-        rgb(0 0 0 / 0.42) 25%,
-        rgb(0 0 0 / 0.14) 50%,
-        transparent 70%
+        rgb(0 0 0 / 0.7) 0%,
+        rgb(0 0 0 / 0.517) 14.25%,
+        rgb(0 0 0 / 0.379) 25.5%,
+        rgb(0 0 0 / 0.267) 35.25%,
+        rgb(0 0 0 / 0.195) 42.375%,
+        rgb(0 0 0 / 0.136) 48.75%,
+        rgb(0 0 0 / 0.088) 54.75%,
+        rgb(0 0 0 / 0.052) 60.15%,
+        rgb(0 0 0 / 0.029) 64.575%,
+        rgb(0 0 0 / 0.015) 68.25%,
+        rgb(0 0 0 / 0.006) 71.4%,
+        rgb(0 0 0 / 0.001) 73.65%,
+        transparent 75%
       ),
       radial-gradient(
         ellipse 90% 115% at 38% 35%,
@@ -169,13 +182,23 @@ export const cardStyles = css`
     column-gap: var(--bade-pad-x);
     align-items: last baseline;
     padding: var(--hero-fade) var(--bade-pad-x) var(--ha-space-3, 12px);
+    /* Eased "scrim" stops (opacity falls fast, then trails off), which is
+       what makes a gradient dissolve instead of ending on a line. */
     background: linear-gradient(
       to top,
       var(--bade-scrim) calc(100% - var(--hero-fade)),
-      rgb(0 0 0 / 0.41) calc(100% - var(--hero-fade) * 0.75),
-      rgb(0 0 0 / 0.25) calc(100% - var(--hero-fade) * 0.5),
-      rgb(0 0 0 / 0.1) calc(100% - var(--hero-fade) * 0.25),
-      transparent
+      rgb(0 0 0 / 0.406) calc(100% - var(--hero-fade) * 0.81),
+      rgb(0 0 0 / 0.298) calc(100% - var(--hero-fade) * 0.66),
+      rgb(0 0 0 / 0.21) calc(100% - var(--hero-fade) * 0.53),
+      rgb(0 0 0 / 0.153) calc(100% - var(--hero-fade) * 0.435),
+      rgb(0 0 0 / 0.107) calc(100% - var(--hero-fade) * 0.35),
+      rgb(0 0 0 / 0.069) calc(100% - var(--hero-fade) * 0.27),
+      rgb(0 0 0 / 0.041) calc(100% - var(--hero-fade) * 0.198),
+      rgb(0 0 0 / 0.023) calc(100% - var(--hero-fade) * 0.139),
+      rgb(0 0 0 / 0.012) calc(100% - var(--hero-fade) * 0.09),
+      rgb(0 0 0 / 0.004) calc(100% - var(--hero-fade) * 0.048),
+      rgb(0 0 0 / 0.001) calc(100% - var(--hero-fade) * 0.018),
+      transparent 100%
     );
   }
 
@@ -215,6 +238,13 @@ export const cardStyles = css`
     font-size: var(--ha-font-size-5xl, 2.857rem);
     font-weight: var(--ha-font-weight-light, 300);
     letter-spacing: -0.02em;
+  }
+
+  /* Sits on the text baseline, so it stands as tall as the digits. No
+     colour: warmer water is not good or bad news in itself. */
+  .hero-trend {
+    --mdc-icon-size: 1.75rem;
+    margin-right: 4px;
   }
 
   .hero-unit {
@@ -350,7 +380,7 @@ export const cardStyles = css`
   /* -- season track ----------------------------------------------------- */
 
   .season {
-    margin-top: var(--ha-space-5, 20px);
+    margin-top: var(--bade-section-gap);
   }
 
   /* Right-aligned, and deliberately so after a detour.
@@ -388,7 +418,7 @@ export const cardStyles = css`
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-top: var(--ha-space-2, 8px);
+    margin-top: var(--ha-space-1, 4px);
     font-size: var(--ha-font-size-s, 0.857rem);
     color: var(--secondary-text-color);
   }
@@ -401,8 +431,8 @@ export const cardStyles = css`
   .tiles {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--ha-space-5, 20px) var(--ha-space-4, 16px);
-    margin: var(--ha-space-5, 20px) 0 0;
+    gap: var(--bade-section-gap) var(--ha-space-4, 16px);
+    margin: var(--bade-section-gap) 0 0;
   }
 
   .tile {
@@ -470,11 +500,11 @@ export const cardStyles = css`
   /* -- attribution ------------------------------------------------------ */
 
   .attribution {
-    margin-top: var(--ha-space-5, 20px);
-    padding-top: var(--ha-space-3, 12px);
+    margin: var(--bade-section-gap) 0 0;
+    padding-top: var(--ha-space-2, 8px);
     border-top: 1px solid var(--divider-color, rgba(127, 127, 127, 0.2));
     font-size: var(--ha-font-size-xs, 0.786rem);
-    line-height: var(--ha-line-height-normal, 1.6);
+    line-height: var(--ha-line-height-condensed, 1.2);
     color: var(--secondary-text-color);
   }
 
@@ -533,6 +563,9 @@ export const cardStyles = css`
     }
     .hero-value {
       font-size: var(--ha-font-size-3xl, 2rem);
+    }
+    .hero-trend {
+      --mdc-icon-size: 1.25rem;
     }
     .hero-title {
       font-size: var(--ha-font-size-l, 1.143rem);

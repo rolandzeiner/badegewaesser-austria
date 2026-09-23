@@ -75,6 +75,7 @@ export interface BadegewaesserCardConfig extends LovelaceCardConfig {
   show_photo?: boolean;
   show_season_track?: boolean;
   show_readings?: boolean;
+  show_attribution?: boolean;
 }
 
 /** Lovelace's editor contract: an element with `setConfig` that reads `hass`. */

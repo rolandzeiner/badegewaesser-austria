@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  labelledIndices,
+  labelRows,
   latestFraction,
   seasonFraction,
   seasonTrackDescription,
@@ -108,55 +108,43 @@ describe("seasonTrackDescription", () => {
   });
 });
 
-describe("labelledIndices", () => {
-  // Lunzer See, 2026: five samples, about three weeks apart.
-  const lunz = [
-    { fraction: 0.23, value: 16.8 },
-    { fraction: 0.35, value: 19.5 },
-    { fraction: 0.49, value: 21.0 },
-    { fraction: 0.68, value: 23.2 },
-    { fraction: 0.87, value: 21.5 },
-  ];
+describe("labelRows", () => {
+  // Lunzer See, 2026: five samples, 13 to 21 days apart.
+  const lunz = [0.23, 0.35, 0.49, 0.68, 0.87].map((fraction, i) => ({
+    fraction,
+    value: 17 + i,
+  }));
+  const gapAt = (axisPx: number) => 36 / axisPx;
 
-  it("labels where the season started, how warm it got and where it ended", () => {
-    expect([...labelledIndices(lunz)].sort()).toEqual([0, 3, 4]);
+  it("keeps every label on one row where the card is wide enough", () => {
+    expect(labelRows(lunz, gapAt(460))).toEqual([0, 0, 0, 0, 0]);
   });
 
-  it("never labels every point", () => {
-    // Wien sites are sampled up to nine times.
-    const wien = Array.from({ length: 9 }, (_, i) => ({ fraction: i / 8, value: 20 + i }));
-    expect(labelledIndices(wien).size).toBeLessThanOrEqual(3);
+  it("steps a crowded label up a row on a narrow card instead of overlapping", () => {
+    // 9 and 22 June are 29px apart on a 240px axis: too close for two labels.
+    expect(labelRows(lunz, gapAt(240))).toEqual([0, 1, 0, 0, 0]);
   });
 
-  it("lets the latest win when the warmest sits right beside it", () => {
-    const close = [
-      { fraction: 0.2, value: 17 },
-      { fraction: 0.8, value: 25 },
-      { fraction: 0.86, value: 24 },
-    ];
-    expect([...labelledIndices(close)].sort()).toEqual([0, 2]);
+  it("stacks the one real cluster instead of overlapping it", () => {
+    // Neue Donau, stromab Reichsbrücke, 2026: fortnightly, then 24, 26 and
+    // 28 August -- the tightest spacing in all 260 sites.
+    const days = [17, 31, 45, 59, 73, 87, 101, 103, 105];
+    const donau = days.map((day, i) => ({ fraction: day / 108, value: 20 + i }));
+    expect(labelRows(donau, gapAt(460))).toEqual([0, 0, 0, 0, 0, 0, 0, 1, 2]);
+    expect(labelRows(donau, gapAt(240))).toEqual([0, 1, 0, 1, 0, 1, 0, 2, 1]);
   });
 
-  it("labels the warmest once when it is also the latest", () => {
-    const rising = [
-      { fraction: 0.2, value: 17 },
-      { fraction: 0.5, value: 20 },
-      { fraction: 0.85, value: 24 },
-    ];
-    expect([...labelledIndices(rising)].sort()).toEqual([0, 2]);
+  it("leaves a label off rather than print it over another", () => {
+    const pileUp = [0.5, 0.505, 0.51, 0.515].map((fraction) => ({ fraction, value: 20 }));
+    expect(labelRows(pileUp, gapAt(240))).toEqual([0, 1, 2, null]);
   });
 
-  it("skips samples without a temperature", () => {
+  it("labels every sample that has a temperature, and none that has not", () => {
     const gaps = [
-      { fraction: 0.2, value: null },
-      { fraction: 0.5, value: 20 },
-      { fraction: 0.85, value: null },
+      { fraction: 0.2, value: 18 },
+      { fraction: 0.5, value: null },
+      { fraction: 0.85, value: 22 },
     ];
-    expect([...labelledIndices(gaps)]).toEqual([1]);
-  });
-
-  it("labels nothing when nothing was measured", () => {
-    expect(labelledIndices([]).size).toBe(0);
-    expect(labelledIndices([{ fraction: 0.5, value: null }]).size).toBe(0);
+    expect(labelRows(gaps, gapAt(240))).toEqual([0, null, 0]);
   });
 });

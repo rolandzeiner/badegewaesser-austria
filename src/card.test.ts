@@ -15,7 +15,7 @@ import "./badegewaesser-austria-card";
 import "./editor";
 import { cardStyles } from "./card-styles";
 import { CARD_TAG } from "./const";
-import type { BadegewaesserAustriaCard } from "./badegewaesser-austria-card";
+import { temperatureTrend, type BadegewaesserAustriaCard } from "./badegewaesser-austria-card";
 import type { BadegewaesserAustriaCardEditor } from "./editor";
 import type { HomeAssistant } from "./types";
 
@@ -318,6 +318,30 @@ describe("the season-track tooltip", () => {
   });
 });
 
+describe("temperatureTrend", () => {
+  const s = (...temps: Array<number | null>) =>
+    temps.map((water_temperature, i) => ({ date: `2026-07-0${i + 1}`, water_temperature }));
+
+  it.each([
+    [[20, 21.5], "up"],
+    [[22, 20.1], "down"],
+    [[21.4, 21.5], "steady"],
+    [[21.5, 21.1], "steady"],
+  ] as const)("reads %j as %s", (temps, direction) => {
+    expect(temperatureTrend(s(...temps))?.direction).toBe(direction);
+  });
+
+  it("compares against the last sample that was actually measured", () => {
+    expect(temperatureTrend(s(18, null, 21))).toEqual({ direction: "up", delta: 3 });
+  });
+
+  it("has nothing to say without two measured samples", () => {
+    expect(temperatureTrend(s(21))).toBeNull();
+    expect(temperatureTrend(s(20, null))).toBeNull();
+    expect(temperatureTrend([])).toBeNull();
+  });
+});
+
 describe("the grid cell", () => {
   // A sections view gives the card a fixed-height cell whenever rows is
   // numeric, and the user causes that by dragging the height handle: a stored
@@ -343,15 +367,15 @@ describe("the grid cell", () => {
   });
 
   it("tells masonry its real height, section by section", async () => {
-    // 50px units. Measured: ~11 with everything on; it returned 4 before.
+    // 50px units. Measured: ~9 with everything on; it returned 4 before.
     const hass = makeHass();
     const plain = await mount({ device: DEVICE }, hass);
-    expect(plain.getCardSize()).toBe(7); // no photo entity in this hass
+    expect(plain.getCardSize()).toBe(6); // no photo entity in this hass
     const bare = await mount(
       { device: DEVICE, show_season_track: false, show_readings: false },
       hass,
     );
-    expect(bare.getCardSize()).toBe(2);
+    expect(bare.getCardSize()).toBe(1);
   });
 
   it("scrolls the body rather than cutting it off in a short cell", () => {
@@ -425,13 +449,12 @@ describe("the readings", () => {
 });
 
 describe("the season track's labels", () => {
-  it("prints the first, the warmest and the latest value above their dots", async () => {
-    // SAMPLES: 21,4 (Jun) · 24,9 (Jul) · 26,2 (Aug, also the warmest).
+  it("prints every value above its dot", async () => {
     const card = await mount({ device: DEVICE });
     const labels = [...(card.shadowRoot?.querySelectorAll(".value-label") ?? [])].map(
       (label) => label.textContent,
     );
-    expect(labels).toEqual(["21,4°", "26,2°"]);
+    expect(labels).toEqual(["21,4°", "24,9°", "26,2°"]);
     expect(card.shadowRoot?.querySelector(".value-label.is-latest")?.textContent).toBe("26,2°");
   });
 
@@ -501,6 +524,18 @@ describe("the photo header", () => {
     expect(q(card, ".body .temperature")).toBeNull();
     // Only the date stays, for cards too narrow to show it on the photo.
     expect(q(card, ".hero-fallback .sampled")?.textContent).toContain("Probe vom");
+  });
+
+  it("shows which way the temperature moved since the sample before", async () => {
+    // SAMPLES: 24,9 then 26,2 -- up 1,3 degrees.
+    const card = await mount({ device: DEVICE }, withPhoto());
+    const reading = q(card, ".hero-temperature")!;
+    expect(reading.querySelector("ha-icon.hero-trend")?.getAttribute("icon")).toBe(
+      "mdi:trending-up",
+    );
+    expect(reading.querySelector(".visually-hidden")?.textContent).toBe(
+      "1,3 °C wärmer als bei der Probe davor",
+    );
   });
 
   it("keeps the credit off the photo, behind an info button", async () => {
@@ -623,6 +658,17 @@ describe("the photo header", () => {
 });
 
 describe("attribution", () => {
+  it("shows the data source by default", async () => {
+    const card = await mount({ device: DEVICE });
+    expect(card.shadowRoot?.querySelector(".attribution")).not.toBeNull();
+  });
+
+  it("can be hidden from the card editor", async () => {
+    const card = await mount({ device: DEVICE, show_attribution: false });
+    expect(card.shadowRoot?.querySelector(".attribution")).toBeNull();
+    expect(text(card)).not.toContain("CC BY 3.0 AT");
+  });
+
   it("names the source and the licence, without the full legal name", async () => {
     // CC BY 3.0 AT asks for attribution in the manner specified; AGES plus the
     // licence does that. The full legal name lives in the README, where it
@@ -645,6 +691,7 @@ describe("editor defaults", () => {
 
     const raw = { type: `custom:${CARD_TAG}`, device: DEVICE };
     expect(normaliseConfig(raw).show_photo).toBe(DEFAULTS.show_photo);
+    expect(normaliseConfig(raw).show_attribution).toBe(true);
     expect(normaliseConfig(raw).show_season_track).toBe(DEFAULTS.show_season_track);
     expect(normaliseConfig(raw).show_readings).toBe(DEFAULTS.show_readings);
   });
