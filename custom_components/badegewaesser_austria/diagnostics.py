@@ -92,7 +92,8 @@ async def async_get_config_entry_diagnostics(
             ),
             "upstream_version": coordinator.client.upstream_version,
             "content_digest": coordinator.client.digest,
-            "last_wire_bytes": coordinator.client.last_wire_bytes,
+            # Decoded size, after aiohttp's gzip — see the client attribute.
+            "last_payload_bytes": coordinator.client.last_payload_bytes,
             # Stated rather than implied: a reader comparing this dump against
             # a sibling integration will notice the absence otherwise.
             "conditional_get": (

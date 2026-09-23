@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from datetime import timedelta
+from unittest.mock import MagicMock, patch
 
+from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.badegewaesser_austria.const import CONF_SITE_ID, DOMAIN
+from custom_components.badegewaesser_austria.const import (
+    CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
+    CONF_SCAN_INTERVAL_SEASON_HOURS,
+    CONF_SITE_ID,
+    DOMAIN,
+    POLL_JITTER_SECONDS,
+)
 from custom_components.badegewaesser_austria.coordinator import async_get_coordinator
 from tests.conftest import NORMAL_SITE_ID, setup_entry
 
@@ -78,6 +86,61 @@ async def test_second_entry_does_not_refetch(
     )
 
     assert session.get.call_count == 1
+
+
+async def test_an_options_change_applies_the_new_interval_at_once(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """The reload an options change triggers must carry the new cadence.
+
+    Before 2026-09-23 the interval was only recomputed after a poll, so the
+    new value waited out one more cycle at the old one.
+    """
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
+        return_value=True,
+    ):
+        await setup_entry(hass, config_entry)
+        hass.config_entries.async_update_entry(
+            config_entry,
+            options={
+                CONF_SCAN_INTERVAL_SEASON_HOURS: 3,
+                CONF_SCAN_INTERVAL_OFFSEASON_HOURS: 24,
+            },
+        )
+        await hass.async_block_till_done()
+
+    interval = config_entry.runtime_data.coordinator.update_interval
+    assert interval is not None
+    assert 3 * 3600 <= interval.total_seconds() <= 3 * 3600 + POLL_JITTER_SECONDS
+
+
+async def test_re_adding_after_the_last_removal_refetches_a_stale_snapshot(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    session: MagicMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """The shared coordinator stays in memory after the last entry goes.
+
+    Its snapshot must not be served to an entry added weeks later.
+    """
+    await setup_entry(hass, config_entry)
+    await hass.config_entries.async_remove(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    freezer.tick(timedelta(days=30))
+    await setup_entry(
+        hass,
+        MockConfigEntry(
+            domain=DOMAIN,
+            title="Neue Donau",
+            data={CONF_SITE_ID: "AT1300002200020010"},
+            unique_id="AT1300002200020010",
+        ),
+    )
+
+    assert session.get.call_count == 2
 
 
 async def test_missing_site_raises_a_repair_and_still_loads(

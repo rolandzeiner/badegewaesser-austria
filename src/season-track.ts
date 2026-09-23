@@ -1,7 +1,7 @@
 /**
  * The season track: the card's one bold element.
  *
- * A calendar-anchored axis from 15 May to 30 September with one dot per
+ * A calendar-anchored axis from 15 May to 31 August with one dot per
  * sample at its true date. That choice is the point — the samples arrive
  * about every 20 days, and an evenly-spaced sequence would render a 42-day
  * gap identically to a 14-day one. Anchoring to the calendar also makes the
@@ -157,9 +157,13 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
 
   return html`
     <div class="track-wrap">
+      <!-- role="group", not "img". ARIA makes every descendant of an img
+           presentational, so the focusable, labelled points below would take
+           keyboard focus and announce nothing (axe: nested-interactive,
+           WCAG 4.1.2). A group keeps the axis label AND exposes the points. -->
       <svg
         class="track"
-        role="img"
+        role="group"
         aria-label=${localize("card.season_axis_label", language, { year })}
       >
         <!-- Solid hairlines only. A dashed rule reads as a threshold or a

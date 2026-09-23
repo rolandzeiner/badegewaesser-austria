@@ -11,6 +11,7 @@ from datetime import date, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -255,6 +256,136 @@ async def test_jitter_is_added_to_every_cycle(hass: HomeAssistant) -> None:
     assert coordinator.update_interval == timedelta(
         hours=DEFAULT_SCAN_INTERVAL_SEASON_HOURS, seconds=300
     )
+
+
+# --- applying a cadence change ---------------------------------------------
+
+
+def _entry_asking_for(hass: HomeAssistant, season_hours: int) -> MockConfigEntry:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_SITE_ID: "x"},
+        options={CONF_SCAN_INTERVAL_SEASON_HOURS: season_hours},
+        unique_id="x",
+    )
+    entry.add_to_hass(hass)
+    return entry
+
+
+async def test_a_changed_option_restarts_a_running_timer(hass: HomeAssistant) -> None:
+    """An options change used to wait out one more poll at the old interval.
+
+    Out of season that is up to a day before the new cadence applied. With
+    another entry's entities subscribed, the timer is already running on the
+    old interval, so applying the change has to restart it.
+    """
+    entry = _entry_asking_for(hass, 12)
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
+        return_value=True,
+    ):
+        coordinator = build_coordinator(hass)
+        unsubscribe = coordinator.async_add_listener(lambda: None)
+        hass.config_entries.async_update_entry(
+            entry, options={CONF_SCAN_INTERVAL_SEASON_HOURS: 3}
+        )
+        with patch.object(coordinator, "_schedule_refresh") as reschedule:
+            coordinator.async_update_cadence()
+    unsubscribe()
+
+    assert hours(coordinator) == 3
+    assert reschedule.call_count == 1
+
+
+async def test_jitter_alone_does_not_restart_the_timer(hass: HomeAssistant) -> None:
+    """Every entry setup applies the cadence; most change nothing.
+
+    Two computations of the same cadence differ by their jitter only.
+    Restarting the timer on that would push the next poll out every time an
+    entry is added.
+    """
+    _entry_asking_for(hass, 12)
+    jitters = iter((0.0, 300.0))
+    client = BadegewaesserClient(make_session(fixture_bytes()))
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
+        return_value=True,
+    ):
+        coordinator = BadegewaesserCoordinator(
+            hass, client, jitter=lambda: next(jitters)
+        )
+        unsubscribe = coordinator.async_add_listener(lambda: None)
+        with patch.object(coordinator, "_schedule_refresh") as reschedule:
+            coordinator.async_update_cadence()
+    unsubscribe()
+
+    assert reschedule.call_count == 0
+
+
+async def test_with_nothing_subscribed_the_cadence_waits_for_the_first_entity(
+    hass: HomeAssistant,
+) -> None:
+    """No listeners, no timer: the first subscriber schedules with the new value."""
+    entry = _entry_asking_for(hass, 12)
+    with patch(
+        "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
+        return_value=True,
+    ):
+        coordinator = build_coordinator(hass)
+        hass.config_entries.async_update_entry(
+            entry, options={CONF_SCAN_INTERVAL_SEASON_HOURS: 3}
+        )
+        with patch.object(coordinator, "_schedule_refresh") as reschedule:
+            coordinator.async_update_cadence()
+
+    assert hours(coordinator) == 3
+    assert reschedule.call_count == 0
+
+
+# --- freshness -------------------------------------------------------------
+
+
+async def test_ensure_fresh_serves_a_fresh_snapshot_from_memory(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """Within the cadence, a second caller must not cost a second request."""
+    session = make_session(fixture_bytes(), fixture_bytes())
+    coordinator = build_coordinator(hass, session)
+
+    assert await coordinator.async_ensure_fresh()
+    freezer.tick(timedelta(minutes=5))
+    assert await coordinator.async_ensure_fresh()
+
+    assert session.get.call_count == 1
+
+
+async def test_ensure_fresh_refetches_a_snapshot_older_than_the_cadence(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """The coordinator outlives its entries, and so does its snapshot.
+
+    Remove the last bathing water, add one back weeks later, and the old code
+    served whatever was in memory from when polling stopped.
+    """
+    session = make_session(fixture_bytes(), fixture_bytes())
+    coordinator = build_coordinator(hass, session)
+    assert await coordinator.async_ensure_fresh()
+    assert coordinator.update_interval is not None
+
+    freezer.tick(coordinator.update_interval + timedelta(minutes=1))
+    assert await coordinator.async_ensure_fresh()
+
+    assert session.get.call_count == 2
+
+
+async def test_ensure_fresh_reports_a_failed_fetch(hass: HomeAssistant) -> None:
+    """Callers raise their own error — a flow aborts where a setup retries."""
+    coordinator = build_coordinator(hass)
+    coordinator.client.async_fetch = AsyncMock(  # type: ignore[method-assign]
+        side_effect=BadegewaesserApiError("cannot_connect", "boom")
+    )
+
+    assert not await coordinator.async_ensure_fresh()
 
 
 # --- backoff ---------------------------------------------------------------

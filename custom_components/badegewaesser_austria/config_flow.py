@@ -90,9 +90,7 @@ class BadegewaesserConfigFlow(ConfigFlow, domain=DOMAIN):
         snapshot already in memory.
         """
         coordinator = await async_get_coordinator(self.hass)
-        if not coordinator.data:
-            await coordinator.async_refresh()
-        if not coordinator.last_update_success:
+        if not await coordinator.async_ensure_fresh():
             raise BadegewaesserApiError(
                 "cannot_connect", str(coordinator.last_exception)
             )

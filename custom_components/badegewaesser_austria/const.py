@@ -255,10 +255,18 @@ RATING_STATES: Final = {
 # second source for the field meanings this parser relies on.
 SAMPLE_ASSESSMENT_IS_UNDOCUMENTED: Final = True
 
-# Newest first. `WASSERQUALITAET_JAHR_*` is NOT a year label — it duplicates
-# the matching `QUALITAET_<year>` letter (verified byte-equal on all 260
-# sites), so it is ignored entirely.
-RATING_YEARS: Final = (2026, 2025, 2024, 2023, 2022)
+# The per-year rating columns, matched against the WHOLE key (`re.fullmatch`)
+# and discovered from the document rather than listed here. This was a fixed
+# (2026, ..., 2022) tuple until 2026-09-23, which would have stopped reading
+# new ratings the day AGES published a year it did not name: `QUALITAET_2027`
+# would have been ignored and the sensor would have kept reporting 2026's
+# class as current, with nothing anywhere to say so.
+#
+# `WASSERQUALITAET_JAHR_*` must NOT match. Those columns duplicate the matching
+# `QUALITAET_<year>` letter (verified byte-equal on all 260 sites) under
+# relative names — HEUER, VORIGES, VOR_VORIGES — so they carry no year and
+# are ignored entirely.
+RATING_KEY_PATTERN: Final = r"QUALITAET_(\d{4})"
 
 # Upstream sends 0 for an unmeasured water temperature. Two of 1362 samples do
 # this, in months when an Austrian lake cannot be at 0 °C, so it is a sentinel

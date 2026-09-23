@@ -26,7 +26,7 @@ from .const import (
     API_URL,
     BELOW_DETECTION_OPERATOR,
     RATING_CLASSES,
-    RATING_YEARS,
+    RATING_KEY_PATTERN,
     UNMEASURED_TEMPERATURE,
     USER_AGENT,
     VERSION_FIELD_PATTERN,
@@ -36,6 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 
 _TIMEOUT: Final = aiohttp.ClientTimeout(total=30)
 _VERSION_RE: Final = re.compile(VERSION_FIELD_PATTERN.encode())
+_RATING_KEY_RE: Final = re.compile(RATING_KEY_PATTERN)
 
 # 16 bytes is ample for change detection on a single document and costs about
 # a millisecond on 312 KB. This is not a security boundary.
@@ -250,14 +251,26 @@ def _resolve_rating(
       does not document. Skipping to the next year keeps the sensor honest,
       and `rating_raw` keeps the actual letter visible instead of discarding
       it.
+
+    The years are whatever `QUALITAET_<year>` columns the document carries,
+    newest first — see `RATING_KEY_PATTERN` for why they are not listed.
     """
     rating: str | None = None
     rating_year: int | None = None
     rating_raw: str | None = None
     rating_raw_year: int | None = None
 
-    for year in RATING_YEARS:
-        value = _as_str(raw.get(f"QUALITAET_{year}")).upper()
+    columns = sorted(
+        (
+            (int(match.group(1)), cell)
+            for key, cell in raw.items()
+            if (match := _RATING_KEY_RE.fullmatch(key))
+        ),
+        key=lambda column: column[0],
+        reverse=True,
+    )
+    for year, cell in columns:
+        value = _as_str(cell).upper()
         if not value:
             continue
         if rating_raw is None:
@@ -391,7 +404,11 @@ class BadegewaesserClient:
         self._session = session
         self._digest: str | None = None
         self.upstream_version: str | None = None
-        self.last_wire_bytes: int | None = None
+        # The DECODED size — aiohttp has already undone the gzip by the time
+        # `read()` returns, so this is ~312 KB, not the ~24 KB on the wire.
+        # It was called `last_wire_bytes` until 2026-09-23, which made the
+        # diagnostics dump overstate the transfer thirteen-fold.
+        self.last_payload_bytes: int | None = None
 
     @property
     def digest(self) -> str | None:
@@ -422,7 +439,7 @@ class BadegewaesserClient:
         except aiohttp.ClientError as err:
             raise BadegewaesserApiError("cannot_connect", str(err)) from err
 
-        self.last_wire_bytes = len(raw)
+        self.last_payload_bytes = len(raw)
         digest = content_digest(raw)
         if digest == self._digest:
             _LOGGER.debug(

@@ -7,7 +7,7 @@
  * the UI. Hand-rolled native inputs lose all four.
  */
 import { LitElement, html, nothing, type TemplateResult } from "lit";
-import { customElement, state } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 
 import { normaliseConfig } from "./config";
 import { localize } from "./localize/localize";
@@ -51,7 +51,10 @@ const SCHEMA: HaFormSchema[] = [
 
 @customElement("badegewaesser-austria-card-editor")
 export class BadegewaesserAustriaCardEditor extends LitElement {
-  public hass?: HomeAssistant;
+  // Reactive, like every other editor in the portfolio. As a plain field a new
+  // `hass` never re-rendered the editor, so ha-form — and the device picker
+  // inside it — kept whatever `hass` it had at the last config change.
+  @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: BadegewaesserCardConfig;
 

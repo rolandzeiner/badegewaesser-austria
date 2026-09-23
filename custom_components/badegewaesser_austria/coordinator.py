@@ -247,7 +247,57 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
         # a shared outage ends.
         return timedelta(seconds=hours * 3600 + self._jitter())
 
+    @callback
+    def async_update_cadence(self) -> None:
+        """Apply the entries' current options to the poll interval now.
+
+        Called on every entry setup, which is also what an options change
+        triggers via the reload listener. Without it the new interval only
+        took effect after one more poll at the old one — up to a day late out
+        of season.
+
+        With no subscribed entities there is no timer, and the first entity
+        to subscribe schedules with the new value anyway. With other entries
+        already subscribed, their timer is running on the old interval, so it
+        is restarted — but only for a real change. Two computations of the
+        same cadence differ by their jitter alone, and restarting on that
+        would push the next poll out every time an entry is added.
+        """
+        previous = self.update_interval
+        self.update_interval = self._compute_interval()
+        if (
+            self._listeners
+            and previous is not None
+            and abs((self.update_interval - previous).total_seconds())
+            > POLL_JITTER_SECONDS
+        ):
+            self._schedule_refresh()
+
     # -- refresh ----------------------------------------------------------
+
+    @callback
+    def _snapshot_is_stale(self) -> bool:
+        """Is the snapshot older than the cadence says it may be?"""
+        if self.last_fetch_utc is None or self.update_interval is None:
+            return True
+        return dt_util.utcnow() - self.last_fetch_utc > self.update_interval
+
+    async def async_ensure_fresh(self) -> bool:
+        """Make sure the snapshot is worth serving, fetching first if not.
+
+        The one readiness check for both the config flow and entry setup. It
+        fetches when there is no snapshot yet, and also when the one held is
+        older than the cadence: this coordinator outlives its entries (see
+        `async_unload_entry`), so removing the last bathing water and adding
+        one back weeks later would otherwise serve the snapshot from whenever
+        polling stopped until the next scheduled poll.
+
+        Returns whether the latest refresh succeeded. Callers raise their own
+        error, because a flow aborts where a setup retries.
+        """
+        if not self.data or self._snapshot_is_stale():
+            await self.async_refresh()
+        return self.last_update_success
 
     async def _async_update_data(self) -> SiteMap:
         """Fetch once, or keep the previous snapshot if nothing changed.

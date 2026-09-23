@@ -12,8 +12,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import "./badegewaesser-austria-card";
+import "./editor";
 import { CARD_TAG } from "./const";
 import type { BadegewaesserAustriaCard } from "./badegewaesser-austria-card";
+import type { BadegewaesserAustriaCardEditor } from "./editor";
 import type { HomeAssistant } from "./types";
 
 const DEVICE = "device-1";
@@ -302,6 +304,17 @@ describe("the season-track tooltip", () => {
       expect(point.getAttribute("aria-label")).toMatch(/\d/);
     }
   });
+
+  it("does not hide those labelled points inside an image", async () => {
+    // ARIA makes every descendant of role="img" presentational, so focusable,
+    // labelled points inside an img-role svg take keyboard focus and announce
+    // nothing (axe: nested-interactive). A group keeps the axis label and
+    // still exposes the points.
+    const card = await mount({ device: DEVICE });
+    const track = card.shadowRoot!.querySelector("svg.track")!;
+    expect(track.getAttribute("role")).toBe("group");
+    expect(track.getAttribute("aria-label")).toBeTruthy();
+  });
 });
 
 describe("attribution", () => {
@@ -335,6 +348,30 @@ describe("editor defaults", () => {
     const raw = { type: "x", device: DEVICE, show_readings: false };
     expect(normaliseConfig(raw).show_readings).toBe(false);
     expect(normaliseConfig(raw).show_season_track).toBe(true);
+  });
+});
+
+describe("editor", () => {
+  it("hands a new hass on to ha-form", async () => {
+    // The bug: `hass` was a plain field, so replacing it never re-rendered the
+    // editor, and ha-form — with the device picker inside it — kept the hass
+    // it had at the last config change.
+    const editor = document.createElement(
+      "badegewaesser-austria-card-editor",
+    ) as unknown as BadegewaesserAustriaCardEditor;
+    editor.hass = makeHass();
+    editor.setConfig({ type: `custom:${CARD_TAG}`, device: DEVICE });
+    document.body.append(editor);
+    await editor.updateComplete;
+
+    const next = makeHass();
+    editor.hass = next;
+    await editor.updateComplete;
+
+    const form = editor.shadowRoot?.querySelector("ha-form") as
+      | (HTMLElement & { hass?: HomeAssistant })
+      | null;
+    expect(form?.hass).toBe(next);
   });
 });
 

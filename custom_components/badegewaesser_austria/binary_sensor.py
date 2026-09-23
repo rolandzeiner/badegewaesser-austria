@@ -83,7 +83,7 @@ class BadegewaesserSeasonSensor(BadegewaesserEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        """True between 15 May and 30 September."""
+        """True from 15 June to 31 August, the legal Austrian bathing season."""
         return is_in_season(dt_util.now().date())
 
     async def async_added_to_hass(self) -> None:
