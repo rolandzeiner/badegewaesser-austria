@@ -141,9 +141,11 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
   /* -- photo header ----------------------------------------------------- */
 
   .hero {
-    --bade-scrim: rgb(0 0 0 / 0.62);
-    /* How far above the text the bottom band spends fading out. */
-    --hero-fade: 2.5rem;
+    --bade-scrim: rgb(0 0 0 / 0.55);
+    /* How far above the text the bottom band spends fading out. Short on
+       purpose: the fade is decoration, and at 2.5rem the band covered half
+       the photo. */
+    --hero-fade: 1.25rem;
 
     position: relative;
     isolation: isolate;
@@ -190,12 +192,13 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
      the right share a baseline, and the Bundesland and the sample date share
      the one below it.
 
-     CONTRAST: the row sits on a band that is 62% black wherever there is
+     CONTRAST: the row sits on a band that is 55% black wherever there is
      text, fading out only above it. Over pure white -- the brightest thing a
-     photo can put underneath -- that leaves rgb(97 97 97), relative luminance
-     0.120, and white on it measures 6.2:1: over the 4.5:1 floor for normal
-     text, so it holds for the 12px lines as well as the large figure. 55%
-     would still pass (4.7:1); 50% would not for the small lines (3.9:1). */
+     photo can put underneath -- that leaves rgb(115 115 115), relative
+     luminance 0.171, and white on it measures 4.7:1: over the 4.5:1 floor
+     for normal text, so it holds for the 12px lines as well as the large
+     figure. This is the floor, not a starting point: 50% fails the small
+     lines (3.9:1). */
   .hero-caption {
     position: absolute;
     inset-inline: 0;
@@ -211,9 +214,9 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
     background: linear-gradient(
       to top,
       var(--bade-scrim) calc(100% - var(--hero-fade)),
-      rgb(0 0 0 / 0.46) calc(100% - var(--hero-fade) * 0.75),
-      rgb(0 0 0 / 0.28) calc(100% - var(--hero-fade) * 0.5),
-      rgb(0 0 0 / 0.11) calc(100% - var(--hero-fade) * 0.25),
+      rgb(0 0 0 / 0.41) calc(100% - var(--hero-fade) * 0.75),
+      rgb(0 0 0 / 0.25) calc(100% - var(--hero-fade) * 0.5),
+      rgb(0 0 0 / 0.1) calc(100% - var(--hero-fade) * 0.25),
       transparent
     );
   }
