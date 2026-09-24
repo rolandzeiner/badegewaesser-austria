@@ -22,7 +22,8 @@
     "tile_trend_steady": "Etwa gleich wie bei der Probe davor",
     "photo_alt": "Badestelle {name}",
     "photo_credit": "Fotonachweis",
-    "photo_source": "Quelle: AGES Badegewässer-Monitoring"
+    "photo_source": "Quelle: AGES Badegewässer-Monitoring",
+    "map_link": "{name} auf der Karte zeigen"
   },
   "quality": {
     "excellent": "Ausgezeichnet",

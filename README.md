@@ -40,6 +40,7 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 - **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
 - **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
 - **A photo of the bathing spot** — the picture AGES shows for the site, as an `image` entity and as the card's header, with the name, the Bundesland and the water temperature over it. Its credit is behind the ⓘ button on the photo. 259 of the 260 have one *(0.2.0)*
+- **On the map** — each bathing water shows up as a marker on Home Assistant's map, and the pin next to its name on the card opens it on OpenStreetMap. Nothing loads from OpenStreetMap until you select the pin *(0.2.0)*
 
 ## Requirements
 
@@ -78,7 +79,7 @@ Each bathing water becomes one device with eight entities, plus a photo where AG
 
 | Entity | Type | Notes |
 |---|---|---|
-| Water temperature | `sensor` | °C. Carries the season's samples for the card. |
+| Water temperature | `sensor` | °C. Carries the season's samples for the card, and the bathing water's position as `latitude` and `longitude`. The only entity with a position, so each lake gets one marker on the map. |
 | E. coli | `sensor` | KBE/100 ml, with a `below_detection_limit` attribute. |
 | Enterococci | `sensor` | KBE/100 ml, with a `below_detection_limit` attribute. |
 | Secchi depth | `sensor` | Metres. How far down you can see. |

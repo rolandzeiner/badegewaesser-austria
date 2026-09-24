@@ -22,7 +22,8 @@
     "tile_trend_steady": "About the same as the sample before",
     "photo_alt": "Bathing spot at {name}",
     "photo_credit": "Photo credit",
-    "photo_source": "Source: AGES bathing-water monitoring"
+    "photo_source": "Source: AGES bathing-water monitoring",
+    "map_link": "Show {name} on the map"
   },
   "quality": {
     "excellent": "Excellent",

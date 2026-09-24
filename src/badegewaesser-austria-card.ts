@@ -142,6 +142,28 @@ export function countTrend(
   );
 }
 
+/**
+ * The bathing water on OpenStreetMap, from the position the water-temperature
+ * sensor carries. Undefined without a usable one, and then there is no pin.
+ *
+ * A plain link: nothing loads from OpenStreetMap until someone follows it, so
+ * the card itself still talks to nobody but Home Assistant. A zero on either
+ * axis is refused as the integration refuses it -- upstream's "0" means "no
+ * position", and no Austrian lake lies on the equator or at Greenwich.
+ */
+export function siteMapUrl(entity: HassEntity | undefined): string | undefined {
+  const latitude = entity?.attributes["latitude"];
+  const longitude = entity?.attributes["longitude"];
+  if (typeof latitude !== "number" || typeof longitude !== "number") return undefined;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return undefined;
+  if (latitude === 0 || longitude === 0) return undefined;
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return undefined;
+  // Six decimals is about 10 cm: all the precision a zoom-16 map can use.
+  const lat = latitude.toFixed(6);
+  const lon = longitude.toFixed(6);
+  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`;
+}
+
 type SiteEntities = Partial<Record<string, HassEntity>>;
 
 @customElement(CARD_TAG)
@@ -343,18 +365,19 @@ export class BadegewaesserAustriaCard extends LitElement {
     const photo = entities[KEY.photo];
     const photoSrc = config.show_photo === false ? undefined : this._photoUrl(photo);
     const hero = photoSrc !== undefined && this._photoFailed !== photoSrc;
+    const mapLink = this._renderMapLink(title, siteMapUrl(temperature), language);
 
     return html`
       <ha-card>
         ${hero
-          ? this._renderHero(photoSrc, photo, title, temperature, samples, language)
+          ? this._renderHero(photoSrc, photo, title, mapLink, temperature, samples, language)
           : nothing}
         ${this._renderVersionBanner(language)}
         ${isClosed ? this._renderClosure(closed, language) : nothing}
         <div class="body">
           ${hero
             ? nothing
-            : html`<h2 class="title">${title}</h2>
+            : html`<div class="heading"><h2 class="title">${title}</h2>${mapLink}</div>
                 ${this._renderPlace()}`}
           ${config.show_season_track === false
             ? nothing
@@ -428,6 +451,7 @@ export class BadegewaesserAustriaCard extends LitElement {
     src: string,
     photo: HassEntity | undefined,
     title: string,
+    mapLink: TemplateResult | typeof nothing,
     temperature: HassEntity | undefined,
     samples: SeasonSample[],
     language: string | undefined,
@@ -453,7 +477,7 @@ export class BadegewaesserAustriaCard extends LitElement {
           @error=${() => this._onPhotoError(src)}
         />
         <div class="hero-caption">
-          <h2 class="hero-title">${title}</h2>
+          <div class="hero-heading"><h2 class="hero-title">${title}</h2>${mapLink}</div>
           ${place ? html`<p class="hero-place">${place}</p>` : nothing}
           <p class=${formatted === null ? "hero-temperature is-missing" : "hero-temperature"}>
             ${trend
@@ -572,6 +596,32 @@ export class BadegewaesserAustriaCard extends LitElement {
       return;
     }
     this._photoFailed = src;
+  }
+
+  /**
+   * The map pin after the bathing water's name, in both headings.
+   *
+   * A sibling of the h2, not a child: inside, its name would join the
+   * heading's, and a screen reader's list of headings would read the lake's
+   * name twice. Placed with no whitespace after the h2 so the pin shares the
+   * name's last line; see the heading rules in card-styles.ts.
+   */
+  private _renderMapLink(
+    title: string,
+    url: string | undefined,
+    language: string | undefined,
+  ): TemplateResult | typeof nothing {
+    if (!url) return nothing;
+    const label = localize("card.map_link", language, { name: title });
+    return html`<a
+      class="map-link"
+      href=${url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label=${label}
+      title=${label}
+      ><ha-icon icon="mdi:map-marker" aria-hidden="true"></ha-icon
+    ></a>`;
   }
 
   /**

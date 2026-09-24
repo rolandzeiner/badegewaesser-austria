@@ -272,16 +272,27 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
     );
   }
 
-  /* A plain block on purpose. A line clamp (display: -webkit-box) has no
-     baseline to offer the grid, which then top-aligns the name and leaves
-     it floating above the temperature. */
-  .hero-title {
+  /* The name and its map pin, as one run of text. A plain block on purpose:
+     a line clamp (display: -webkit-box) has no baseline to offer the grid,
+     which then top-aligns the name and leaves it floating above the
+     temperature. The grid aligns this block's last line, and the pin keeps
+     that line's baseline where the text puts it (see .map-link). */
+  .hero-heading {
     grid-area: title;
-    margin: 0;
     font-size: var(--ha-font-size-xl, 1.429rem);
     font-weight: var(--ha-font-weight-bold, 600);
     line-height: 1.2;
+    /* Also what keeps the pin off a line of its own: balancing spreads the
+       words over the lines, so the last one keeps a word beside the pin. */
     text-wrap: balance;
+  }
+
+  /* Inline, so the pin after it continues the same line. */
+  .hero-title,
+  .title {
+    display: inline;
+    margin: 0;
+    font: inherit;
   }
 
   .hero-place {
@@ -411,12 +422,66 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
 
   /* -- heading ---------------------------------------------------------- */
 
-  .title {
-    margin: 0;
+  /* Without a photo. The same run of name and pin as .hero-heading, and
+     balanced for the same reason. */
+  .heading {
     font-size: var(--ha-font-size-l, 1.143rem);
     font-weight: var(--ha-font-weight-medium, 500);
     line-height: var(--ha-line-height-condensed, 1.2);
     color: var(--primary-text-color);
+    text-wrap: balance;
+  }
+
+  /* -- map link --------------------------------------------------------- */
+
+  /* 32px, like the photo credit's button: over the 24px WCAG 2.5.8 minimum,
+     and about a fingertip. The negative block margins give the line back
+     what the box takes beyond one line of text (1.2em), so the name's last
+     line keeps its height and its baseline, which is what the temperature
+     aligns to. The box's own padding makes the gap to the last word; the
+     2px before it keeps the focus ring off that word, and the padding after
+     the icon is handed back, so a short name on a narrow card does not wrap
+     for the sake of empty space. */
+  .map-link {
+    --mdc-icon-size: 1.1em;
+    display: inline-grid;
+    place-items: center;
+    inline-size: 32px;
+    block-size: 32px;
+    margin-block: calc((1.2em - 32px) / 2);
+    margin-inline: 2px calc((1.1em - 32px) / 2);
+    vertical-align: middle;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    text-decoration: none;
+  }
+
+  .map-link:hover {
+    color: var(--primary-text-color);
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+
+  /* Inside the target rather than around it: the ring then marks exactly
+     what a tap hits, and stays clear of the name. */
+  .map-link:focus-visible {
+    outline-offset: -2px;
+  }
+
+  /* On the photo the pin is white on the band: 4.7:1 over pure white, above
+     the 3:1 WCAG 1.4.11 asks of an icon. Hover darkens rather than tints, as
+     on the credit button, so the contrast only goes up. */
+  .hero .map-link {
+    color: inherit;
+  }
+
+  .hero .map-link:hover {
+    background: rgb(0 0 0 / 0.3);
+  }
+
+  /* The body's teal ring would disappear against the band. */
+  .hero .map-link:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
   }
 
   .place {
@@ -652,7 +717,7 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
     .hero-trend {
       --mdc-icon-size: 1.25rem;
     }
-    .hero-title {
+    .hero-heading {
       font-size: var(--ha-font-size-l, 1.143rem);
     }
     .hero-sampled {
@@ -688,7 +753,7 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
       border: 1px solid CanvasText;
     }
   }
-`;function Xe(e){return{type:``,...Qe,...e}}function Ze(e,t){if(t){if(t.device)return t.device;if(t.entity)return e?.entities?.[t.entity]?.device_id}}var Qe,$e=t((()=>{Qe={show_photo:!0,show_season_track:!0,show_readings:!0,show_attribution:!0}}));$e();const et=`badegewaesser-austria-card`;var tt={card:{no_samples:`Noch keine Proben in dieser Saison`,closed:`Baden verboten`,sampled_on:`Probe vom {date}`,not_measured:`nicht gemessen`,season_axis_label:`Proben der Saison {year}`,water_quality:`Wasserqualität`,e_coli:`E. coli`,enterococci:`Enterokokken`,secchi_depth:`Sichttiefe`,water_temperature:`Wassertemperatur`,rating_year:`Bewertung {year}`,no_rating:`noch nicht bewertet`,below_limit:`unter der Nachweisgrenze`,attribution:`Datenquelle: AGES · CC BY 3.0 AT`,trend_up:`{delta} wärmer als bei der Probe davor`,trend_down:`{delta} kälter als bei der Probe davor`,trend_steady:`Etwa so warm wie bei der Probe davor`,tile_trend_up:`Gestiegen seit der Probe davor`,tile_trend_down:`Gesunken seit der Probe davor`,tile_trend_steady:`Etwa gleich wie bei der Probe davor`,photo_alt:`Badestelle {name}`,photo_credit:`Fotonachweis`,photo_source:`Quelle: AGES Badegewässer-Monitoring`},quality:{excellent:`Ausgezeichnet`,good:`Gut`,sufficient:`Ausreichend`,poor:`Mangelhaft`},error:{entity_missing:`Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.`,not_this_integration:`{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration.`,no_device:`Wähle im Karteneditor ein Badegewässer aus.`,device_missing:`Dieses Badegewässer gibt es nicht mehr. Wähle im Karteneditor ein anderes aus.`},version:{mismatch:`Diese Karte ist veraltet ({card} statt {integration}).`,reload:`Neu laden`},editor:{device:`Badegewässer`,device_helper:`Welchen See oder Fluss die Karte zeigen soll.`,name:`Titel`,name_helper:`Leer lassen, um den Namen des Badegewässers zu verwenden.`,show_photo:`Foto zeigen`,show_photo_helper:`Ein Bild der Badestelle, sofern es eines gibt.`,show_season_track:`Saisonverlauf zeigen`,show_season_track_helper:`Die Proben der Saison als Zeitachse.`,show_readings:`Messwerte zeigen`,show_readings_helper:`Wasserqualität, E. coli, Enterokokken und Sichttiefe.`,show_attribution:`Datenquelle zeigen`,show_attribution_helper:`Die Quellenangabe der AGES unter den Messwerten. Die Entitäten tragen sie so oder so.`}},nt={card:{no_samples:`No samples yet this season`,closed:`Swimming prohibited`,sampled_on:`Sampled {date}`,not_measured:`not measured`,season_axis_label:`Samples from the {year} season`,water_quality:`Water quality`,e_coli:`E. coli`,enterococci:`Enterococci`,secchi_depth:`Secchi depth`,water_temperature:`Water temperature`,rating_year:`{year} rating`,no_rating:`not yet rated`,below_limit:`below the detection limit`,attribution:`Data source: AGES · CC BY 3.0 AT`,trend_up:`{delta} warmer than the sample before`,trend_down:`{delta} colder than the sample before`,trend_steady:`About as warm as the sample before`,tile_trend_up:`Up since the sample before`,tile_trend_down:`Down since the sample before`,tile_trend_steady:`About the same as the sample before`,photo_alt:`Bathing spot at {name}`,photo_credit:`Photo credit`,photo_source:`Source: AGES bathing-water monitoring`},quality:{excellent:`Excellent`,good:`Good`,sufficient:`Sufficient`,poor:`Poor`},error:{entity_missing:`The entity {entity} no longer exists. Pick another one in the card editor.`,not_this_integration:`{entity} isn't part of Badegewässer Austria. Pick an entity from this integration.`,no_device:`Pick a bathing water in the card editor.`,device_missing:`That bathing water no longer exists. Pick another one in the card editor.`},version:{mismatch:`This card is out of date ({card} instead of {integration}).`,reload:`Reload`},editor:{device:`Bathing water`,device_helper:`Which lake or river the card should show.`,name:`Title`,name_helper:`Leave empty to use the bathing water's own name.`,show_photo:`Show the photo`,show_photo_helper:`A picture of the bathing spot, where there is one.`,show_season_track:`Show the season track`,show_season_track_helper:`This season's samples on a time axis.`,show_readings:`Show the readings`,show_readings_helper:`Water quality, E. coli, enterococci and Secchi depth.`,show_attribution:`Show the data source`,show_attribution_helper:`The AGES credit under the readings. The entities carry it either way.`}};function U(e,t,n={}){let r=(t??W).toLowerCase().split(`-`)[0]??W,[i,a]=e.split(`.`),o=rt[r]??rt[W],s=rt[W],c=e=>i&&a?e?.[i]?.[a]:void 0,l=c(o)??c(s)??e;return Object.entries(n).reduce((e,[t,n])=>e.replaceAll(`{${t}}`,String(n)),l)}var rt,W,it=t((()=>{rt={de:tt,en:nt},W=`en`}));V(),it();const at={month:5,day:15},ot={month:8,day:31},st=[5,6,7,8],ct=e=>{let t=Date.UTC(e.getUTCFullYear(),0,1),n=Date.UTC(e.getUTCFullYear(),e.getUTCMonth(),e.getUTCDate());return Math.round((n-t)/864e5)};function lt(e){let t=e.getUTCFullYear(),n=ct(new Date(Date.UTC(t,at.month-1,at.day))),r=ct(new Date(Date.UTC(t,ot.month-1,ot.day)))-n;return r<=0?0:Math.min(1,Math.max(0,(ct(e)-n)/r))}const ut=e=>{let t=/* @__PURE__ */ new Date(`${e}T00:00:00Z`);return Number.isNaN(t.getTime())?null:t};function dt(e,t){let n=Array.from({length:3},()=>-1/0);return e.map(e=>{if(e.value===null)return null;let r=n.findIndex(n=>e.fraction-n>=t);return r<0?null:(n[r]=e.fraction,r)})}const G=e=>`${(e*100).toFixed(3)}%`;function ft(e){let{samples:t,formatDate:n,formatTemperature:r,language:i}=e;return t.length===0?U(`card.no_samples`,i):t.map(e=>{let t=ut(e.date);return`${t?n(t):e.date}: ${r(e.water_temperature)}`}).join(`, `)}function pt(e){let{samples:t,now:n,language:r,formatDate:i,formatTemperature:a,formatLabel:o,hovered:s,onHover:c,axisWidth:l}=e,u=lt(n),d=t.map(e=>({sample:e,date:ut(e.date)})).filter(e=>e.date!==null).map(e=>{let t=lt(e.date);return{...e,fraction:t,cx:G(t)}}),f=dt(d.map(e=>({fraction:e.fraction,value:e.sample.water_temperature})),36/(l&&l>0?l:240)),p=Math.max(0,...f.map(e=>e??0))*14,m=24+p,h=d.length-1,g=s==null?void 0:d[s],_=d.at(-1)?.date.getUTCFullYear()??n.getUTCFullYear(),ee=e=>new Intl.DateTimeFormat(r??`en`,{month:`short`,timeZone:`UTC`}).format(new Date(Date.UTC(_,e-1,15)));return j`
+`;function Xe(e){return{type:``,...Qe,...e}}function Ze(e,t){if(t){if(t.device)return t.device;if(t.entity)return e?.entities?.[t.entity]?.device_id}}var Qe,$e=t((()=>{Qe={show_photo:!0,show_season_track:!0,show_readings:!0,show_attribution:!0}}));$e();const et=`badegewaesser-austria-card`;var tt={card:{no_samples:`Noch keine Proben in dieser Saison`,closed:`Baden verboten`,sampled_on:`Probe vom {date}`,not_measured:`nicht gemessen`,season_axis_label:`Proben der Saison {year}`,water_quality:`Wasserqualität`,e_coli:`E. coli`,enterococci:`Enterokokken`,secchi_depth:`Sichttiefe`,water_temperature:`Wassertemperatur`,rating_year:`Bewertung {year}`,no_rating:`noch nicht bewertet`,below_limit:`unter der Nachweisgrenze`,attribution:`Datenquelle: AGES · CC BY 3.0 AT`,trend_up:`{delta} wärmer als bei der Probe davor`,trend_down:`{delta} kälter als bei der Probe davor`,trend_steady:`Etwa so warm wie bei der Probe davor`,tile_trend_up:`Gestiegen seit der Probe davor`,tile_trend_down:`Gesunken seit der Probe davor`,tile_trend_steady:`Etwa gleich wie bei der Probe davor`,photo_alt:`Badestelle {name}`,photo_credit:`Fotonachweis`,photo_source:`Quelle: AGES Badegewässer-Monitoring`,map_link:`{name} auf der Karte zeigen`},quality:{excellent:`Ausgezeichnet`,good:`Gut`,sufficient:`Ausreichend`,poor:`Mangelhaft`},error:{entity_missing:`Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.`,not_this_integration:`{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration.`,no_device:`Wähle im Karteneditor ein Badegewässer aus.`,device_missing:`Dieses Badegewässer gibt es nicht mehr. Wähle im Karteneditor ein anderes aus.`},version:{mismatch:`Diese Karte ist veraltet ({card} statt {integration}).`,reload:`Neu laden`},editor:{device:`Badegewässer`,device_helper:`Welchen See oder Fluss die Karte zeigen soll.`,name:`Titel`,name_helper:`Leer lassen, um den Namen des Badegewässers zu verwenden.`,show_photo:`Foto zeigen`,show_photo_helper:`Ein Bild der Badestelle, sofern es eines gibt.`,show_season_track:`Saisonverlauf zeigen`,show_season_track_helper:`Die Proben der Saison als Zeitachse.`,show_readings:`Messwerte zeigen`,show_readings_helper:`Wasserqualität, E. coli, Enterokokken und Sichttiefe.`,show_attribution:`Datenquelle zeigen`,show_attribution_helper:`Die Quellenangabe der AGES unter den Messwerten. Die Entitäten tragen sie so oder so.`}},nt={card:{no_samples:`No samples yet this season`,closed:`Swimming prohibited`,sampled_on:`Sampled {date}`,not_measured:`not measured`,season_axis_label:`Samples from the {year} season`,water_quality:`Water quality`,e_coli:`E. coli`,enterococci:`Enterococci`,secchi_depth:`Secchi depth`,water_temperature:`Water temperature`,rating_year:`{year} rating`,no_rating:`not yet rated`,below_limit:`below the detection limit`,attribution:`Data source: AGES · CC BY 3.0 AT`,trend_up:`{delta} warmer than the sample before`,trend_down:`{delta} colder than the sample before`,trend_steady:`About as warm as the sample before`,tile_trend_up:`Up since the sample before`,tile_trend_down:`Down since the sample before`,tile_trend_steady:`About the same as the sample before`,photo_alt:`Bathing spot at {name}`,photo_credit:`Photo credit`,photo_source:`Source: AGES bathing-water monitoring`,map_link:`Show {name} on the map`},quality:{excellent:`Excellent`,good:`Good`,sufficient:`Sufficient`,poor:`Poor`},error:{entity_missing:`The entity {entity} no longer exists. Pick another one in the card editor.`,not_this_integration:`{entity} isn't part of Badegewässer Austria. Pick an entity from this integration.`,no_device:`Pick a bathing water in the card editor.`,device_missing:`That bathing water no longer exists. Pick another one in the card editor.`},version:{mismatch:`This card is out of date ({card} instead of {integration}).`,reload:`Reload`},editor:{device:`Bathing water`,device_helper:`Which lake or river the card should show.`,name:`Title`,name_helper:`Leave empty to use the bathing water's own name.`,show_photo:`Show the photo`,show_photo_helper:`A picture of the bathing spot, where there is one.`,show_season_track:`Show the season track`,show_season_track_helper:`This season's samples on a time axis.`,show_readings:`Show the readings`,show_readings_helper:`Water quality, E. coli, enterococci and Secchi depth.`,show_attribution:`Show the data source`,show_attribution_helper:`The AGES credit under the readings. The entities carry it either way.`}};function U(e,t,n={}){let r=(t??W).toLowerCase().split(`-`)[0]??W,[i,a]=e.split(`.`),o=rt[r]??rt[W],s=rt[W],c=e=>i&&a?e?.[i]?.[a]:void 0,l=c(o)??c(s)??e;return Object.entries(n).reduce((e,[t,n])=>e.replaceAll(`{${t}}`,String(n)),l)}var rt,W,it=t((()=>{rt={de:tt,en:nt},W=`en`}));V(),it();const at={month:5,day:15},ot={month:8,day:31},st=[5,6,7,8],ct=e=>{let t=Date.UTC(e.getUTCFullYear(),0,1),n=Date.UTC(e.getUTCFullYear(),e.getUTCMonth(),e.getUTCDate());return Math.round((n-t)/864e5)};function lt(e){let t=e.getUTCFullYear(),n=ct(new Date(Date.UTC(t,at.month-1,at.day))),r=ct(new Date(Date.UTC(t,ot.month-1,ot.day)))-n;return r<=0?0:Math.min(1,Math.max(0,(ct(e)-n)/r))}const ut=e=>{let t=/* @__PURE__ */ new Date(`${e}T00:00:00Z`);return Number.isNaN(t.getTime())?null:t};function dt(e,t){let n=Array.from({length:3},()=>-1/0);return e.map(e=>{if(e.value===null)return null;let r=n.findIndex(n=>e.fraction-n>=t);return r<0?null:(n[r]=e.fraction,r)})}const G=e=>`${(e*100).toFixed(3)}%`;function ft(e){let{samples:t,formatDate:n,formatTemperature:r,language:i}=e;return t.length===0?U(`card.no_samples`,i):t.map(e=>{let t=ut(e.date);return`${t?n(t):e.date}: ${r(e.water_temperature)}`}).join(`, `)}function pt(e){let{samples:t,now:n,language:r,formatDate:i,formatTemperature:a,formatLabel:o,hovered:s,onHover:c,axisWidth:l}=e,u=lt(n),d=t.map(e=>({sample:e,date:ut(e.date)})).filter(e=>e.date!==null).map(e=>{let t=lt(e.date);return{...e,fraction:t,cx:G(t)}}),f=dt(d.map(e=>({fraction:e.fraction,value:e.sample.water_temperature})),36/(l&&l>0?l:240)),p=Math.max(0,...f.map(e=>e??0))*14,m=24+p,h=d.length-1,g=s==null?void 0:d[s],_=d.at(-1)?.date.getUTCFullYear()??n.getUTCFullYear(),ee=e=>new Intl.DateTimeFormat(r??`en`,{month:`short`,timeZone:`UTC`}).format(new Date(Date.UTC(_,e-1,15)));return j`
     <div class="track-wrap">
       <!-- role="group", not "img". ARIA makes every descendant of an img
            presentational, so the focusable, labelled points below would take
@@ -883,13 +948,13 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
         .computeHelper=${this._computeHelper}
         @value-changed=${this._valueChanged}
       ></ha-form>
-    `}_valueChanged(e){xt(this,`config-changed`,{config:e.detail.value})}},X([Le({attribute:!1})],Z.prototype,`hass`,void 0),X([H()],Z.prototype,`_config`,void 0),Z=X([Fe(`badegewaesser-austria-card-editor`)],Z)}));V(),Je(),$e(),it(),yt(),bt();const Q={temperature:`water_temperature`,quality:`water_quality`,eColi:`e_coli`,enterococci:`enterococci`,secchi:`secchi_depth`,lastSample:`last_sample`,closed:`closed`,season:`bathing_season`,photo:`photo`},Et={excellent:`mdi:check-circle`,good:`mdi:check-circle`,sufficient:`mdi:alert-circle`,poor:`mdi:close-circle`},Dt={up:`mdi:trending-up`,down:`mdi:trending-down`,steady:`mdi:trending-neutral`};function Ot(e,t,n){let r=e.at(-1),i=r?t(r):null;if(!r||i==null)return null;let a=e.slice(0,-1).filter(e=>t(e)!=null).at(-1);if(!a)return null;let o=Math.round((i-(t(a)??i))*1e3)/1e3;return{direction:n(r,a,o)?`steady`:o>0?`up`:`down`,delta:o}}const kt=e=>Ot(e,e=>e.water_temperature,(e,t,n)=>Math.abs(n)<.5),At=e=>Ot(e,e=>e.secchi_depth,(e,t,n)=>Math.abs(n)<.2);function jt(e,t){let n=e=>e[`${t}_below_limit`]===!0;return Ot(e,e=>e[t],(e,r,i)=>{if(n(e)&&n(r))return!0;let a=Math.max(e[t]??0,r[t]??0);return Math.abs(i)<=.2*a})}let $=class extends B{constructor(...e){super(...e),this._hoveredPoint=null,this._photoTip=!1,this._photoTipHovered=!1,this._photoTipPinned=!1,this._versionChecked=!1}static{this.styles=[Ye,mt]}static async getConfigElement(){return await Promise.resolve().then(()=>(Tt(),Ct)),document.createElement(`badegewaesser-austria-card-editor`)}static getStubConfig(e){return{device:Object.values(e.entities??{}).find(e=>e.platform===`badegewaesser_austria`&&e.device_id)?.device_id??``}}setConfig(e){if(!e)throw Error(U(`error.no_device`,void 0));this._config=Xe(e)}getCardSize(){let e=this._config,t=1,n=this.hass?this._siteEntities()?.[Q.photo]:void 0;return e?.show_photo!==!1&&(!this.hass||K(n))&&(t+=4),e?.show_season_track!==!1&&(t+=1),e?.show_readings!==!1&&(t+=3),t}getGridOptions(){return{columns:12,min_columns:6,rows:`auto`}}connectedCallback(){super.connectedCallback(),typeof ResizeObserver<`u`&&(this._resizeObserver=new ResizeObserver(e=>{let t=Math.round(e[0]?.contentRect.width??0);t>0&&t!==this._width&&(this._width=t)}),this._resizeObserver.observe(this))}disconnectedCallback(){this._resizeObserver?.disconnect(),this._resizeObserver=void 0,super.disconnectedCallback()}updated(){this._checkVersion()}async _checkVersion(){if(!this._versionChecked&&this.hass?.callWS){this._versionChecked=!0;try{let e=await this.hass.callWS({type:`${ht}/card_version`});e?.version&&e.version!==`0.1.0`&&(this._staleVersion=e.version)}catch{}}}async _reload(){try{if(`caches`in window){let e=await caches.keys();await Promise.all(e.map(e=>caches.delete(e)))}}catch{}location.reload()}_siteEntities(){let e=this.hass,t=Ze(e,this._config);if(!e||!t)return;let n={};for(let r of Object.values(e.entities??{}))r.device_id===t&&r.platform===`badegewaesser_austria`&&r.translation_key&&(n[r.translation_key]=e.states[r.entity_id]);return n}_deviceName(){let e=Ze(this.hass,this._config),t=e?this.hass?.devices?.[e]:void 0;return t?.name_by_user??t?.name}render(){let e=this._config,t=this.hass;if(!e||!t)return P;let n=J(t);if(!e.device&&!e.entity)return this._renderAlert(U(`error.no_device`,n));if(!e.device&&e.entity){let r=t.entities?.[e.entity];if(!r||!t.states[e.entity])return this._renderAlert(U(`error.entity_missing`,n,{entity:e.entity}));if(r.platform!==`badegewaesser_austria`)return this._renderAlert(U(`error.not_this_integration`,n,{entity:e.entity}))}let r=this._siteEntities()??{};if(Object.keys(r).length===0)return this._renderAlert(U(`error.device_missing`,n));let i=r[Q.temperature],a=r[Q.closed],o=r[Q.season],s=e.name??this._deviceName()??``,c=i?.attributes.season_samples??[],l=o?.state===`on`,u=a?.state===`on`,d=r[Q.photo],f=e.show_photo===!1?void 0:this._photoUrl(d),p=f!==void 0&&this._photoFailed!==f;return j`
+    `}_valueChanged(e){xt(this,`config-changed`,{config:e.detail.value})}},X([Le({attribute:!1})],Z.prototype,`hass`,void 0),X([H()],Z.prototype,`_config`,void 0),Z=X([Fe(`badegewaesser-austria-card-editor`)],Z)}));V(),Je(),$e(),it(),yt(),bt();const Q={temperature:`water_temperature`,quality:`water_quality`,eColi:`e_coli`,enterococci:`enterococci`,secchi:`secchi_depth`,lastSample:`last_sample`,closed:`closed`,season:`bathing_season`,photo:`photo`},Et={excellent:`mdi:check-circle`,good:`mdi:check-circle`,sufficient:`mdi:alert-circle`,poor:`mdi:close-circle`},Dt={up:`mdi:trending-up`,down:`mdi:trending-down`,steady:`mdi:trending-neutral`};function Ot(e,t,n){let r=e.at(-1),i=r?t(r):null;if(!r||i==null)return null;let a=e.slice(0,-1).filter(e=>t(e)!=null).at(-1);if(!a)return null;let o=Math.round((i-(t(a)??i))*1e3)/1e3;return{direction:n(r,a,o)?`steady`:o>0?`up`:`down`,delta:o}}const kt=e=>Ot(e,e=>e.water_temperature,(e,t,n)=>Math.abs(n)<.5),At=e=>Ot(e,e=>e.secchi_depth,(e,t,n)=>Math.abs(n)<.2);function jt(e,t){let n=e=>e[`${t}_below_limit`]===!0;return Ot(e,e=>e[t],(e,r,i)=>{if(n(e)&&n(r))return!0;let a=Math.max(e[t]??0,r[t]??0);return Math.abs(i)<=.2*a})}function Mt(e){let t=e?.attributes.latitude,n=e?.attributes.longitude;if(typeof t!=`number`||typeof n!=`number`||!Number.isFinite(t)||!Number.isFinite(n)||t===0||n===0||Math.abs(t)>90||Math.abs(n)>180)return;let r=t.toFixed(6),i=n.toFixed(6);return`https://www.openstreetmap.org/?mlat=${r}&mlon=${i}#map=16/${r}/${i}`}let $=class extends B{constructor(...e){super(...e),this._hoveredPoint=null,this._photoTip=!1,this._photoTipHovered=!1,this._photoTipPinned=!1,this._versionChecked=!1}static{this.styles=[Ye,mt]}static async getConfigElement(){return await Promise.resolve().then(()=>(Tt(),Ct)),document.createElement(`badegewaesser-austria-card-editor`)}static getStubConfig(e){return{device:Object.values(e.entities??{}).find(e=>e.platform===`badegewaesser_austria`&&e.device_id)?.device_id??``}}setConfig(e){if(!e)throw Error(U(`error.no_device`,void 0));this._config=Xe(e)}getCardSize(){let e=this._config,t=1,n=this.hass?this._siteEntities()?.[Q.photo]:void 0;return e?.show_photo!==!1&&(!this.hass||K(n))&&(t+=4),e?.show_season_track!==!1&&(t+=1),e?.show_readings!==!1&&(t+=3),t}getGridOptions(){return{columns:12,min_columns:6,rows:`auto`}}connectedCallback(){super.connectedCallback(),typeof ResizeObserver<`u`&&(this._resizeObserver=new ResizeObserver(e=>{let t=Math.round(e[0]?.contentRect.width??0);t>0&&t!==this._width&&(this._width=t)}),this._resizeObserver.observe(this))}disconnectedCallback(){this._resizeObserver?.disconnect(),this._resizeObserver=void 0,super.disconnectedCallback()}updated(){this._checkVersion()}async _checkVersion(){if(!this._versionChecked&&this.hass?.callWS){this._versionChecked=!0;try{let e=await this.hass.callWS({type:`${ht}/card_version`});e?.version&&e.version!==`0.1.0`&&(this._staleVersion=e.version)}catch{}}}async _reload(){try{if(`caches`in window){let e=await caches.keys();await Promise.all(e.map(e=>caches.delete(e)))}}catch{}location.reload()}_siteEntities(){let e=this.hass,t=Ze(e,this._config);if(!e||!t)return;let n={};for(let r of Object.values(e.entities??{}))r.device_id===t&&r.platform===`badegewaesser_austria`&&r.translation_key&&(n[r.translation_key]=e.states[r.entity_id]);return n}_deviceName(){let e=Ze(this.hass,this._config),t=e?this.hass?.devices?.[e]:void 0;return t?.name_by_user??t?.name}render(){let e=this._config,t=this.hass;if(!e||!t)return P;let n=J(t);if(!e.device&&!e.entity)return this._renderAlert(U(`error.no_device`,n));if(!e.device&&e.entity){let r=t.entities?.[e.entity];if(!r||!t.states[e.entity])return this._renderAlert(U(`error.entity_missing`,n,{entity:e.entity}));if(r.platform!==`badegewaesser_austria`)return this._renderAlert(U(`error.not_this_integration`,n,{entity:e.entity}))}let r=this._siteEntities()??{};if(Object.keys(r).length===0)return this._renderAlert(U(`error.device_missing`,n));let i=r[Q.temperature],a=r[Q.closed],o=r[Q.season],s=e.name??this._deviceName()??``,c=i?.attributes.season_samples??[],l=o?.state===`on`,u=a?.state===`on`,d=r[Q.photo],f=e.show_photo===!1?void 0:this._photoUrl(d),p=f!==void 0&&this._photoFailed!==f,m=this._renderMapLink(s,Mt(i),n);return j`
       <ha-card>
-        ${p?this._renderHero(f,d,s,i,c,n):P}
+        ${p?this._renderHero(f,d,s,m,i,c,n):P}
         ${this._renderVersionBanner(n)}
         ${u?this._renderClosure(a,n):P}
         <div class="body">
-          ${p?P:j`<h2 class="title">${s}</h2>
+          ${p?P:j`<div class="heading"><h2 class="title">${s}</h2>${m}</div>
                 ${this._renderPlace()}`}
           ${e.show_season_track===!1?P:this._renderSeason(i,c,l,n,p)}
           ${e.show_readings===!1?P:this._renderReadings(r,c,n)}
@@ -916,35 +981,35 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
         <span>${U(`card.closed`,t)}</span>
         ${typeof n==`string`&&n?j`<span class="closure-reason">${n}</span>`:P}
       </div>
-    `}_renderHero(e,t,n,r,i,a){let o=t?.attributes.attribution,s=typeof o==`string`?o:``,c=Ze(this.hass,this._config),l=c?this.hass?.devices?.[c]?.model:void 0,u=Y(q(r),a),d=r?.attributes.unit_of_measurement,f=i.at(-1),p=u===null?null:kt(i);return j`
+    `}_renderHero(e,t,n,r,i,a,o){let s=t?.attributes.attribution,c=typeof s==`string`?s:``,l=Ze(this.hass,this._config),u=l?this.hass?.devices?.[l]?.model:void 0,d=Y(q(i),o),f=i?.attributes.unit_of_measurement,p=a.at(-1),m=d===null?null:kt(a);return j`
       <div class="hero">
         <img
           class="hero-img"
           src=${e}
-          alt=${U(`card.photo_alt`,a,{name:n})}
+          alt=${U(`card.photo_alt`,o,{name:n})}
           width="600"
           height="210"
           decoding="async"
           @error=${()=>this._onPhotoError(e)}
         />
         <div class="hero-caption">
-          <h2 class="hero-title">${n}</h2>
-          ${l?j`<p class="hero-place">${l}</p>`:P}
-          <p class=${u===null?`hero-temperature is-missing`:`hero-temperature`}>
-            ${p?j`<ha-icon
+          <div class="hero-heading"><h2 class="hero-title">${n}</h2>${r}</div>
+          ${u?j`<p class="hero-place">${u}</p>`:P}
+          <p class=${d===null?`hero-temperature is-missing`:`hero-temperature`}>
+            ${m?j`<ha-icon
                     class="hero-trend"
-                    icon=${Dt[p.direction]}
+                    icon=${Dt[m.direction]}
                     aria-hidden="true"
                   ></ha-icon
                   ><span class="visually-hidden"
-                    >${U(`card.trend_${p.direction}`,a,{delta:`${Y(Math.abs(p.delta),a)??``} °C`})}</span
-                  >`:P}<span class="hero-value">${u??`—`}</span>${u!==null&&typeof d==`string`?j`<span class="hero-unit">${d}</span>`:P}
+                    >${U(`card.trend_${m.direction}`,o,{delta:`${Y(Math.abs(m.delta),o)??``} °C`})}</span
+                  >`:P}<span class="hero-value">${d??`—`}</span>${d!==null&&typeof f==`string`?j`<span class="hero-unit">${f}</span>`:P}
           </p>
-          ${f?j`<p class="hero-sampled">
-                ${U(`card.sampled_on`,a,{date:_t(/* @__PURE__ */ new Date(`${f.date}T00:00:00Z`),a)})}
+          ${p?j`<p class="hero-sampled">
+                ${U(`card.sampled_on`,o,{date:_t(/* @__PURE__ */ new Date(`${p.date}T00:00:00Z`),o)})}
               </p>`:P}
         </div>
-        ${s?this._renderPhotoCredit(s,a):P}
+        ${c?this._renderPhotoCredit(c,o):P}
       </div>
     `}_renderPhotoCredit(e,t){let n=()=>{this._photoTip=this._photoTipHovered||this._photoTipPinned},r=()=>{this._photoTipHovered=!1,this._photoTipPinned=!1,n()};return j`
       <div
@@ -969,7 +1034,15 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
           <span class="photo-tip-source">${U(`card.photo_source`,t)}</span>
         </div>
       </div>
-    `}_photoUrl(e){let t=e?.attributes.entity_picture;if(e&&K(e)&&typeof t==`string`)return this._photo?.state!==e.state&&(this._photo={state:e.state,url:t}),this._photo.url}_onPhotoError(e){let t=this._siteEntities()?.[Q.photo]?.attributes.entity_picture;if(typeof t==`string`&&t!==e){this._photo=void 0,this.requestUpdate();return}this._photoFailed=e}_renderTrend(e,t){return e?j`<ha-icon
+    `}_photoUrl(e){let t=e?.attributes.entity_picture;if(e&&K(e)&&typeof t==`string`)return this._photo?.state!==e.state&&(this._photo={state:e.state,url:t}),this._photo.url}_onPhotoError(e){let t=this._siteEntities()?.[Q.photo]?.attributes.entity_picture;if(typeof t==`string`&&t!==e){this._photo=void 0,this.requestUpdate();return}this._photoFailed=e}_renderMapLink(e,t,n){if(!t)return P;let r=U(`card.map_link`,n,{name:e});return j`<a
+      class="map-link"
+      href=${t}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label=${r}
+      title=${r}
+      ><ha-icon icon="mdi:map-marker" aria-hidden="true"></ha-icon
+    ></a>`}_renderTrend(e,t){return e?j`<ha-icon
         class="tile-trend"
         icon=${Dt[e.direction]}
         aria-hidden="true"
@@ -1027,4 +1100,4 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),V();const Ye=l`
         </dd>
         ${i?j`<dd class="tile-detail">${U(`card.below_limit`,r)}</dd>`:P}
       </div>
-    `}};X([Le({attribute:!1})],$.prototype,`hass`,void 0),X([H()],$.prototype,`_config`,void 0),X([H()],$.prototype,`_staleVersion`,void 0),X([H()],$.prototype,`_hoveredPoint`,void 0),X([H()],$.prototype,`_photoTip`,void 0),X([H()],$.prototype,`_photoFailed`,void 0),X([H()],$.prototype,`_width`,void 0),$=X([Fe(et)],$);const Mt=window;Mt.customCards=Mt.customCards??[],Mt.customCards.push({type:et,name:`Badegewässer Austria`,description:`Wasserqualität und Temperatur eines österreichischen Badegewässers`,preview:!0,documentationURL:`https://github.com/rolandzeiner/badegewaesser-austria`,getEntitySuggestion:(e,t)=>{let n=e.entities?.[t];return n?.platform!==`badegewaesser_austria`||!n.device_id?null:{config:{type:`custom:${et}`,device:n.device_id}}}});export{$ as BadegewaesserAustriaCard,jt as countTrend,Ot as sampleTrend,At as secchiTrend,kt as temperatureTrend};
+    `}};X([Le({attribute:!1})],$.prototype,`hass`,void 0),X([H()],$.prototype,`_config`,void 0),X([H()],$.prototype,`_staleVersion`,void 0),X([H()],$.prototype,`_hoveredPoint`,void 0),X([H()],$.prototype,`_photoTip`,void 0),X([H()],$.prototype,`_photoFailed`,void 0),X([H()],$.prototype,`_width`,void 0),$=X([Fe(et)],$);const Nt=window;Nt.customCards=Nt.customCards??[],Nt.customCards.push({type:et,name:`Badegewässer Austria`,description:`Wasserqualität und Temperatur eines österreichischen Badegewässers`,preview:!0,documentationURL:`https://github.com/rolandzeiner/badegewaesser-austria`,getEntitySuggestion:(e,t)=>{let n=e.entities?.[t];return n?.platform!==`badegewaesser_austria`||!n.device_id?null:{config:{type:`custom:${et}`,device:n.device_id}}}});export{$ as BadegewaesserAustriaCard,jt as countTrend,Ot as sampleTrend,At as secchiTrend,Mt as siteMapUrl,kt as temperatureTrend};

@@ -5,7 +5,8 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
+from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.core import HomeAssistant, State
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.badegewaesser_austria.const import (
@@ -15,6 +16,7 @@ from custom_components.badegewaesser_austria.const import (
 )
 from tests.conftest import (
     NEVER_SAMPLED_SITE_ID,
+    NULL_ISLAND_SITE_ID,
     UNRATED_SITE_ID,
     setup_entry,
 )
@@ -202,6 +204,92 @@ async def test_entities_go_unavailable_only_when_the_fetch_fails(
     await hass.async_block_till_done()
 
     assert hass.states.get(f"{PREFIX}water_temperature").state == "unavailable"
+
+
+def _temperature_state(hass: HomeAssistant, entry: MockConfigEntry) -> State:
+    """The water-temperature state of an entry, found by its unique_id."""
+    from homeassistant.helpers import entity_registry as er
+
+    entity_id = er.async_get(hass).async_get_entity_id(
+        "sensor", DOMAIN, f"{entry.entry_id}_water_temperature"
+    )
+    assert entity_id is not None
+    state = hass.states.get(entity_id)
+    assert state is not None
+    return state
+
+
+def _null_island_entry() -> MockConfigEntry:
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="Wolfgangsee, St. Gilgen - Gamsjaga",
+        data={CONF_SITE_ID: NULL_ISLAND_SITE_ID},
+        unique_id=NULL_ISLAND_SITE_ID,
+    )
+
+
+async def test_temperature_sensor_carries_the_position(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """Under HA's own names, so maps and find_coordinates understand it."""
+    await setup_entry(hass, config_entry)
+    attributes = _temperature_state(hass, config_entry).attributes
+    assert attributes[ATTR_LATITUDE] == pytest.approx(47.008287)
+    assert attributes[ATTR_LONGITUDE] == pytest.approx(16.163253)
+
+
+async def test_only_one_entity_per_lake_carries_the_position(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """HA's Map dashboard draws every entity with a position.
+
+    It is a map card with show_all, so the pair on all eight entities would
+    stack eight markers on each lake.
+    """
+    await setup_entry(hass, config_entry)
+    located = [
+        state.entity_id
+        for state in hass.states.async_all()
+        if ATTR_LATITUDE in state.attributes or ATTR_LONGITUDE in state.attributes
+    ]
+    assert located == [f"{PREFIX}water_temperature"]
+
+
+async def test_position_is_not_recorded(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """It never changes, so the recorder would only repeat the same pair."""
+    await setup_entry(hass, config_entry)
+    state_info = _temperature_state(hass, config_entry).state_info
+    assert state_info is not None
+    assert {ATTR_LATITUDE, ATTR_LONGITUDE, "season_samples"} <= state_info[
+        "unrecorded_attributes"
+    ]
+
+
+async def test_null_island_site_publishes_its_profile_position(
+    hass: HomeAssistant,
+) -> None:
+    """Gamsjaga's upstream "0"/"0" is replaced, never passed through."""
+    entry = await setup_entry(hass, _null_island_entry())
+    attributes = _temperature_state(hass, entry).attributes
+    assert attributes[ATTR_LATITUDE] == pytest.approx(47.7489768867)
+    assert attributes[ATTR_LONGITUDE] == pytest.approx(13.4191829076)
+
+
+async def test_no_position_means_no_attributes(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A site without a position stays off the map, not at (0, 0)."""
+    monkeypatch.setattr(
+        "custom_components.badegewaesser_austria.api.COORDINATE_FALLBACKS", {}
+    )
+    entry = await setup_entry(hass, _null_island_entry())
+    attributes = _temperature_state(hass, entry).attributes
+    assert ATTR_LATITUDE not in attributes
+    assert ATTR_LONGITUDE not in attributes
+    # The rest of the entity is unaffected.
+    assert "season_samples" in attributes
 
 
 async def test_unique_ids_are_entry_scoped(

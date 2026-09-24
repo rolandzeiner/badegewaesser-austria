@@ -18,6 +18,7 @@ import { CARD_TAG } from "./const";
 import {
   countTrend,
   secchiTrend,
+  siteMapUrl,
   temperatureTrend,
   type BadegewaesserAustriaCard,
 } from "./badegewaesser-austria-card";
@@ -44,6 +45,8 @@ function makeHass(overrides: Partial<HomeAssistant> = {}): HomeAssistant {
     entity("water_temperature", "26.2", {
       unit_of_measurement: "°C",
       season_samples: SAMPLES,
+      latitude: 47.008287,
+      longitude: 16.163253,
     }),
     entity("water_quality", "excellent", { rating_year: 2025, rating_class: "A" }),
     entity("e_coli", "15", {
@@ -737,6 +740,191 @@ describe("the photo header", () => {
     expect(q(card, ".hero")).toBeNull();
     expect(q(card, ".body .title")?.textContent).toBe("Naturbadesee Königsdorf");
     expect(q(card, ".body .temperature")).not.toBeNull();
+  });
+});
+
+describe("the map link", () => {
+  const TEMPERATURE = "sensor.koenigsdorf_water_temperature";
+  const OSM =
+    "https://www.openstreetmap.org/?mlat=47.008287&mlon=16.163253#map=16/47.008287/16.163253";
+
+  const link = (card: BadegewaesserAustriaCard) =>
+    card.shadowRoot?.querySelector<HTMLAnchorElement>(".map-link") ?? null;
+
+  /** The temperature sensor's position replaced; undefined removes it. */
+  function positioned(
+    latitude: unknown,
+    longitude: unknown,
+    hass: HomeAssistant = makeHass(),
+  ): HomeAssistant {
+    const state = hass.states[TEMPERATURE]!;
+    const attributes: Record<string, unknown> = { ...state.attributes, latitude, longitude };
+    if (latitude === undefined) delete attributes["latitude"];
+    if (longitude === undefined) delete attributes["longitude"];
+    hass.states[TEMPERATURE] = { ...state, attributes };
+    return hass;
+  }
+
+  function withPhoto(): HomeAssistant {
+    const hass = makeHass();
+    const photo = "image.koenigsdorf_photo";
+    hass.states[photo] = {
+      entity_id: photo,
+      state: "2016-05-12T10:38:28+00:00",
+      attributes: { entity_picture: `/api/image_proxy/${photo}?token=t`, attribution: "Foto: x" },
+    };
+    hass.entities![photo] = {
+      entity_id: photo,
+      device_id: DEVICE,
+      platform: PLATFORM,
+      translation_key: "photo",
+    };
+    return hass;
+  }
+
+  it("links to the bathing water on OpenStreetMap", async () => {
+    const card = await mount({ device: DEVICE });
+    expect(link(card)?.getAttribute("href")).toBe(OSM);
+  });
+
+  it("opens in a new tab, handing the map neither the opener nor a referrer", async () => {
+    const card = await mount({ device: DEVICE });
+    expect(link(card)?.getAttribute("target")).toBe("_blank");
+    expect(link(card)?.getAttribute("rel")?.split(" ")).toEqual(
+      expect.arrayContaining(["noopener", "noreferrer"]),
+    );
+  });
+
+  it("is named after the bathing water, with the pin itself hidden", async () => {
+    const card = await mount({ device: DEVICE });
+    expect(link(card)?.getAttribute("aria-label")).toBe(
+      "Naturbadesee Königsdorf auf der Karte zeigen",
+    );
+    const icon = link(card)?.querySelector("ha-icon");
+    expect(icon?.getAttribute("icon")).toBe("mdi:map-marker");
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
+    expect(link(card)?.textContent?.trim()).toBe("");
+  });
+
+  it("takes the title the user set, and the user's language", async () => {
+    const hass = makeHass({ language: "en", locale: { language: "en" } });
+    const card = await mount({ device: DEVICE, name: "Unser See" }, hass);
+    expect(link(card)?.getAttribute("aria-label")).toBe("Show Unser See on the map");
+  });
+
+  it("follows the name in the plain heading, outside the h2", async () => {
+    // Inside the h2, its name would join the heading's, and a list of
+    // headings would read the lake's name twice.
+    const card = await mount({ device: DEVICE });
+    const heading = card.shadowRoot?.querySelector(".body .heading");
+    expect(heading?.querySelector("h2.title + a.map-link")).not.toBeNull();
+    expect(heading?.querySelector("h2")?.textContent).toBe("Naturbadesee Königsdorf");
+    expect(heading?.querySelector("h2 a")).toBeNull();
+  });
+
+  it("sits right after the name, with no space that could break the line there", async () => {
+    const card = await mount({ device: DEVICE });
+    // Lit leaves a comment marker for the binding; any text node here would
+    // be whitespace, and a line could break on it.
+    let node = card.shadowRoot?.querySelector("h2.title")?.nextSibling ?? null;
+    while (node?.nodeType === Node.COMMENT_NODE) node = node.nextSibling;
+    expect(node).toBe(link(card));
+  });
+
+  it("follows the name on the photo too, and only there", async () => {
+    const card = await mount({ device: DEVICE }, withPhoto());
+    const heading = card.shadowRoot?.querySelector(".hero-caption .hero-heading");
+    expect(heading?.querySelector("h2.hero-title + a.map-link")).not.toBeNull();
+    expect(heading?.querySelector("h2")?.textContent).toBe("Naturbadesee Königsdorf");
+    expect(card.shadowRoot?.querySelectorAll(".map-link")).toHaveLength(1);
+  });
+
+  it("still shows when the photo is switched off", async () => {
+    const card = await mount({ device: DEVICE, show_photo: false }, withPhoto());
+    expect(card.shadowRoot?.querySelector(".hero")).toBeNull();
+    expect(card.shadowRoot?.querySelector(".body .heading .map-link")?.getAttribute("href")).toBe(
+      OSM,
+    );
+  });
+
+  it("is absent without a position, in both layouts", async () => {
+    const plain = await mount({ device: DEVICE }, positioned(undefined, undefined));
+    expect(link(plain)).toBeNull();
+    const photo = await mount({ device: DEVICE }, positioned(undefined, undefined, withPhoto()));
+    expect(photo.shadowRoot?.querySelector(".hero-heading")).not.toBeNull();
+    expect(link(photo)).toBeNull();
+  });
+
+  it("never links to 0,0", async () => {
+    // Upstream's "0" means "no position". The integration drops it; the card
+    // does not trust that it always will.
+    for (const [latitude, longitude] of [
+      [0, 0],
+      [0, 16.163253],
+      [47.008287, 0],
+    ]) {
+      const card = await mount({ device: DEVICE }, positioned(latitude, longitude));
+      expect(link(card)).toBeNull();
+    }
+  });
+
+  it("ignores a position that is not a pair of real coordinates", () => {
+    const at = (latitude: unknown, longitude: unknown) =>
+      siteMapUrl({ state: "20", attributes: { latitude, longitude } });
+    expect(at("47.008287", "16.163253")).toBeUndefined();
+    expect(at(47.008287, undefined)).toBeUndefined();
+    expect(at(Number.NaN, 16.163253)).toBeUndefined();
+    expect(at(47.008287, Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(at(91, 16.163253)).toBeUndefined();
+    expect(at(47.008287, -181)).toBeUndefined();
+    expect(siteMapUrl(undefined)).toBeUndefined();
+  });
+
+  it("rounds to six decimals, about ten centimetres", () => {
+    // Gamsjaga, whose position comes from its bathing-water profile.
+    expect(
+      siteMapUrl({ state: "20", attributes: { latitude: 47.7489768867, longitude: 13.4191829076 } }),
+    ).toBe(
+      "https://www.openstreetmap.org/?mlat=47.748977&mlon=13.419183#map=16/47.748977/13.419183",
+    );
+  });
+
+  describe("styles", () => {
+    // happy-dom does no layout, so these guard the CSS itself.
+    const rule = (selector: string): string => {
+      const css = cardStyles.cssText;
+      const start = css.indexOf(`${selector} {`);
+      return start < 0 ? "" : css.slice(start, css.indexOf("}", start));
+    };
+
+    it("gives the pin a target over the 24px minimum", () => {
+      expect(rule(".map-link")).toMatch(/inline-size:\s*32px/);
+      expect(rule(".map-link")).toMatch(/block-size:\s*32px/);
+    });
+
+    it("gives the line back the pin's extra height, so the baseline stays put", () => {
+      expect(rule(".map-link")).toMatch(/margin-block:\s*calc\(\(1\.2em - 32px\) \/ 2\)/);
+      expect(rule(".hero-heading")).toMatch(/line-height:\s*1\.2/);
+    });
+
+    it("rings the pin in white on the photo", () => {
+      expect(rule(".hero .map-link:focus-visible")).toMatch(/outline:\s*2px solid #fff/);
+    });
+
+    it("draws the ring inside the target, clear of the last word", () => {
+      // The global ring sits 2px outside; beside a word it would touch it.
+      expect(rule(".map-link:focus-visible")).toMatch(/outline-offset:\s*-2px/);
+      expect(rule(".hero .map-link:focus-visible")).toMatch(/outline-offset:\s*-2px/);
+      expect(rule(".map-link")).toMatch(/margin-inline:\s*2px/);
+    });
+
+    it("keeps the name a plain block that balances its lines", () => {
+      // A line clamp has no baseline for the grid; balance keeps the pin
+      // from ending up alone on the last line.
+      expect(rule(".hero-heading")).not.toMatch(/display:/);
+      expect(rule(".hero-heading")).toMatch(/text-wrap:\s*balance/);
+      expect(rule(".heading")).toMatch(/text-wrap:\s*balance/);
+    });
   });
 });
 

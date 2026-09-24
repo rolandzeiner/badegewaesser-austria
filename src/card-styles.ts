@@ -202,16 +202,27 @@ export const cardStyles = css`
     );
   }
 
-  /* A plain block on purpose. A line clamp (display: -webkit-box) has no
-     baseline to offer the grid, which then top-aligns the name and leaves
-     it floating above the temperature. */
-  .hero-title {
+  /* The name and its map pin, as one run of text. A plain block on purpose:
+     a line clamp (display: -webkit-box) has no baseline to offer the grid,
+     which then top-aligns the name and leaves it floating above the
+     temperature. The grid aligns this block's last line, and the pin keeps
+     that line's baseline where the text puts it (see .map-link). */
+  .hero-heading {
     grid-area: title;
-    margin: 0;
     font-size: var(--ha-font-size-xl, 1.429rem);
     font-weight: var(--ha-font-weight-bold, 600);
     line-height: 1.2;
+    /* Also what keeps the pin off a line of its own: balancing spreads the
+       words over the lines, so the last one keeps a word beside the pin. */
     text-wrap: balance;
+  }
+
+  /* Inline, so the pin after it continues the same line. */
+  .hero-title,
+  .title {
+    display: inline;
+    margin: 0;
+    font: inherit;
   }
 
   .hero-place {
@@ -341,12 +352,66 @@ export const cardStyles = css`
 
   /* -- heading ---------------------------------------------------------- */
 
-  .title {
-    margin: 0;
+  /* Without a photo. The same run of name and pin as .hero-heading, and
+     balanced for the same reason. */
+  .heading {
     font-size: var(--ha-font-size-l, 1.143rem);
     font-weight: var(--ha-font-weight-medium, 500);
     line-height: var(--ha-line-height-condensed, 1.2);
     color: var(--primary-text-color);
+    text-wrap: balance;
+  }
+
+  /* -- map link --------------------------------------------------------- */
+
+  /* 32px, like the photo credit's button: over the 24px WCAG 2.5.8 minimum,
+     and about a fingertip. The negative block margins give the line back
+     what the box takes beyond one line of text (1.2em), so the name's last
+     line keeps its height and its baseline, which is what the temperature
+     aligns to. The box's own padding makes the gap to the last word; the
+     2px before it keeps the focus ring off that word, and the padding after
+     the icon is handed back, so a short name on a narrow card does not wrap
+     for the sake of empty space. */
+  .map-link {
+    --mdc-icon-size: 1.1em;
+    display: inline-grid;
+    place-items: center;
+    inline-size: 32px;
+    block-size: 32px;
+    margin-block: calc((1.2em - 32px) / 2);
+    margin-inline: 2px calc((1.1em - 32px) / 2);
+    vertical-align: middle;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    text-decoration: none;
+  }
+
+  .map-link:hover {
+    color: var(--primary-text-color);
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+
+  /* Inside the target rather than around it: the ring then marks exactly
+     what a tap hits, and stays clear of the name. */
+  .map-link:focus-visible {
+    outline-offset: -2px;
+  }
+
+  /* On the photo the pin is white on the band: 4.7:1 over pure white, above
+     the 3:1 WCAG 1.4.11 asks of an icon. Hover darkens rather than tints, as
+     on the credit button, so the contrast only goes up. */
+  .hero .map-link {
+    color: inherit;
+  }
+
+  .hero .map-link:hover {
+    background: rgb(0 0 0 / 0.3);
+  }
+
+  /* The body's teal ring would disappear against the band. */
+  .hero .map-link:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
   }
 
   .place {
@@ -582,7 +647,7 @@ export const cardStyles = css`
     .hero-trend {
       --mdc-icon-size: 1.25rem;
     }
-    .hero-title {
+    .hero-heading {
       font-size: var(--ha-font-size-l, 1.143rem);
     }
     .hero-sampled {
