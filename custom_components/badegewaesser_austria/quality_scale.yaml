@@ -23,8 +23,8 @@ rules:
       justification for 6 h is TGESPERRT, an acute closure that can post any
       day during the season.
   brands:
-    status: todo
-    comment: Local brand/ assets land in Phase 5.
+    status: done
+    comment: Local brand/ assets (icon, icon@2x, logo), read by HA 2026.3+.
   common-modules:
     status: done
     comment: api.py / coordinator.py / entity.py split.
