@@ -152,6 +152,16 @@ MONITORING_START_DAY: Final = 15
 MONITORING_END_MONTH: Final = 8
 MONITORING_END_DAY: Final = 31
 
+# THE LATE-RESULTS TAIL. Sampling stops on 31 August, but results arrive after
+# the lab work, so the last samples of August can be published in September.
+# The 9 Sep 2025 archive copy of the document already held a 29 Aug sample;
+# upload times are not published, so the tail is a whole month rather than a
+# measured lag. Without it, a late result would wait for the next May.
+LATE_RESULTS_START_MONTH: Final = 9
+LATE_RESULTS_START_DAY: Final = 1
+LATE_RESULTS_END_MONTH: Final = 9
+LATE_RESULTS_END_DAY: Final = 30
+
 # ---------------------------------------------------------------------------
 # Poll cadence
 # ---------------------------------------------------------------------------
@@ -163,10 +173,31 @@ MONITORING_END_DAY: Final = 31
 # during the season and is the one thing a bather needs promptly.
 DEFAULT_SCAN_INTERVAL_SEASON_HOURS: Final = 6
 
-# Out of season nothing can change at all: no samples are taken and the annual
-# rating is already fixed. 24 KB/day is a courtesy poll that keeps the entry
-# alive and picks up the new annual rating when AGES publishes it.
-DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS: Final = 24
+# In the late-results tail. Daily is plenty for a result that is days late;
+# never faster than the season's own interval, if that is set longer.
+LATE_RESULTS_POLL_HOURS: Final = 24
+
+# From 1 October to 14 May there is NO poll at all: the next one is scheduled
+# for the day the monitoring window opens. Nothing in the document moves in
+# those months except the annual rating, and when that appears was checked on
+# 2026-09-24 against the Wayback Machine's copies of the document:
+#   25 Nov 2020  QUALITAET_2020 still empty      12 May 2025  QUALITAET_2024 filled
+#   and every copy from mid-May on holds the previous season's rating.
+# The classification must reach the Commission by 31 December (Directive
+# 2006/7/EC Art. 13) and the public before the season, so AGES publishes it
+# somewhere from December to mid-May, and the first poll on 15 May finds it.
+# Every Home Assistant restart fetches once anyway, since the snapshot is not
+# stored, so a restart in the winter picks it up sooner.
+#
+# A dormant poll wakes every install on the same day, so the wake-up is
+# spread over one season interval instead of the ten minutes of POLL_JITTER.
+# After months asleep, every install's phase would otherwise be the same.
+WAKE_SPREAD_SECONDS: Final = DEFAULT_SCAN_INTERVAL_SEASON_HOURS * 3600
+
+# While polling sleeps, a config flow or an entry setup still refetches a
+# snapshot older than this, so a bathing water added in winter starts from
+# today's document. Only user actions trigger it.
+MAX_SNAPSHOT_AGE_HOURS: Final = 24
 
 # Enforced in the coordinator, not only in the options-flow hints — a user
 # editing the entry directly must not be able to go below this.
@@ -189,7 +220,9 @@ BACKOFF_AFTER_FAILURES: Final = 2
 
 CONF_SITE_ID: Final = "site_id"
 CONF_SCAN_INTERVAL_SEASON_HOURS: Final = "scan_interval_season_hours"
-CONF_SCAN_INTERVAL_OFFSEASON_HOURS: Final = "scan_interval_offseason_hours"
+# "scan_interval_offseason_hours" was the second option until 0.2.0, when the
+# off-season poll went away. Entries that stored it keep the key; it is
+# ignored, and the options form drops it the next time it is saved.
 
 # ---------------------------------------------------------------------------
 # Data semantics

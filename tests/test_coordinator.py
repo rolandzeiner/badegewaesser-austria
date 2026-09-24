@@ -7,13 +7,14 @@ in the options form, produces no error anywhere. It is asserted directly.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.badegewaesser_austria.api import (
@@ -21,21 +22,25 @@ from custom_components.badegewaesser_austria.api import (
     BadegewaesserClient,
 )
 from custom_components.badegewaesser_austria.const import (
-    CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
     CONF_SCAN_INTERVAL_SEASON_HOURS,
     CONF_SITE_ID,
-    DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS,
     DEFAULT_SCAN_INTERVAL_SEASON_HOURS,
     DOMAIN,
+    LATE_RESULTS_POLL_HOURS,
     MAX_POLL_HOURS,
+    MAX_SNAPSHOT_AGE_HOURS,
     MIN_POLL_HOURS,
+    POLL_JITTER_SECONDS,
+    WAKE_SPREAD_SECONDS,
 )
 from custom_components.badegewaesser_austria.coordinator import (
     BadegewaesserCoordinator,
     async_get_coordinator,
     clamp_poll_hours,
     is_in_season,
+    is_late_results_window,
     is_monitoring_window,
+    next_monitoring_start,
 )
 from tests.test_api import NORMAL, fixture_bytes, make_session
 
@@ -45,7 +50,7 @@ def build_coordinator(
 ) -> BadegewaesserCoordinator:
     """A coordinator with jitter pinned to zero so intervals are exact."""
     client = BadegewaesserClient(session or make_session(fixture_bytes()))
-    return BadegewaesserCoordinator(hass, client, jitter=lambda: 0.0)
+    return BadegewaesserCoordinator(hass, client, jitter=lambda _spread: 0.0)
 
 
 def hours(coordinator: BadegewaesserCoordinator) -> float:
@@ -165,17 +170,6 @@ async def test_in_season_uses_the_season_default(hass: HomeAssistant) -> None:
     assert hours(coordinator) == DEFAULT_SCAN_INTERVAL_SEASON_HOURS
 
 
-async def test_out_of_season_uses_the_offseason_default(hass: HomeAssistant) -> None:
-    """Nothing can change out of season, so the poll slows to a courtesy call."""
-    coordinator = build_coordinator(hass)
-    with patch(
-        "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
-        return_value=False,
-    ):
-        coordinator.update_interval = coordinator._compute_interval()
-    assert hours(coordinator) == DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS
-
-
 async def test_shortest_configured_interval_wins(hass: HomeAssistant) -> None:
     """One shared poller cannot honour several cadences at once.
 
@@ -222,32 +216,10 @@ async def test_a_below_floor_option_is_clamped_not_honoured(
     assert hours(coordinator) == MIN_POLL_HOURS
 
 
-async def test_offseason_option_is_read_out_of_season(hass: HomeAssistant) -> None:
-    """The two options are not interchangeable."""
-    MockConfigEntry(
-        domain=DOMAIN,
-        data={CONF_SITE_ID: "x"},
-        options={
-            CONF_SCAN_INTERVAL_SEASON_HOURS: 4,
-            CONF_SCAN_INTERVAL_OFFSEASON_HOURS: 48,
-        },
-        unique_id="x",
-    ).add_to_hass(hass)
-
-    coordinator = build_coordinator(hass)
-    with patch(
-        "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
-        return_value=False,
-    ):
-        coordinator.update_interval = coordinator._compute_interval()
-
-    assert hours(coordinator) == 48
-
-
 async def test_jitter_is_added_to_every_cycle(hass: HomeAssistant) -> None:
     """Spreads installs, and stops a fleet re-synchronising after an outage."""
     client = BadegewaesserClient(make_session(fixture_bytes()))
-    coordinator = BadegewaesserCoordinator(hass, client, jitter=lambda: 300.0)
+    coordinator = BadegewaesserCoordinator(hass, client, jitter=lambda _spread: 300.0)
     with patch(
         "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
         return_value=True,
@@ -256,6 +228,218 @@ async def test_jitter_is_added_to_every_cycle(hass: HomeAssistant) -> None:
     assert coordinator.update_interval == timedelta(
         hours=DEFAULT_SCAN_INTERVAL_SEASON_HOURS, seconds=300
     )
+
+
+# --- the year's schedule --------------------------------------------------
+#
+# 15 May - 31 Aug at the season interval, September daily for late lab
+# results, and from October to 14 May nothing: the next poll is the one that
+# opens the window. These run on Vienna time, frozen, because the boundaries
+# are local midnights and the wake-up spans a DST change.
+
+
+@pytest.fixture
+async def vienna(hass: HomeAssistant) -> None:
+    """Austrian time, not the test harness's default zone."""
+    await hass.config.async_set_time_zone("Europe/Vienna")
+
+
+def at(freezer: FrozenDateTimeFactory, *parts: int) -> None:
+    """Freeze at a Vienna wall-clock time."""
+    freezer.move_to(datetime(*parts, tzinfo=dt_util.get_default_time_zone()))
+
+
+def lands_at(coordinator: BadegewaesserCoordinator) -> datetime:
+    """The local wall-clock time the next poll is due."""
+    assert coordinator.update_interval is not None
+    return dt_util.as_local(dt_util.utcnow() + coordinator.update_interval)
+
+
+@pytest.mark.parametrize(
+    ("day", "expected"),
+    [
+        (date(2026, 8, 31), False),  # still the monitoring window
+        (date(2026, 9, 1), True),
+        (date(2026, 9, 30), True),
+        (date(2026, 10, 1), False),
+    ],
+)
+def test_late_results_window(day: date, expected: bool) -> None:
+    """September, for the results of August's last samples."""
+    assert is_late_results_window(day) is expected
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_september_polls_daily(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    at(freezer, 2026, 9, 10, 12, 0)
+    coordinator = build_coordinator(hass)
+    assert hours(coordinator) == LATE_RESULTS_POLL_HOURS
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_september_never_polls_faster_than_the_season(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """Someone who set the season to every two days gets no daily tail."""
+    _entry_asking_for(hass, 48)
+    at(freezer, 2026, 9, 10, 12, 0)
+    coordinator = build_coordinator(hass)
+    assert hours(coordinator) == 48
+
+
+@pytest.mark.usefixtures("vienna")
+@pytest.mark.parametrize(
+    ("now", "wake_year"),
+    [
+        ((2026, 11, 3, 12, 0), 2027),  # autumn: next year's window
+        ((2027, 3, 1, 9, 30), 2027),  # spring: this year's
+        ((2027, 5, 14, 23, 59), 2027),  # the last minute of it
+    ],
+)
+async def test_dormant_months_sleep_until_the_window_opens(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+    now: tuple[int, ...],
+    wake_year: int,
+) -> None:
+    """To the minute: local midnight on 15 May, whatever DST did in between.
+
+    Both autumn cases cross the March change to summer time. Subtracting two
+    local times in one zone ignores the offset, which would land at 01:00.
+    """
+    at(freezer, *now)
+    coordinator = build_coordinator(hass)
+    assert lands_at(coordinator) == datetime(
+        wake_year, 5, 15, tzinfo=dt_util.get_default_time_zone()
+    )
+
+
+def test_next_monitoring_start_is_always_ahead() -> None:
+    zone = dt_util.get_default_time_zone()
+    assert next_monitoring_start(datetime(2026, 10, 1, tzinfo=zone)).year == 2027
+    assert next_monitoring_start(datetime(2027, 1, 1, tzinfo=zone)).year == 2027
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_the_tail_ends_without_a_stray_october_poll(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """A September poll whose successor would fall in October wakes in May."""
+    at(freezer, 2026, 9, 30, 20, 0)
+    coordinator = build_coordinator(hass)
+    assert lands_at(coordinator).date() == date(2027, 5, 15)
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_the_season_rolls_into_the_tail(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """31 August at 22:00 plus six hours is 1 September, which still polls."""
+    at(freezer, 2026, 8, 31, 22, 0)
+    coordinator = build_coordinator(hass)
+    assert hours(coordinator) == DEFAULT_SCAN_INTERVAL_SEASON_HOURS
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_the_wake_up_is_spread_wider_than_a_poll(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """Every install wakes on 15 May, so ten minutes of jitter is not enough."""
+    spreads: list[float] = []
+
+    def record(spread: float) -> float:
+        spreads.append(spread)
+        return 0.0
+
+    client = BadegewaesserClient(make_session(fixture_bytes()))
+    at(freezer, 2026, 11, 3, 12, 0)
+    BadegewaesserCoordinator(hass, client, jitter=record)
+    at(freezer, 2026, 7, 3, 12, 0)
+    BadegewaesserCoordinator(hass, client, jitter=record)
+
+    assert spreads == [WAKE_SPREAD_SECONDS, POLL_JITTER_SECONDS]
+    assert WAKE_SPREAD_SECONDS == DEFAULT_SCAN_INTERVAL_SEASON_HOURS * 3600
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_a_failing_poll_never_goes_dormant(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """Asleep while failing would leave every entity unavailable until May.
+
+    Retries run daily in the dormant months and back off as they do in the
+    season: no penalty for the first, doubling from the second, to a week.
+    """
+    at(freezer, 2026, 11, 3, 12, 0)
+    coordinator = build_coordinator(hass)
+    expectations = {1: 24, 2: 48, 3: 96, 4: MAX_POLL_HOURS, 9: MAX_POLL_HOURS}
+    for failures, expected in expectations.items():
+        coordinator._consecutive_failures = failures
+        coordinator.update_interval = coordinator._compute_interval()
+        assert hours(coordinator) == expected, f"after {failures} failures"
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_a_failure_at_the_end_of_september_keeps_retrying(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """The retry lands in October, and still happens."""
+    at(freezer, 2026, 9, 30, 20, 0)
+    coordinator = build_coordinator(hass)
+    coordinator._consecutive_failures = 1
+    coordinator.update_interval = coordinator._compute_interval()
+    assert hours(coordinator) == LATE_RESULTS_POLL_HOURS
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_the_first_success_after_a_winter_failure_goes_dormant(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    at(freezer, 2026, 12, 1, 8, 0)
+    coordinator = build_coordinator(hass)
+    coordinator._consecutive_failures = 3
+    await coordinator._async_update_data()
+    assert lands_at(coordinator).date() == date(2027, 5, 15)
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_a_stored_offseason_option_is_ignored(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """The key predates 0.2.0; entries that saved it keep it, unread."""
+    MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_SITE_ID: "x"},
+        options={
+            CONF_SCAN_INTERVAL_SEASON_HOURS: 4,
+            "scan_interval_offseason_hours": 48,
+        },
+        unique_id="x",
+    ).add_to_hass(hass)
+    at(freezer, 2026, 11, 3, 12, 0)
+    coordinator = build_coordinator(hass)
+    assert lands_at(coordinator).date() == date(2027, 5, 15)
+
+
+@pytest.mark.usefixtures("vienna")
+async def test_while_asleep_a_snapshot_older_than_a_day_is_refetched(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """A bathing water added in January must not start from October's data."""
+    session = make_session(fixture_bytes(), fixture_bytes(), fixture_bytes())
+    at(freezer, 2026, 11, 3, 12, 0)
+    coordinator = build_coordinator(hass, session)
+    assert await coordinator.async_ensure_fresh()
+
+    freezer.tick(timedelta(hours=MAX_SNAPSHOT_AGE_HOURS - 1))
+    assert await coordinator.async_ensure_fresh()
+    assert session.get.call_count == 1
+
+    freezer.tick(timedelta(hours=2))
+    assert await coordinator.async_ensure_fresh()
+    assert session.get.call_count == 2
 
 
 # --- applying a cadence change ---------------------------------------------
@@ -312,7 +496,7 @@ async def test_jitter_alone_does_not_restart_the_timer(hass: HomeAssistant) -> N
         return_value=True,
     ):
         coordinator = BadegewaesserCoordinator(
-            hass, client, jitter=lambda: next(jitters)
+            hass, client, jitter=lambda _spread: next(jitters)
         )
         unsubscribe = coordinator.async_add_listener(lambda: None)
         with patch.object(coordinator, "_schedule_refresh") as reschedule:

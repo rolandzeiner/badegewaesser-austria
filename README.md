@@ -40,6 +40,7 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 - **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
 - **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
 - **A photo of the bathing spot** — the picture AGES shows for the site, as an `image` entity and as the card's header, with the name, the Bundesland and the water temperature over it. Its credit is behind the ⓘ button on the photo. 259 of the 260 have one *(0.2.0)*
+- **Quiet out of season** — from October to mid-May, when nothing can change, the integration stops polling. Through September it still checks once a day for late lab results *(0.2.0)*
 - **On the map** — each bathing water shows up as a marker on Home Assistant's map. On the card, the map button swaps the photo for a map of the bathing water and back, and the pin next to the name opens it on OpenStreetMap. Your browser talks only to Home Assistant until you select the pin *(0.2.0)*
 
 ## Requirements
@@ -113,9 +114,12 @@ The integration polls once for every bathing water you follow, because AGES publ
 | When | Default | Why |
 |---|---|---|
 | Readings arrive (15 May – 31 Aug) | every 6 hours | Samples arrive about every 20 days, so this is already far faster than the data moves. The reason for 6 hours is a closure, which can be posted any day. |
-| Rest of the year | every 24 hours | Nothing changes. This is a courtesy poll that picks up the new annual classification when AGES publishes it. |
+| Late results (September) | every 24 hours | Sampling has stopped, but lab results for the last samples of August can still come in. |
+| 1 Oct – 14 May | no polls | Nothing changes. The next poll comes on 15 May, at a random time in its first six hours. AGES publishes the new annual classification before the season, so that poll picks it up. |
 
-You can set both intervals in the entry's **Configure** dialog, between 3 and 168 hours. Entries share one poll, so the shortest interval you set applies to all of them.
+You can set the season interval in the entry's **Configure** dialog, between 3 and 168 hours. Entries share one poll, so the shortest interval you set applies to all of them.
+
+Home Assistant also fetches the document once at every restart, since the integration keeps no copy on disk. If a poll fails, the integration keeps retrying, daily outside the season, until one succeeds.
 
 The integration sends no `If-Modified-Since` header, on purpose. AGES regenerates the file every ten minutes whether or not anything changed, so a cached copy is never considered fresh and the request would return the whole document anyway. Instead it fingerprints the content and skips the parse when nothing moved.
 

@@ -33,12 +33,16 @@ from homeassistant.util.hass_dict import HassKey
 from .api import BadegewaesserApiError, BadegewaesserClient, BathingSite
 from .const import (
     BACKOFF_AFTER_FAILURES,
-    CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
     CONF_SCAN_INTERVAL_SEASON_HOURS,
-    DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS,
     DEFAULT_SCAN_INTERVAL_SEASON_HOURS,
     DOMAIN,
+    LATE_RESULTS_END_DAY,
+    LATE_RESULTS_END_MONTH,
+    LATE_RESULTS_POLL_HOURS,
+    LATE_RESULTS_START_DAY,
+    LATE_RESULTS_START_MONTH,
     MAX_POLL_HOURS,
+    MAX_SNAPSHOT_AGE_HOURS,
     MIN_POLL_HOURS,
     MONITORING_END_DAY,
     MONITORING_END_MONTH,
@@ -49,6 +53,7 @@ from .const import (
     SEASON_END_MONTH,
     SEASON_START_DAY,
     SEASON_START_MONTH,
+    WAKE_SPREAD_SECONDS,
 )
 
 if TYPE_CHECKING:
@@ -108,14 +113,45 @@ def is_monitoring_window(day: date) -> bool:
 
     Wider than the legal season at the front, because every bathing water gets
     one mandated pre-season sample and those land between 26 May and 10 June.
-    Polling on the legal season alone would sleep through all 260 of them at
-    the 24-hour off-season cadence.
+    Polling on the legal season alone would sleep through all 260 of them.
     """
     return _within(
         day,
         (MONITORING_START_MONTH, MONITORING_START_DAY),
         (MONITORING_END_MONTH, MONITORING_END_DAY),
     )
+
+
+@callback
+def is_late_results_window(day: date) -> bool:
+    """Can a result for a sample already taken still arrive on `day`?
+
+    September: sampling has stopped, but the lab results for the last samples
+    of August may still be published.
+    """
+    return _within(
+        day,
+        (LATE_RESULTS_START_MONTH, LATE_RESULTS_START_DAY),
+        (LATE_RESULTS_END_MONTH, LATE_RESULTS_END_DAY),
+    )
+
+
+@callback
+def next_monitoring_start(now: datetime) -> datetime:
+    """Local midnight on the next day the monitoring window opens.
+
+    Only asked for while polling sleeps, from October to 14 May, so the
+    window opens later this year or in the next one.
+    """
+    start = now.replace(
+        month=MONITORING_START_MONTH,
+        day=MONITORING_START_DAY,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    return start if start > now else start.replace(year=start.year + 1)
 
 
 @callback
@@ -160,7 +196,7 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
         hass: HomeAssistant,
         client: BadegewaesserClient,
         *,
-        jitter: Callable[[], float] | None = None,
+        jitter: Callable[[float], float] | None = None,
     ) -> None:
         """Create the shared coordinator.
 
@@ -178,7 +214,9 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
             always_update=False,
         )
         self.client = client
-        self._jitter = jitter or (lambda: random.uniform(0, POLL_JITTER_SECONDS))
+        # Takes the spread in seconds and returns a delay within it: the
+        # poll's own jitter, or the wider one for waking from dormancy.
+        self._jitter = jitter or (lambda spread: random.uniform(0, spread))
         self._consecutive_failures = 0
         # Tracked here rather than inside the snapshot: the snapshot must stay
         # identity-stable across an unchanged fetch for `always_update=False`
@@ -195,8 +233,8 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
         return self._consecutive_failures
 
     @callback
-    def _base_hours(self) -> int:
-        """The configured base interval for right now, in hours.
+    def _season_hours(self) -> int:
+        """The configured in-season interval, in hours.
 
         Entries may be configured differently, and one shared poller cannot
         honour several cadences at once. It polls at the SHORTEST interval any
@@ -204,26 +242,31 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
         and every other entry gets fresher data at no extra cost, since the
         request is shared anyway.
         """
-        # The MONITORING window, not the legal season: the point of the fast
-        # cadence is catching data that moves, and the pre-season sample moves
-        # a month before the season opens.
-        in_season = is_monitoring_window(dt_util.now().date())
-        key = (
-            CONF_SCAN_INTERVAL_SEASON_HOURS
-            if in_season
-            else CONF_SCAN_INTERVAL_OFFSEASON_HOURS
-        )
-        default = (
-            DEFAULT_SCAN_INTERVAL_SEASON_HOURS
-            if in_season
-            else DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS
-        )
+        default = DEFAULT_SCAN_INTERVAL_SEASON_HOURS
         entries: list[ConfigEntry] = self.hass.config_entries.async_entries(DOMAIN)
         configured = [
-            clamp_poll_hours(entry.options.get(key, default), default)
+            clamp_poll_hours(
+                entry.options.get(CONF_SCAN_INTERVAL_SEASON_HOURS, default), default
+            )
             for entry in entries
         ]
-        return min(configured) if configured else clamp_poll_hours(default, default)
+        return min(configured) if configured else default
+
+    @callback
+    def _active_hours(self, day: date) -> int | None:
+        """The poll interval on `day`, or None while polling sleeps.
+
+        The MONITORING window, not the legal season, sets the fast cadence:
+        the point of it is catching data that moves, and the pre-season
+        sample moves a month before the season opens. September polls daily
+        for late results, and never faster than the season does. From
+        October to 14 May nothing is polled at all; see const.py.
+        """
+        if is_monitoring_window(day):
+            return self._season_hours()
+        if is_late_results_window(day):
+            return max(LATE_RESULTS_POLL_HOURS, self._season_hours())
+        return None
 
     @callback
     def _backoff_factor(self) -> int:
@@ -240,12 +283,32 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
 
     @callback
     def _compute_interval(self) -> timedelta:
-        """Base cadence x backoff, clamped, plus jitter."""
-        hours = min(self._base_hours() * self._backoff_factor(), MAX_POLL_HOURS)
-        # Jitter every cycle rather than only the first: it spreads installs
-        # that were started together, and stops a fleet re-synchronising after
-        # a shared outage ends.
-        return timedelta(seconds=hours * 3600 + self._jitter())
+        """Until the next poll: the cadence for today, or until May.
+
+        Jitter goes on every cycle rather than only the first: it spreads
+        installs that were started together, and stops a fleet
+        re-synchronising after a shared outage ends.
+        """
+        now = dt_util.now()
+        hours = self._active_hours(now.date())
+        if self._consecutive_failures:
+            # Never asleep while failing: the entities stay unavailable until
+            # a poll succeeds, and going dormant after a failure in late
+            # September would leave them so until May. Retries run at today's
+            # cadence, daily in the dormant months, and back off from there.
+            retry = hours if hours is not None else LATE_RESULTS_POLL_HOURS
+            retry = min(retry * self._backoff_factor(), MAX_POLL_HOURS)
+            return timedelta(seconds=retry * 3600 + self._jitter(POLL_JITTER_SECONDS))
+        if hours is not None:
+            interval = timedelta(hours=hours)
+            # A poll that would land in the dormant months is skipped for the
+            # wake-up in May, so the tail does not end on a stray 1 October poll.
+            if self._active_hours((now + interval).date()) is not None:
+                return interval + timedelta(seconds=self._jitter(POLL_JITTER_SECONDS))
+        # In UTC, because subtracting two local times in the same zone ignores
+        # their offsets and would be an hour out across the DST change.
+        wake = dt_util.as_utc(next_monitoring_start(now)) - dt_util.utcnow()
+        return wake + timedelta(seconds=self._jitter(WAKE_SPREAD_SECONDS))
 
     @callback
     def async_update_cadence(self) -> None:
@@ -253,8 +316,7 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
 
         Called on every entry setup, which is also what an options change
         triggers via the reload listener. Without it the new interval only
-        took effect after one more poll at the old one — up to a day late out
-        of season.
+        took effect after one more poll at the old one.
 
         With no subscribed entities there is no timer, and the first entity
         to subscribe schedules with the new value anyway. With other entries
@@ -277,10 +339,16 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
 
     @callback
     def _snapshot_is_stale(self) -> bool:
-        """Is the snapshot older than the cadence says it may be?"""
+        """Is the snapshot older than the cadence, or than a day, allows?
+
+        The day matters while polling sleeps: the interval then runs to May,
+        and a bathing water added in January would start from October's
+        document.
+        """
         if self.last_fetch_utc is None or self.update_interval is None:
             return True
-        return dt_util.utcnow() - self.last_fetch_utc > self.update_interval
+        limit = min(self.update_interval, timedelta(hours=MAX_SNAPSHOT_AGE_HOURS))
+        return dt_util.utcnow() - self.last_fetch_utc > limit
 
     async def async_ensure_fresh(self) -> bool:
         """Make sure the snapshot is worth serving, fetching first if not.

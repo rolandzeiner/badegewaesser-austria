@@ -13,7 +13,6 @@ from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.badegewaesser_austria.const import (
-    CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
     CONF_SCAN_INTERVAL_SEASON_HOURS,
     CONF_SITE_ID,
     DOMAIN,
@@ -103,10 +102,7 @@ async def test_an_options_change_applies_the_new_interval_at_once(
         await setup_entry(hass, config_entry)
         hass.config_entries.async_update_entry(
             config_entry,
-            options={
-                CONF_SCAN_INTERVAL_SEASON_HOURS: 3,
-                CONF_SCAN_INTERVAL_OFFSEASON_HOURS: 24,
-            },
+            options={CONF_SCAN_INTERVAL_SEASON_HOURS: 3},
         )
         await hass.async_block_till_done()
 

@@ -18,9 +18,9 @@ import pytest
 
 from custom_components.badegewaesser_austria.const import (
     ATTRIBUTION,
-    DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS,
     DEFAULT_SCAN_INTERVAL_SEASON_HOURS,
     INTEGRATION_VERSION,
+    LATE_RESULTS_POLL_HOURS,
     MAX_POLL_HOURS,
     MIN_POLL_HOURS,
     MONITORING_END_DAY,
@@ -99,7 +99,8 @@ def test_documented_quality_states_match_the_code() -> None:
 def test_documented_poll_intervals_match_the_defaults() -> None:
     """Cadence is the most-read number in the file and the easiest to drift."""
     assert f"every {DEFAULT_SCAN_INTERVAL_SEASON_HOURS} hours" in README
-    assert f"every {DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS} hours" in README
+    assert f"every {LATE_RESULTS_POLL_HOURS} hours" in README
+    assert "| 1 Oct – 14 May | no polls |" in README
     assert f"between {MIN_POLL_HOURS} and {MAX_POLL_HOURS} hours" in README
 
 

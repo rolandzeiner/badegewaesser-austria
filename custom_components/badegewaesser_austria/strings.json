@@ -41,14 +41,12 @@
     "step": {
       "init": {
         "title": "Update interval",
-        "description": "All entries share one request, so the shortest interval set here wins.",
+        "description": "All entries share one request, so the shortest interval set here wins. After the season, the integration checks once a day for late lab results until the end of September, then pauses until 15 May.",
         "data": {
-          "scan_interval_season_hours": "During the bathing season",
-          "scan_interval_offseason_hours": "Outside the season"
+          "scan_interval_season_hours": "During the bathing season"
         },
         "data_description": {
-          "scan_interval_season_hours": "15 May to 31 August, when readings arrive. Samples come about every 20 days, so checking more often mainly helps catch a short-notice closure.",
-          "scan_interval_offseason_hours": "From September to mid-May nothing changes — last summer's readings and the annual rating stay as they are."
+          "scan_interval_season_hours": "15 May to 31 August, when readings arrive. Samples come about every 20 days, so checking more often mainly helps catch a short-notice closure."
         }
       }
     }
