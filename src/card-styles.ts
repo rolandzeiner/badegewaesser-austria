@@ -630,6 +630,16 @@ export const cardStyles = css`
     margin: 0;
   }
 
+  /* Hovering or tapping a measurement puts its season on the track; the
+     tile's label lights up to say which reading the track now shows. */
+  .tile.is-trackable {
+    cursor: pointer;
+  }
+
+  .tile.is-tracked dt {
+    color: var(--primary-text-color);
+  }
+
   /* Proportional figures: these are standalone values, not a column of
      numbers that has to line up. */
   /* A gap rather than margins between value and unit: where a narrow tile

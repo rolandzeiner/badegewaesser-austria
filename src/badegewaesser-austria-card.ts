@@ -17,6 +17,7 @@ import {
   seasonTrackDescription,
   seasonTrackStyles,
   type SeasonSample,
+  type SeasonTrackOptions,
 } from "./season-track";
 import type {
   BadegewaesserCardConfig,
@@ -230,6 +231,9 @@ export function mapCardConfig(entityId: string): LovelaceCardConfig {
 
 type SiteEntities = Partial<Record<string, HassEntity>>;
 
+/** The readings whose season the track can show in place of the temperature. */
+type TrackReading = typeof KEY.secchi | typeof KEY.eColi | typeof KEY.enterococci;
+
 @customElement(CARD_TAG)
 export class BadegewaesserAustriaCard extends LitElement {
   static override styles = [cardStyles, seasonTrackStyles];
@@ -239,6 +243,10 @@ export class BadegewaesserAustriaCard extends LitElement {
   @state() private _config?: BadegewaesserCardConfig;
   @state() private _staleVersion?: string;
   @state() private _hoveredPoint: number | null = null;
+  // Which reading the season track shows: the hovered tile's, else the one
+  // a tap pinned (touch has no hover), else the temperature.
+  @state() private _trackHover: TrackReading | null = null;
+  @state() private _trackPinned: TrackReading | null = null;
   @state() private _photoTip = false;
   @state() private _photoFailed?: string;
   // The card's rendered width, for spacing the season track's labels.
@@ -489,7 +497,7 @@ export class BadegewaesserAustriaCard extends LitElement {
                 ${this._renderPlace()}`}
           ${config.show_season_track === false
             ? nothing
-            : this._renderSeason(temperature, samples, inSeason, language, hero)}
+            : this._renderSeason(temperature, entities, samples, inSeason, language, hero)}
           ${config.show_readings === false
             ? nothing
             : this._renderReadings(entities, samples, language)}
@@ -870,6 +878,7 @@ export class BadegewaesserAustriaCard extends LitElement {
 
   private _renderSeason(
     temperature: HassEntity | undefined,
+    entities: SiteEntities,
     samples: SeasonSample[],
     inSeason: boolean,
     language: string | undefined,
@@ -898,6 +907,7 @@ export class BadegewaesserAustriaCard extends LitElement {
         formatNumber(temp, language) === null
           ? localize("card.not_measured", language)
           : `${formatNumber(temp, language)} ${typeof unit === "string" ? unit : "°C"}`,
+      ...this._trackMetric(this._trackHover ?? this._trackPinned, entities, language),
     };
 
     // With the photo header the temperature sits on the photo. The date stays
@@ -941,6 +951,50 @@ export class BadegewaesserAustriaCard extends LitElement {
         <p class="visually-hidden">${seasonTrackDescription(options)}</p>
       </div>
     `;
+  }
+
+  /**
+   * How the track reads and prints another reading than the temperature.
+   * Counts keep their "<15" for a below-limit sample; the unit goes into the
+   * tooltip, since the hovered tile already names the reading.
+   */
+  private _trackMetric(
+    reading: TrackReading | null,
+    entities: SiteEntities,
+    language: string | undefined,
+  ): Partial<Pick<SeasonTrackOptions, "read" | "formatLabel" | "formatTemperature">> {
+    if (!reading) return {};
+    const unit = entities[reading]?.attributes["unit_of_measurement"];
+    const suffix = typeof unit === "string" ? ` ${unit}` : "";
+    const missing = localize("card.not_measured", language);
+    if (reading === KEY.secchi) {
+      return {
+        read: (sample) => sample.secchi_depth,
+        formatLabel: (value) => `${formatNumber(value, language) ?? ""}${suffix}`,
+        formatTemperature: (value) =>
+          value === null ? missing : `${formatNumber(value, language, 2) ?? ""}${suffix}`,
+      };
+    }
+    const count = (value: number | null, sample: SeasonSample): string | null =>
+      formatCount(value, sample[`${reading}_below_limit`] === true, language);
+    return {
+      read: (sample) => sample[reading],
+      formatLabel: (value, sample) => count(value, sample) ?? "",
+      formatTemperature: (value, sample) => {
+        const text = count(value, sample);
+        return text === null ? missing : `${text}${suffix}`;
+      },
+    };
+  }
+
+  /** The tile's class, and whether the track shows its reading. */
+  private _tileClass(reading: TrackReading): string {
+    const shown = (this._trackHover ?? this._trackPinned) === reading;
+    return shown ? "tile is-trackable is-tracked" : "tile is-trackable";
+  }
+
+  private _pinTrack(reading: TrackReading): void {
+    this._trackPinned = this._trackPinned === reading ? null : reading;
   }
 
   /**
@@ -991,7 +1045,16 @@ export class BadegewaesserAustriaCard extends LitElement {
               </dd>`
             : nothing}
         </div>
-        <div class="tile">
+        <div
+          class=${this._tileClass(KEY.secchi)}
+          @pointerenter=${() => {
+            this._trackHover = KEY.secchi;
+          }}
+          @pointerleave=${() => {
+            this._trackHover = null;
+          }}
+          @click=${() => this._pinTrack(KEY.secchi)}
+        >
           <dt>${localize("card.secchi_depth", language)}</dt>
           <dd class="tile-value">
             ${this._renderReadingIcon(READING_ICON.secchi)}${formatNumber(
@@ -1050,7 +1113,16 @@ export class BadegewaesserAustriaCard extends LitElement {
     const unit = entity?.attributes["unit_of_measurement"];
     const move = text === null ? null : trend;
     return html`
-      <div class="tile">
+      <div
+        class=${this._tileClass(key)}
+        @pointerenter=${() => {
+          this._trackHover = key;
+        }}
+        @pointerleave=${() => {
+          this._trackHover = null;
+        }}
+        @click=${() => this._pinTrack(key)}
+      >
         <dt>${localize(`card.${key}`, language)}</dt>
         <dd class="tile-value">
           ${this._renderReadingIcon(READING_ICON[key])}${text ?? "—"}${this._renderTail(

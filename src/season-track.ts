@@ -158,9 +158,12 @@ export interface SeasonTrackOptions {
   language: string | undefined;
   /** Formats a sample date for the accessible description and tooltips. */
   formatDate: (date: Date) => string;
-  formatTemperature: (value: number | null) => string;
+  /** The full value, for the tooltip and a screen reader, e.g. "21,5 °C". */
+  formatTemperature: (value: number | null, sample: SeasonSample) => string;
   /** The short form printed above a dot, e.g. "21,5°". */
-  formatLabel: (value: number) => string;
+  formatLabel: (value: number, sample: SeasonSample) => string;
+  /** Which reading the track plots; the water temperature unless set. */
+  read?: (sample: SeasonSample) => number | null | undefined;
   /** The axis's rendered width in px, once the card has measured it. */
   axisWidth?: number | undefined;
 }
@@ -174,12 +177,13 @@ export interface SeasonTrackOptions {
  */
 export function seasonTrackDescription(options: SeasonTrackOptions): string {
   const { samples, formatDate, formatTemperature, language } = options;
+  const read = readerOf(options);
   if (samples.length === 0) return localize("card.no_samples", language);
   return samples
     .map((sample) => {
       const date = parseDate(sample.date);
       const when = date ? formatDate(date) : sample.date;
-      return `${when}: ${formatTemperature(sample.water_temperature)}`;
+      return `${when}: ${formatTemperature(read(sample), sample)}`;
     })
     .join(", ");
 }
@@ -189,6 +193,12 @@ export function latestFraction(samples: readonly SeasonSample[]): number {
   const last = samples.at(-1);
   const date = last ? parseDate(last.date) : null;
   return date ? seasonFraction(date) : 1;
+}
+
+/** The plotted reading as a number or null, whatever the sample lacks. */
+function readerOf(options: SeasonTrackOptions): (sample: SeasonSample) => number | null {
+  const read = options.read ?? ((sample: SeasonSample) => sample.water_temperature);
+  return (sample) => read(sample) ?? null;
 }
 
 export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
@@ -203,6 +213,7 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
     onHover,
     axisWidth,
   } = options;
+  const read = readerOf(options);
 
   // Progress is read off the axis itself rather than the in-season flag: past
   // 31 August the axis is simply complete, which is what makes an out-of-season
@@ -218,7 +229,7 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
   const rows = labelRows(
     points.map((point) => ({
       fraction: point.fraction,
-      value: point.sample.water_temperature,
+      value: read(point.sample),
     })),
     LABEL_PX / (axisWidth && axisWidth > 0 ? axisWidth : FALLBACK_AXIS_PX),
   );
@@ -268,7 +279,7 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
           >${monthName(month)}</text>`;
         })}
         ${points.map((point, index) => {
-          const value = point.sample.water_temperature;
+          const value = read(point.sample);
           // aria-hidden: each point already announces its own value.
           const row = rows[index];
           return row !== null && row !== undefined && value !== null
@@ -278,7 +289,7 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
                 y=${VALUE_Y + lift - row * LABEL_ROW}
                 text-anchor="middle"
                 aria-hidden="true"
-              >${formatLabel(value)}</text>`
+              >${formatLabel(value, point.sample)}</text>`
             : nothing;
         })}
         ${points.map(
@@ -288,7 +299,8 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
               tabindex="0"
               role="img"
               aria-label=${`${formatDate(point.date)}: ${formatTemperature(
-                point.sample.water_temperature,
+                read(point.sample),
+                point.sample,
               )}`}
               @pointerenter=${() => onHover?.(index)}
               @pointerleave=${() => onHover?.(null)}
@@ -314,7 +326,7 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
           >
             <span class="tip-date">${formatDate(active.date)}</span>
             <span class="tip-value"
-              >${formatTemperature(active.sample.water_temperature)}</span
+              >${formatTemperature(read(active.sample), active.sample)}</span
             >
           </div>`
         : nothing}

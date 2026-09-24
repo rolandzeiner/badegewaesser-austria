@@ -451,6 +451,44 @@ describe("tile trends", () => {
     }
   });
 
+  it("puts a hovered or tapped measurement's season on the track", async () => {
+    const hass = makeHass();
+    const temperature = hass.states["sensor.koenigsdorf_water_temperature"]!;
+    hass.states["sensor.koenigsdorf_water_temperature"] = {
+      ...temperature,
+      attributes: {
+        ...temperature.attributes,
+        season_samples: [
+          { date: "2026-07-08", water_temperature: 24.9, secchi_depth: 1.2, e_coli: 15, e_coli_below_limit: true },
+          { date: "2026-08-20", water_temperature: 26.2, secchi_depth: 1.05, e_coli: 64 },
+        ],
+      },
+    };
+    const card = await mount({ device: DEVICE }, hass);
+    const labels = () =>
+      [...card.shadowRoot!.querySelectorAll(".value-label")].map((label) => label.textContent);
+    const tiles = card.shadowRoot!.querySelectorAll(".tiles .tile");
+    expect(labels()).toEqual(["24,9°", "26,2°"]);
+
+    tiles[1]!.dispatchEvent(new Event("pointerenter"));
+    await card.updateComplete;
+    expect(labels()).toEqual(["1,2 m", "1,1 m"]);
+    expect(tiles[1]!.classList.contains("is-tracked")).toBe(true);
+
+    tiles[1]!.dispatchEvent(new Event("pointerleave"));
+    await card.updateComplete;
+    expect(labels()).toEqual(["24,9°", "26,2°"]);
+
+    // A tap pins it, since touch has no hover; a second tap lets go.
+    (tiles[2] as HTMLElement).click();
+    await card.updateComplete;
+    expect(labels()).toEqual(["<15", "64"]);
+    (tiles[2] as HTMLElement).click();
+    await card.updateComplete;
+    expect(labels()).toEqual(["24,9°", "26,2°"]);
+    expect(tiles[0]!.classList.contains("is-trackable")).toBe(false);
+  });
+
   it("lets the quality stars wrap rather than run into the next column", () => {
     // A 300px card leaves 126px per tile; "Wasserqualität" takes about 91.
     expect(cssRule(".tile dt")).toMatch(/flex-wrap:\s*wrap/);
