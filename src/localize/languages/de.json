@@ -20,7 +20,9 @@
     "photo_alt": "Badestelle {name}",
     "photo_credit": "Fotonachweis",
     "photo_source": "Quelle: AGES Badegewässer-Monitoring",
-    "map_link": "{name} auf der Karte zeigen"
+    "map_link": "{name} auf der Karte zeigen",
+    "show_map": "Karte zeigen",
+    "show_photo": "Foto zeigen"
   },
   "quality": {
     "excellent": "Ausgezeichnet",
@@ -45,6 +47,8 @@
     "name_helper": "Leer lassen, um den Namen des Badegewässers zu verwenden.",
     "show_photo": "Foto zeigen",
     "show_photo_helper": "Ein Bild der Badestelle, sofern es eines gibt.",
+    "show_map": "Karte anbieten",
+    "show_map_helper": "Eine Schaltfläche auf dem Foto wechselt zur Karte der Badestelle und zurück. Ab Home Assistant 2026.9.",
     "show_season_track": "Saisonverlauf zeigen",
     "show_season_track_helper": "Die Proben der Saison als Zeitachse.",
     "show_readings": "Messwerte zeigen",

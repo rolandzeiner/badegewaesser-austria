@@ -40,7 +40,7 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 - **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
 - **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
 - **A photo of the bathing spot** — the picture AGES shows for the site, as an `image` entity and as the card's header, with the name, the Bundesland and the water temperature over it. Its credit is behind the ⓘ button on the photo. 259 of the 260 have one *(0.2.0)*
-- **On the map** — each bathing water shows up as a marker on Home Assistant's map, and the pin next to its name on the card opens it on OpenStreetMap. Nothing loads from OpenStreetMap until you select the pin *(0.2.0)*
+- **On the map** — each bathing water shows up as a marker on Home Assistant's map. On the card, the map button swaps the photo for a map of the bathing water and back, and the pin next to the name opens it on OpenStreetMap. Your browser talks only to Home Assistant until you select the pin *(0.2.0)*
 
 ## Requirements
 
@@ -138,6 +138,7 @@ The editor's picker fills this in for you — pick the bathing water by name.
 | `entity` | string | — | Legacy alternative to `device`: any one entity of the bathing water. Still honoured so older cards keep working. |
 | `name` | string | the lake's name | Overrides the card title. |
 | `show_photo` | boolean | `true` | The photo of the bathing spot as the card's header, with the name and temperature over it. Only where there is one. |
+| `show_map` | boolean | `true` | A button on the photo that swaps it for a map of the bathing water and back. Only with the photo, the bathing water's position and Home Assistant 2026.9 or newer. |
 | `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
 | `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth. |
 | `show_attribution` | boolean | `true` | The "Datenquelle: AGES · CC BY 3.0 AT" line at the bottom. The entities carry the attribution either way. |
@@ -207,6 +208,9 @@ That sample has no temperature. AGES reports `0` when nothing was measured, and 
 
 **The card shows no photo.**
 AGES has no photo for *Naturbadesee Königsdorf*. For any other bathing water, check that **Show the photo** is on in the card editor.
+
+**The photo has no map button.**
+The button needs Home Assistant 2026.9 or newer, which loads map tiles through Home Assistant itself. Older versions have your browser fetch them from CARTO, so the card leaves the button out there. It also needs the bathing water's position, and **Offer the map** switched on in the card editor. On older versions, the pin next to the name still opens OpenStreetMap.
 
 **The card looks out of date and offers to reload.**
 Your browser cached an older version of the card than the integration ships. Click **Reload**. If it comes back, clear the browser cache for your Home Assistant URL.

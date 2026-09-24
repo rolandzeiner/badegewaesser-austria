@@ -51,7 +51,8 @@ export interface HomeAssistant {
   devices?: Record<string, HassDeviceRegistryEntry>;
   language?: string;
   locale?: { language?: string } & Record<string, unknown>;
-  config?: { time_zone?: string } & Record<string, unknown>;
+  /** `components` lists the integrations core has loaded. */
+  config?: { time_zone?: string; components?: string[] } & Record<string, unknown>;
   themes?: { darkMode?: boolean } & Record<string, unknown>;
   callWS?<T = unknown>(msg: { type: string; [key: string]: unknown }): Promise<T>;
 }
@@ -73,6 +74,7 @@ export interface BadegewaesserCardConfig extends LovelaceCardConfig {
   entity?: string;
   name?: string;
   show_photo?: boolean;
+  show_map?: boolean;
   show_season_track?: boolean;
   show_readings?: boolean;
   show_attribution?: boolean;
@@ -85,6 +87,26 @@ export interface LovelaceCardEditor extends HTMLElement {
 }
 
 export type LovelaceCard = HTMLElement;
+
+/**
+ * A card element as HA's `createCardElement` returns it. `layout` is what a
+ * sections view sets on every card it places; `setConfig` is optional
+ * because a lazily loaded card type is not upgraded yet when it arrives.
+ */
+export interface LovelaceCardElement extends HTMLElement {
+  hass?: HomeAssistant;
+  layout?: string;
+  setConfig?(config: LovelaceCardConfig): void;
+}
+
+/** What `window.loadCardHelpers()` resolves to; only the one helper used. */
+export interface CardHelpers {
+  createCardElement(config: LovelaceCardConfig): LovelaceCardElement;
+}
+
+export interface WindowWithCardHelpers extends Window {
+  loadCardHelpers?: () => Promise<CardHelpers>;
+}
 
 /** One `ha-form` schema row. Open-ended — HA owns the full grammar. */
 export interface HaFormSchema {

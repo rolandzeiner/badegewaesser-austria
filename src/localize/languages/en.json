@@ -20,7 +20,9 @@
     "photo_alt": "Bathing spot at {name}",
     "photo_credit": "Photo credit",
     "photo_source": "Source: AGES bathing-water monitoring",
-    "map_link": "Show {name} on the map"
+    "map_link": "Show {name} on the map",
+    "show_map": "Show map",
+    "show_photo": "Show photo"
   },
   "quality": {
     "excellent": "Excellent",
@@ -45,6 +47,8 @@
     "name_helper": "Leave empty to use the bathing water's own name.",
     "show_photo": "Show the photo",
     "show_photo_helper": "A picture of the bathing spot, where there is one.",
+    "show_map": "Offer the map",
+    "show_map_helper": "A button on the photo switches to a map of the bathing spot and back. Needs Home Assistant 2026.9 or newer.",
     "show_season_track": "Show the season track",
     "show_season_track_helper": "This season's samples on a time axis.",
     "show_readings": "Show the readings",

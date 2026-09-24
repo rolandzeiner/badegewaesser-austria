@@ -5,7 +5,7 @@
  * and a half months a year, so "no new readings" is this card's normal state,
  * not its empty state: it has to look finished in February, not broken.
  */
-import { LitElement, html, nothing, type TemplateResult } from "lit";
+import { LitElement, html, nothing, type PropertyValues, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import { cardStyles } from "./card-styles";
@@ -22,7 +22,10 @@ import type {
   BadegewaesserCardConfig,
   HassEntity,
   HomeAssistant,
+  LovelaceCardConfig,
   LovelaceCardEditor,
+  LovelaceCardElement,
+  WindowWithCardHelpers,
   WindowWithCustomCards,
 } from "./types";
 import {
@@ -146,25 +149,78 @@ export function countTrend(
 }
 
 /**
- * The bathing water on OpenStreetMap, from the position the water-temperature
- * sensor carries. Undefined without a usable one, and then there is no pin.
+ * The position the water-temperature sensor carries, if it is a usable one.
+ * Without it there is no pin and no map.
  *
- * A plain link: nothing loads from OpenStreetMap until someone follows it, so
- * the card itself still talks to nobody but Home Assistant. A zero on either
- * axis is refused as the integration refuses it -- upstream's "0" means "no
- * position", and no Austrian lake lies on the equator or at Greenwich.
+ * A zero on either axis is refused as the integration refuses it --
+ * upstream's "0" means "no position", and no Austrian lake lies on the
+ * equator or at Greenwich.
  */
-export function siteMapUrl(entity: HassEntity | undefined): string | undefined {
+export function sitePosition(
+  entity: HassEntity | undefined,
+): { latitude: number; longitude: number } | undefined {
   const latitude = entity?.attributes["latitude"];
   const longitude = entity?.attributes["longitude"];
   if (typeof latitude !== "number" || typeof longitude !== "number") return undefined;
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return undefined;
   if (latitude === 0 || longitude === 0) return undefined;
   if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return undefined;
+  return { latitude, longitude };
+}
+
+/**
+ * The bathing water on OpenStreetMap, at its sitePosition.
+ *
+ * A plain link: nothing loads from OpenStreetMap until someone follows it, so
+ * the card itself still talks to nobody but Home Assistant.
+ */
+export function siteMapUrl(entity: HassEntity | undefined): string | undefined {
+  const position = sitePosition(entity);
+  if (!position) return undefined;
   // Six decimals is about 10 cm: all the precision a zoom-16 map can use.
-  const lat = latitude.toFixed(6);
-  const lon = longitude.toFixed(6);
+  const lat = position.latitude.toFixed(6);
+  const lon = position.longitude.toFixed(6);
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`;
+}
+
+/**
+ * Whether this Home Assistant serves its maps' tiles itself.
+ *
+ * Core ships the `map_tiles` proxy from 2026.9, as a dependency of
+ * `frontend`, and every map then fetches its tiles through it. Before that,
+ * HA's map card had the browser fetch CARTO's tiles directly. The card talks
+ * to nobody but Home Assistant, so its map exists only where that stays
+ * true. Asking for the loaded component rather than parsing the version is
+ * the direct question, and it has no beta or dev version strings to misread.
+ */
+export function servesMapTiles(hass: HomeAssistant | undefined): boolean {
+  const components = hass?.config?.components;
+  return Array.isArray(components) && components.includes("map_tiles");
+}
+
+/**
+ * The zoom level for the one marker. ha-map fits its markers when it loads,
+ * and one marker has no extent, so the fit ends at this level, its maximum.
+ * At 13 a 600px header spans about 7.7 by 2.7 km at 47.5° N: the whole of a
+ * small lake, or a stretch of a large one's shore.
+ */
+const MAP_ZOOM = 13;
+
+/**
+ * HA's own map card, for the one bathing water.
+ *
+ * `hours_to_show: 0` keeps it from subscribing to history, since the marker
+ * never moves. The marker shows the sensor's own icon instead of initials,
+ * which for "Naturbadesee Königsdorf Wassertemperatur" would be "NKW".
+ */
+export function mapCardConfig(entityId: string): LovelaceCardConfig {
+  return {
+    type: "map",
+    entities: [{ entity: entityId, label_mode: "icon" }],
+    theme_mode: "auto",
+    hours_to_show: 0,
+    default_zoom: MAP_ZOOM,
+  };
 }
 
 type SiteEntities = Partial<Record<string, HassEntity>>;
@@ -191,6 +247,14 @@ export class BadegewaesserAustriaCard extends LitElement {
   private _versionChecked = false;
   // The photo URL in use, and the photo state it belongs to. See _photoUrl.
   private _photo: { state: string; url: string } | undefined;
+
+  // The header's second view, HA's map. The card is created on the first
+  // click and kept; see _toggleMap.
+  @state() private _showMap = false;
+  @state() private _mapCard: LovelaceCardElement | undefined;
+  @state() private _mapFailed = false;
+  private _mapEntityId: string | undefined;
+  private _mapLoading = false;
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("./editor");
@@ -256,6 +320,23 @@ export class BadegewaesserAustriaCard extends LitElement {
     this._resizeObserver?.disconnect();
     this._resizeObserver = undefined;
     super.disconnectedCallback();
+  }
+
+  protected override willUpdate(changed: PropertyValues): void {
+    const map = this._mapCard;
+    if (!map) return;
+    // A new hass reaches the map from here, as a dashboard hands it to each
+    // of its cards.
+    if (changed.has("hass") && this.hass) map.hass = this.hass;
+    // The editor's preview keeps this element when another bathing water is
+    // picked, so the map has to follow it there.
+    if (changed.has("_config")) {
+      const entityId = this._siteEntities()?.[KEY.temperature]?.entity_id;
+      if (entityId && entityId !== this._mapEntityId) {
+        map.setConfig?.(mapCardConfig(entityId));
+        this._mapEntityId = entityId;
+      }
+    }
   }
 
   protected override updated(): void {
@@ -369,11 +450,30 @@ export class BadegewaesserAustriaCard extends LitElement {
     const photoSrc = config.show_photo === false ? undefined : this._photoUrl(photo);
     const hero = photoSrc !== undefined && this._photoFailed !== photoSrc;
     const mapLink = this._renderMapLink(title, siteMapUrl(temperature), language);
+    // The map is the photo's other view, so without a photo there is none:
+    // it would either load for everyone or push the card down when opened.
+    const mapEntity =
+      hero &&
+      config.show_map !== false &&
+      !this._mapFailed &&
+      sitePosition(temperature) !== undefined &&
+      servesMapTiles(hass)
+        ? temperature?.entity_id
+        : undefined;
 
     return html`
       <ha-card>
         ${hero
-          ? this._renderHero(photoSrc, photo, title, mapLink, temperature, samples, language)
+          ? this._renderHero(
+              photoSrc,
+              photo,
+              title,
+              mapLink,
+              mapEntity,
+              temperature,
+              samples,
+              language,
+            )
           : nothing}
         ${this._renderVersionBanner(language)}
         ${isClosed ? this._renderClosure(closed, language) : nothing}
@@ -449,12 +549,23 @@ export class BadegewaesserAustriaCard extends LitElement {
    * temperature share one row along the bottom, on a band sized to that row,
    * so the contrast holds however bright the picture is underneath: see the
    * hero section of card-styles.ts for the measurement.
+   *
+   * With a map entity the header has a second view, HA's map of the bathing
+   * water, and a button in the corner to swap between the two. The inactive
+   * view is inert, so its links and buttons leave the tab order and a screen
+   * reader hears only the view on screen. The heading stays either way: in
+   * the map view a hidden copy stands in for the one on the photo.
+   *
+   * Source order is also focus order. On the photo that is name, pin,
+   * credit, then the map button; on the map it is the button, then the map
+   * it just opened.
    */
   private _renderHero(
     src: string,
     photo: HassEntity | undefined,
     title: string,
     mapLink: TemplateResult | typeof nothing,
+    mapEntity: string | undefined,
     temperature: HassEntity | undefined,
     samples: SeasonSample[],
     language: string | undefined,
@@ -466,47 +577,145 @@ export class BadegewaesserAustriaCard extends LitElement {
     const formatted = formatNumber(numericState(temperature), language);
     const unit = temperature?.attributes["unit_of_measurement"];
     const latest = samples.at(-1);
+    const showMap = this._showMap && mapEntity !== undefined;
+    const heroClass = ["hero", mapEntity ? "has-map" : "", showMap ? "is-map" : ""]
+      .filter(Boolean)
+      .join(" ");
 
     return html`
-      <div class="hero">
-        <img
-          class="hero-img"
-          src=${src}
-          alt=${localize("card.photo_alt", language, { name: title })}
-          width="600"
-          height="210"
-          decoding="async"
-          @error=${() => this._onPhotoError(src)}
-        />
-        <div class="hero-caption">
-          <div class="hero-heading"><h2 class="hero-title">${title}</h2>${mapLink}</div>
-          ${place ? html`<p class="hero-place">${place}</p>` : nothing}
-          <p class=${formatted === null ? "hero-temperature is-missing" : "hero-temperature"}>
-            <ha-icon
-              class="hero-icon"
-              icon=${READING_ICON.temperature}
-              aria-hidden="true"
-            ></ha-icon
-            ><span class="hero-value">${formatted ?? "—"}</span>${formatted !== null &&
-            typeof unit === "string"
-              ? html`<span class="hero-unit">${unit}</span>`
+      <div class=${heroClass}>
+        <div class="hero-photo" ?inert=${showMap}>
+          <img
+            class="hero-img"
+            src=${src}
+            alt=${localize("card.photo_alt", language, { name: title })}
+            width="600"
+            height="210"
+            decoding="async"
+            @error=${() => this._onPhotoError(src)}
+          />
+          <div class="hero-caption">
+            <div class="hero-heading"><h2 class="hero-title">${title}</h2>${mapLink}</div>
+            ${place ? html`<p class="hero-place">${place}</p>` : nothing}
+            <p class=${formatted === null ? "hero-temperature is-missing" : "hero-temperature"}>
+              <ha-icon
+                class="hero-icon"
+                icon=${READING_ICON.temperature}
+                aria-hidden="true"
+              ></ha-icon
+              ><span class="hero-value">${formatted ?? "—"}</span>${formatted !== null &&
+              typeof unit === "string"
+                ? html`<span class="hero-unit">${unit}</span>`
+                : nothing}
+            </p>
+            ${latest
+              ? html`<p class="hero-sampled">
+                  ${localize("card.sampled_on", language, {
+                    date: formatSampleDate(new Date(`${latest.date}T00:00:00Z`), language),
+                  })}
+                </p>`
               : nothing}
-          </p>
-          ${latest
-            ? html`<p class="hero-sampled">
-                ${localize("card.sampled_on", language, {
-                  date: formatSampleDate(new Date(`${latest.date}T00:00:00Z`), language),
-                })}
-              </p>`
-            : nothing}
+          </div>
         </div>
-        ${credit ? this._renderPhotoCredit(credit, language) : nothing}
+        ${credit ? this._renderPhotoCredit(credit, language, showMap) : nothing}
+        ${mapEntity
+          ? html`${showMap ? html`<h2 class="visually-hidden">${title}</h2>` : nothing}
+              ${this._renderMapToggle(mapEntity, showMap, language)}
+              <div class="hero-map" ?inert=${!showMap} @wheel=${this._mapWheel}>
+                ${this._mapCard ?? nothing}
+              </div>`
+          : nothing}
       </div>
     `;
   }
 
   /**
-   * The photo credit, behind an info button in the photo's corner.
+   * The button that swaps the photo for the map and back.
+   *
+   * Its name says what it does next and changes with the view, like its
+   * icon. No aria-pressed: a toggle button's name has to stay the same while
+   * its state flips, and a name that changes and a pressed state together
+   * would tell a screen reader the same thing twice, in contradicting words.
+   * It is one element in both views, so focus stays on it across the swap.
+   */
+  private _renderMapToggle(
+    entityId: string,
+    showMap: boolean,
+    language: string | undefined,
+  ): TemplateResult {
+    const label = localize(showMap ? "card.show_photo" : "card.show_map", language);
+    return html`<button
+      type="button"
+      class="map-toggle"
+      aria-label=${label}
+      title=${label}
+      @click=${() => this._toggleMap(entityId)}
+    >
+      <ha-icon icon=${showMap ? "mdi:image-outline" : "mdi:map-outline"} aria-hidden="true"></ha-icon>
+    </button>`;
+  }
+
+  /**
+   * Swap the photo for the map, or back.
+   *
+   * The map card is created on the first click, never before, so a user who
+   * never opens the map never loads it or its map library. Once created it
+   * is kept: it holds a WebGL context and its loaded tiles, and building it
+   * again on every swap would pay for both each time.
+   */
+  private _toggleMap(entityId: string): void {
+    this._showMap = !this._showMap;
+    // The credit belongs to the photo, so an open tooltip closes with it.
+    this._photoTipHovered = false;
+    this._photoTipPinned = false;
+    this._photoTip = false;
+    if (this._showMap) void this._createMap(entityId);
+  }
+
+  private async _createMap(entityId: string): Promise<void> {
+    if (this._mapCard || this._mapLoading) return;
+    this._mapLoading = true;
+    try {
+      const helpers = await (window as WindowWithCardHelpers).loadCardHelpers?.();
+      if (!helpers) throw new Error("window.loadCardHelpers is not available");
+      const card = helpers.createCardElement(mapCardConfig(entityId));
+      // What a sections view sets: the map card then fills the box it is
+      // placed in, instead of sizing itself to an aspect ratio of its own.
+      card.layout = "grid";
+      if (this.hass) card.hass = this.hass;
+      card.classList.add("hero-map-card");
+      this._mapEntityId = entityId;
+      this._mapCard = card;
+    } catch (error) {
+      // No helpers means no map to show. Back to the photo, and no button
+      // left that does nothing.
+      console.warn("badegewaesser-austria-card: the map could not be created", error);
+      this._mapFailed = true;
+      this._showMap = false;
+    } finally {
+      this._mapLoading = false;
+    }
+  }
+
+  /**
+   * Leaflet zooms on the mouse wheel and swallows the page's scroll while
+   * the pointer is over the map, so on a dashboard the page stops scrolling
+   * under the card. Stopped here on its way down to the map, the wheel
+   * scrolls the page instead. With Ctrl, which is also what a trackpad pinch
+   * sends, it goes through and zooms. So do the map's own buttons.
+   */
+  private _mapWheel = {
+    handleEvent: (event: WheelEvent): void => {
+      if (!event.ctrlKey) event.stopPropagation();
+    },
+    capture: true,
+    passive: true,
+  };
+
+  /**
+   * The photo credit, behind an info button in the photo's corner, or just
+   * left of the map button when there is one. Hidden while the map shows:
+   * it credits a photo that is not on screen, and the map credits its own.
    *
    * The tooltip follows the WAI-ARIA tooltip pattern and WCAG 1.4.13: it
    * opens on hover and on keyboard focus, stays open while the pointer is on
@@ -514,7 +723,11 @@ export class BadegewaesserAustriaCard extends LitElement {
    * way to reach it on a phone. It stays in the DOM while closed, so a screen
    * reader announces the credit as the button's description either way.
    */
-  private _renderPhotoCredit(credit: string, language: string | undefined): TemplateResult {
+  private _renderPhotoCredit(
+    credit: string,
+    language: string | undefined,
+    hidden: boolean,
+  ): TemplateResult {
     const update = (): void => {
       this._photoTip = this._photoTipHovered || this._photoTipPinned;
     };
@@ -526,6 +739,7 @@ export class BadegewaesserAustriaCard extends LitElement {
     return html`
       <div
         class="photo-info"
+        ?hidden=${hidden}
         @pointerenter=${() => {
           this._photoTipHovered = true;
           update();

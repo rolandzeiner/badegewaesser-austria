@@ -9,7 +9,7 @@
  * find eight siblings, and every failure mode there renders a card that looks
  * merely empty rather than wrong.
  */
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import "./badegewaesser-austria-card";
 import "./editor";
@@ -17,8 +17,11 @@ import { cardStyles } from "./card-styles";
 import { CARD_TAG } from "./const";
 import {
   countTrend,
+  mapCardConfig,
   secchiTrend,
+  servesMapTiles,
   siteMapUrl,
+  sitePosition,
   type BadegewaesserAustriaCard,
 } from "./badegewaesser-austria-card";
 import type { BadegewaesserAustriaCardEditor } from "./editor";
@@ -987,6 +990,358 @@ describe("the map link", () => {
   });
 });
 
+describe("the map view", () => {
+  const TEMPERATURE = "sensor.koenigsdorf_water_temperature";
+  const PHOTO = "image.koenigsdorf_photo";
+
+  type MapElement = HTMLElement & {
+    hass?: HomeAssistant;
+    layout?: string;
+    setConfig?: (config: Record<string, unknown>) => void;
+  };
+  type Created = { config: Record<string, unknown>; element: MapElement; configs: unknown[] };
+
+  const win = window as unknown as { loadCardHelpers?: () => Promise<unknown> };
+  let created: Created[] = [];
+  let helperCalls = 0;
+
+  // HA's card helpers, as far as the card uses them. hui-map-card is not
+  // defined here, which is how HA hands one over before its lazy chunk
+  // has arrived: a plain element that is upgraded later.
+  beforeEach(() => {
+    created = [];
+    helperCalls = 0;
+    win.loadCardHelpers = async () => {
+      helperCalls += 1;
+      return {
+        createCardElement: (config: Record<string, unknown>) => {
+          const element = document.createElement("hui-map-card") as MapElement;
+          const entry: Created = { config, element, configs: [] };
+          element.setConfig = (next) => entry.configs.push(next);
+          created.push(entry);
+          return element;
+        },
+      };
+    };
+  });
+
+  afterEach(() => {
+    delete win.loadCardHelpers;
+    vi.restoreAllMocks();
+  });
+
+  /** A photo, a position, and an HA of 2026.9 or newer, by default. */
+  function mapHass({ photo = true, tiles = true, position = true } = {}): HomeAssistant {
+    const hass = makeHass({
+      config: { components: tiles ? ["frontend", "map_tiles"] : ["frontend"] },
+    });
+    if (photo) {
+      hass.states[PHOTO] = {
+        entity_id: PHOTO,
+        state: "2016-05-12T10:38:28+00:00",
+        attributes: { entity_picture: `/api/image_proxy/${PHOTO}?token=t`, attribution: "Foto: x" },
+      };
+      hass.entities![PHOTO] = {
+        entity_id: PHOTO,
+        device_id: DEVICE,
+        platform: PLATFORM,
+        translation_key: "photo",
+      };
+    }
+    if (!position) {
+      const state = hass.states[TEMPERATURE]!;
+      const { latitude: _lat, longitude: _lon, ...attributes } = state.attributes;
+      hass.states[TEMPERATURE] = { ...state, attributes };
+    }
+    return hass;
+  }
+
+  const q = <T extends Element = HTMLElement>(card: BadegewaesserAustriaCard, selector: string) =>
+    card.shadowRoot?.querySelector<T>(selector) ?? null;
+  const toggle = (card: BadegewaesserAustriaCard) => q<HTMLButtonElement>(card, ".map-toggle");
+
+  /** Click the toggle, then let the helpers' promise and the re-render land. */
+  async function press(card: BadegewaesserAustriaCard): Promise<void> {
+    toggle(card)!.click();
+    await card.updateComplete;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await card.updateComplete;
+  }
+
+  it("is offered on a photo with a position, where HA serves the tiles", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    const button = toggle(card)!;
+    expect(button.getAttribute("type")).toBe("button");
+    expect(button.getAttribute("aria-label")).toBe("Karte zeigen");
+    expect(button.querySelector("ha-icon")?.getAttribute("icon")).toBe("mdi:map-outline");
+    expect(button.querySelector("ha-icon")?.getAttribute("aria-hidden")).toBe("true");
+    expect(q(card, ".hero")?.classList.contains("has-map")).toBe(true);
+  });
+
+  it("is absent without a position, and the credit keeps the corner", async () => {
+    const card = await mount({ device: DEVICE }, mapHass({ position: false }));
+    expect(toggle(card)).toBeNull();
+    expect(q(card, ".hero-map")).toBeNull();
+    expect(q(card, ".hero")?.classList.contains("has-map")).toBe(false);
+    expect(q(card, ".photo-info-button")).not.toBeNull();
+  });
+
+  it("is absent without a photo, where the heading keeps only the pin", async () => {
+    const card = await mount({ device: DEVICE }, mapHass({ photo: false }));
+    expect(toggle(card)).toBeNull();
+    expect(q(card, ".body .map-link")).not.toBeNull();
+  });
+
+  it("is absent with the photo switched off", async () => {
+    const card = await mount({ device: DEVICE, show_photo: false }, mapHass());
+    expect(toggle(card)).toBeNull();
+  });
+
+  it("is absent where the browser would fetch the tiles from a third party", async () => {
+    // Before 2026.9 HA's map card loaded CARTO's tiles in the browser. The
+    // pin is a plain link and stays.
+    const card = await mount({ device: DEVICE }, mapHass({ tiles: false }));
+    expect(toggle(card)).toBeNull();
+    expect(q(card, ".hero .map-link")).not.toBeNull();
+  });
+
+  it("can be switched off in the card editor", async () => {
+    const card = await mount({ device: DEVICE, show_map: false }, mapHass());
+    expect(toggle(card)).toBeNull();
+    expect(q(card, ".hero .map-link")).not.toBeNull();
+  });
+
+  it("loads nothing until the first click", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    expect(helperCalls).toBe(0);
+    expect(q(card, "hui-map-card")).toBeNull();
+    expect(q(card, ".hero-map")?.children.length).toBe(0);
+  });
+
+  it("creates HA's map card on the first click, for the temperature sensor", async () => {
+    const hass = mapHass();
+    const card = await mount({ device: DEVICE }, hass);
+    await press(card);
+    expect(helperCalls).toBe(1);
+    expect(created[0]?.config).toEqual({
+      type: "map",
+      entities: [{ entity: TEMPERATURE, label_mode: "icon" }],
+      theme_mode: "auto",
+      hours_to_show: 0,
+      default_zoom: 13,
+    });
+    expect(created[0]?.config).toEqual(mapCardConfig(TEMPERATURE));
+    const element = created[0]!.element;
+    expect(element.parentElement).toBe(q(card, ".hero-map"));
+    expect(element.classList.contains("hero-map-card")).toBe(true);
+    // The sections-view layout, so it fills the box rather than padding
+    // itself out to an aspect ratio of its own.
+    expect(element.layout).toBe("grid");
+    expect(element.hass).toBe(hass);
+  });
+
+  it("swaps the photo for the map, and back", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    const hero = q(card, ".hero")!;
+
+    await press(card);
+    expect(hero.classList.contains("is-map")).toBe(true);
+    expect(q(card, ".hero-photo")?.hasAttribute("inert")).toBe(true);
+    expect(q(card, ".hero-map")?.hasAttribute("inert")).toBe(false);
+    expect(q(card, ".photo-info")?.hasAttribute("hidden")).toBe(true);
+    expect(toggle(card)?.getAttribute("aria-label")).toBe("Foto zeigen");
+    expect(toggle(card)?.querySelector("ha-icon")?.getAttribute("icon")).toBe("mdi:image-outline");
+
+    await press(card);
+    expect(hero.classList.contains("is-map")).toBe(false);
+    expect(q(card, ".hero-photo")?.hasAttribute("inert")).toBe(false);
+    expect(q(card, ".hero-map")?.hasAttribute("inert")).toBe(true);
+    expect(q(card, ".photo-info")?.hasAttribute("hidden")).toBe(false);
+    expect(toggle(card)?.getAttribute("aria-label")).toBe("Karte zeigen");
+    expect(toggle(card)?.querySelector("ha-icon")?.getAttribute("icon")).toBe("mdi:map-outline");
+  });
+
+  it("names the next view rather than claiming a pressed state", async () => {
+    // A toggle button keeps one name; this one's changes. Having both would
+    // say the same thing twice, in contradicting words.
+    const card = await mount({ device: DEVICE }, mapHass());
+    expect(toggle(card)?.hasAttribute("aria-pressed")).toBe(false);
+    await press(card);
+    expect(toggle(card)?.hasAttribute("aria-pressed")).toBe(false);
+  });
+
+  it("keeps the map it made", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    await press(card);
+    await press(card);
+    await press(card);
+    expect(helperCalls).toBe(1);
+    expect(created).toHaveLength(1);
+    expect(q(card, ".hero-map")?.contains(created[0]!.element)).toBe(true);
+  });
+
+  it("keeps focus on the button through each swap", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    const button = toggle(card)!;
+    button.focus();
+    await press(card);
+    expect(toggle(card)).toBe(button);
+    expect(card.shadowRoot?.activeElement).toBe(button);
+    await press(card);
+    expect(toggle(card)).toBe(button);
+    expect(card.shadowRoot?.activeElement).toBe(button);
+  });
+
+  it("keeps the name as the card's heading while the map shows", async () => {
+    // The photo's heading is inert with the photo; a hidden copy stands in.
+    const card = await mount({ device: DEVICE }, mapHass());
+    expect(q(card, ".hero > h2.visually-hidden")).toBeNull();
+    await press(card);
+    expect(q(card, ".hero > h2.visually-hidden")?.textContent).toBe("Naturbadesee Königsdorf");
+    await press(card);
+    expect(q(card, ".hero > h2.visually-hidden")).toBeNull();
+  });
+
+  it("closes an open credit tooltip along with the photo", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    q<HTMLButtonElement>(card, ".photo-info-button")!.click();
+    await card.updateComplete;
+    expect(q(card, ".photo-tip")?.hasAttribute("hidden")).toBe(false);
+    await press(card);
+    await press(card);
+    expect(q(card, ".photo-tip")?.hasAttribute("hidden")).toBe(true);
+  });
+
+  it("hands a new hass on to the map", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    await press(card);
+    const next = mapHass();
+    card.hass = next;
+    await card.updateComplete;
+    expect(created[0]?.element.hass).toBe(next);
+  });
+
+  it("follows the card to another temperature sensor", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    await press(card);
+
+    // The same bathing water again changes nothing on the map.
+    card.setConfig({ type: `custom:${CARD_TAG}`, device: DEVICE, name: "Anders" });
+    await card.updateComplete;
+    expect(created[0]?.configs).toEqual([]);
+
+    // Its temperature sensor under another entity_id: the map follows.
+    const hass = mapHass();
+    const renamed = "sensor.renamed_water_temperature";
+    hass.states[renamed] = { ...hass.states[TEMPERATURE]!, entity_id: renamed };
+    hass.entities![renamed] = { ...hass.entities![TEMPERATURE]!, entity_id: renamed };
+    delete hass.states[TEMPERATURE];
+    delete hass.entities![TEMPERATURE];
+    card.hass = hass;
+    card.setConfig({ type: `custom:${CARD_TAG}`, device: DEVICE });
+    await card.updateComplete;
+    expect(created[0]?.configs).toEqual([mapCardConfig(renamed)]);
+  });
+
+  it("lets the wheel scroll the page, and zoom only with Ctrl", async () => {
+    const card = await mount({ device: DEVICE }, mapHass());
+    await press(card);
+    const element = created[0]!.element;
+    let reached = 0;
+    element.addEventListener("wheel", () => {
+      reached += 1;
+    });
+    const wheel = (ctrlKey: boolean): WheelEvent => {
+      const event = new WheelEvent("wheel", { bubbles: true, composed: true, ctrlKey });
+      // happy-dom's WheelEvent lacks the modifier keys a browser's inherits.
+      Object.defineProperty(event, "ctrlKey", { value: ctrlKey });
+      return event;
+    };
+    element.dispatchEvent(wheel(false));
+    expect(reached).toBe(0);
+    element.dispatchEvent(wheel(true));
+    expect(reached).toBe(1);
+  });
+
+  it("goes back to the photo, button and all, without HA's card helpers", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    delete win.loadCardHelpers;
+    const card = await mount({ device: DEVICE }, mapHass());
+    await press(card);
+    expect(toggle(card)).toBeNull();
+    expect(q(card, ".hero")?.classList.contains("is-map")).toBe(false);
+    expect(q(card, ".hero-img")).not.toBeNull();
+    expect(warn).toHaveBeenCalledOnce();
+  });
+
+  it("asks whether core serves the tiles, not which version it is", () => {
+    expect(servesMapTiles(undefined)).toBe(false);
+    expect(servesMapTiles(makeHass())).toBe(false);
+    expect(servesMapTiles(makeHass({ config: { components: ["frontend"] } }))).toBe(false);
+    expect(servesMapTiles(makeHass({ config: { components: ["map_tiles"] } }))).toBe(true);
+  });
+
+  it("takes its position from the same check as the pin", () => {
+    expect(sitePosition({ state: "20", attributes: { latitude: 47.5, longitude: 13.4 } })).toEqual(
+      { latitude: 47.5, longitude: 13.4 },
+    );
+    expect(sitePosition({ state: "20", attributes: { latitude: 0, longitude: 13.4 } })).toBeUndefined();
+  });
+
+  describe("styles", () => {
+    const css = cardStyles.cssText;
+
+    it("sits in the corner the map card leaves free", () => {
+      // The map card's zoom and reset buttons run down the top-left edge.
+      expect(css).toMatch(
+        /\.map-toggle \{[^}]*position:\s*absolute;[^}]*top:\s*var\(--bade-gap\);[^}]*right:\s*var\(--bade-gap\);/,
+      );
+    });
+
+    it("is the credit's 32px disc, with its white ring", () => {
+      expect(css).toMatch(/\.photo-info-button,\s*\.map-toggle \{[^}]*width:\s*32px;[^}]*height:\s*32px;/);
+      expect(css).toMatch(
+        /\.photo-info-button:focus-visible,\s*\.map-toggle:focus-visible \{[^}]*outline:\s*2px solid #fff;/,
+      );
+    });
+
+    it("moves the credit one disc to the left of it", () => {
+      expect(cssRule(".has-map .photo-info")).toMatch(/right:\s*calc\(2 \* var\(--bade-gap\) \+ 32px\)/);
+      expect(cssRule(".photo-info[hidden]")).toMatch(/display:\s*none/);
+    });
+
+    it("fills the photo's box exactly and switches the map card's chrome off", () => {
+      const rule = cssRule(".hero-map");
+      expect(rule).toMatch(/position:\s*absolute/);
+      expect(rule).toMatch(/inset:\s*0/);
+      expect(rule).toMatch(/--ha-card-border-radius:\s*0/);
+      expect(rule).toMatch(/--ha-card-border-width:\s*0/);
+      expect(rule).toMatch(/--ha-card-box-shadow:\s*none/);
+      expect(cssRule(".hero-map-card")).toMatch(/inset:\s*0/);
+    });
+
+    it("keeps the photo's shading off the map", () => {
+      expect(cssRule(".hero-photo::before")).toMatch(/linear-gradient/);
+      expect(css).not.toContain(".hero::before");
+    });
+
+    it("clips the slide at the sides only, so the credit's tooltip can overhang", () => {
+      expect(cssRule(".hero")).toMatch(/overflow-x:\s*clip/);
+      expect(cssRule(".hero")).not.toMatch(/overflow:\s*hidden/);
+    });
+
+    it("slides by transition, which reduced motion switches off", () => {
+      expect(cssRule(".hero.is-map .hero-photo")).toMatch(/translate:\s*-100% 0/);
+      expect(cssRule(".hero.is-map .hero-map")).toMatch(/translate:\s*0/);
+      expect(cssRule(".hero-map")).toMatch(/translate:\s*100% 0/);
+      expect(css).not.toMatch(/\.hero[^{]*\{[^}]*animation:/);
+      expect(css).toMatch(
+        /@media \(prefers-reduced-motion: reduce\) \{[^@]*transition:\s*none !important;/,
+      );
+    });
+  });
+});
+
 describe("attribution", () => {
   it("shows the data source by default", async () => {
     const card = await mount({ device: DEVICE });
@@ -1021,6 +1376,7 @@ describe("editor defaults", () => {
 
     const raw = { type: `custom:${CARD_TAG}`, device: DEVICE };
     expect(normaliseConfig(raw).show_photo).toBe(DEFAULTS.show_photo);
+    expect(normaliseConfig(raw).show_map).toBe(true);
     expect(normaliseConfig(raw).show_attribution).toBe(true);
     expect(normaliseConfig(raw).show_season_track).toBe(DEFAULTS.show_season_track);
     expect(normaliseConfig(raw).show_readings).toBe(DEFAULTS.show_readings);

@@ -44,6 +44,7 @@ const SCHEMA: HaFormSchema[] = [
     flatten: true,
     schema: [
       { name: "show_photo", selector: { boolean: {} } },
+      { name: "show_map", selector: { boolean: {} } },
       { name: "show_season_track", selector: { boolean: {} } },
       { name: "show_readings", selector: { boolean: {} } },
       { name: "show_attribution", selector: { boolean: {} } },

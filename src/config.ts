@@ -13,6 +13,7 @@ import type { BadegewaesserCardConfig, HomeAssistant } from "./types";
 
 export const DEFAULTS = {
   show_photo: true,
+  show_map: true,
   show_season_track: true,
   show_readings: true,
   show_attribution: true,

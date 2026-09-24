@@ -108,10 +108,24 @@ export const cardStyles = css`
        it, on an eased curve so it has no visible top edge. A short straight
        ramp (1.25rem) read as a hard band. */
     --hero-fade: 3rem;
+    /* How long the photo and the map take to swap: HA's normal step rather
+       than its fast one, since each travels the card's full width. */
+    --hero-slide: var(--ha-animation-duration-normal, 250ms);
 
     position: relative;
     isolation: isolate;
+    /* Clips the sliding views at the card's sides, and only there: clip,
+       unlike hidden, leaves the other axis visible, and the credit's tooltip
+       may reach below the photo in a narrow card. */
+    overflow-x: clip;
     color: #fff;
+  }
+
+  /* The photo's view: picture, shading and caption, which slide as one.
+     Positioned, so the caption and the shading stay on it as it moves. */
+  .hero-photo {
+    position: relative;
+    transition: translate var(--hero-slide) ease-in-out;
   }
 
   /* Every photo is built at 600x210 (20:7). The ratio is pinned here too, so
@@ -129,8 +143,9 @@ export const cardStyles = css`
 
   /* The shading: black from the right edge dissolving towards the left on
      the same eased curve as the band, and a soft vignette at the corners. Both are atmosphere; the contrast the
-     text needs comes from the band below, not from these. */
-  .hero::before {
+     text needs comes from the band below, not from these. On the photo's
+     view, not the header, so it never darkens the map. */
+  .hero-photo::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -295,11 +310,25 @@ export const cardStyles = css`
     max-width: calc(100% - 2 * var(--bade-gap));
   }
 
+  /* The map button takes the corner; the credit moves one disc to its left.
+     The tooltip keeps its right edge under the credit's button. */
+  .has-map .photo-info {
+    right: calc(2 * var(--bade-gap) + 32px);
+    max-width: calc(100% - 3 * var(--bade-gap) - 32px);
+  }
+
+  .photo-info[hidden] {
+    display: none;
+  }
+
   /* 32px: over the 24px WCAG 2.5.8 minimum, and about a fingertip. The
      disc is its own backdrop, since the corner may be bright sky: at 55%
      black, over pure white, the white icon measures 4.7:1, above the 3:1
-     WCAG 1.4.11 asks of a control. */
-  .photo-info-button {
+     WCAG 1.4.11 asks of a control. The map button is the same disc, and
+     over the map it measures the same, since the disc is its backdrop
+     there too. */
+  .photo-info-button,
+  .map-toggle {
     display: grid;
     place-items: center;
     width: 32px;
@@ -313,12 +342,14 @@ export const cardStyles = css`
     --mdc-icon-size: 22px;
   }
 
-  .photo-info-button:hover {
+  .photo-info-button:hover,
+  .map-toggle:hover {
     background: rgb(0 0 0 / 0.8);
   }
 
   /* The body's teal ring would disappear against the dark corner. */
-  .photo-info-button:focus-visible {
+  .photo-info-button:focus-visible,
+  .map-toggle:focus-visible {
     outline: 2px solid #fff;
     outline-offset: 0;
   }
@@ -348,6 +379,65 @@ export const cardStyles = css`
 
   .photo-tip-source {
     color: var(--secondary-text-color);
+  }
+
+  /* -- map view --------------------------------------------------------- */
+
+  /* Top-right: the map card keeps its own zoom and reset buttons down the
+     top-left edge, where this would cover the zoom-in button. */
+  .map-toggle {
+    position: absolute;
+    top: var(--bade-gap);
+    right: var(--bade-gap);
+    z-index: 3;
+  }
+
+  /* Exactly the photo's box, so nothing below moves when the map opens.
+     The map card's styles are out of reach inside its shadow root, so its
+     card chrome is switched off from here through the variables it reads:
+     no corners, border or shadow of its own inside this card. Its text is
+     set back to the theme's, which the header's white would override. The
+     track colour shows until the map has drawn. */
+  .hero-map {
+    --ha-card-border-radius: 0;
+    --ha-card-border-width: 0;
+    --ha-card-box-shadow: none;
+
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--bade-track);
+    color: var(--primary-text-color);
+    translate: 100% 0;
+    visibility: hidden;
+    /* Hidden only once it has slid out; see the photo's twin below. */
+    transition:
+      translate var(--hero-slide) ease-in-out,
+      visibility 0s var(--hero-slide);
+  }
+
+  .hero-map-card {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  /* The swap. The map comes in from the side its button is on and pushes
+     the photo out the other. Each view becomes visible as it starts to
+     move in and hidden once it is out, so the one off screen is never
+     painted. The reduced-motion block at the end makes both instant. */
+  .hero.is-map .hero-photo {
+    translate: -100% 0;
+    visibility: hidden;
+    transition:
+      translate var(--hero-slide) ease-in-out,
+      visibility 0s var(--hero-slide);
+  }
+
+  .hero.is-map .hero-map {
+    translate: 0;
+    visibility: visible;
+    transition: translate var(--hero-slide) ease-in-out;
   }
 
   /* The body opens with whatever the photo header did not take. */
