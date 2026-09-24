@@ -632,9 +632,9 @@ export const cardStyles = css`
 
   /* Proportional figures: these are standalone values, not a column of
      numbers that has to line up. */
-  /* A gap rather than margins between arrow, value and unit: where a narrow
-     tile wraps the unit to a second line, a gap vanishes at the break and
-     the unit starts flush left, where a margin would leave it indented. */
+  /* A gap rather than margins between value and unit: where a narrow tile
+     wraps the unit to a second line, a gap vanishes at the break and the
+     unit starts flush left, where a margin would leave it indented. */
   .tile-value {
     display: flex;
     align-items: baseline;
@@ -647,30 +647,31 @@ export const cardStyles = css`
     line-height: 1.2;
   }
 
-  /* What the reading is, in front of its value. */
+  /* What the reading is, in front of its value. Twice the gap the unit
+     gets: the icon labels the number, the unit belongs to it. The glyphs
+     fill most of their box, so 4px left the bacteria touching the digits. */
   .tile-icon {
     --mdc-icon-size: 0.9em;
     align-self: center;
+    margin-inline-end: 4px;
     color: var(--secondary-text-color);
   }
 
-  /* The trend at the tile's right edge, at the size of the bundesliga
-     table's trend column. Out of the flow with its room held open, so a
-     narrow tile wraps the unit rather than pushing the arrow onto a line of
-     its own; centred on the value's first line (line-height 1.2). */
-  .tile-value.has-trend {
-    position: relative;
-    padding-inline-end: 20px;
+  /* Unit and trend, kept together. Unit-sized, so the arrow reads with the
+     unit instead of competing with the figure; its baseline is the unit's,
+     which lines up with the figure's. The arrow is centred on the unit's
+     line, where it sits on the lowercase letters rather than above them. */
+  .tile-tail {
+    display: inline-flex;
+    align-items: center;
+    column-gap: 5px;
+    font-size: var(--ha-font-size-s, 0.857rem);
+    white-space: nowrap;
   }
 
   .tile-trend {
-    --mdc-icon-size: 15px;
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-end: 0;
-    display: flex;
-    align-items: center;
-    block-size: 1.2em;
+    --mdc-icon-size: 1.2em;
+    display: inline-flex;
     color: var(--secondary-text-color);
   }
 

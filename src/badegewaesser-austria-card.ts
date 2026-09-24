@@ -88,11 +88,16 @@ const READING_ICON = {
 const TREND_STEADY_M = 0.2;
 const TREND_STEADY_COUNT = 0.2;
 
-/** The bundesliga table card's trend glyphs, so the portfolio reads alike. */
+/**
+ * Up and down as in the bundesliga table card. Steady is an arrow too,
+ * not the table's minus: the table's sits alone in a column, this one right
+ * after the unit, where a minus reads as a dash in the sentence -- in a
+ * narrow tile, "KBE/100ml -- unter der Nachweisgrenze".
+ */
 const TREND_ICON = {
   up: "mdi:arrow-up",
   down: "mdi:arrow-down",
-  steady: "mdi:minus",
+  steady: "mdi:arrow-right",
 } as const;
 
 type Trend = { direction: keyof typeof TREND_ICON; delta: number };
@@ -835,8 +840,8 @@ export class BadegewaesserAustriaCard extends LitElement {
   }
 
   /**
-   * A tile's trend arrow, at the tile's right edge like the trend column of
-   * the bundesliga table. Secondary ink, unlike there: up and down are facts
+   * A tile's trend arrow, right after the unit, so it reads as part of the
+   * reading: "32 KBE/100ml" and which way it went. Secondary ink: up and down are facts
    * about the reading, not verdicts on the water -- more bacteria is bad news
    * and a deeper Secchi disc good news, and a rise from "<15" to 30 is still
    * excellent water -- so neither direction gets a status colour. The
@@ -988,14 +993,16 @@ export class BadegewaesserAustriaCard extends LitElement {
         </div>
         <div class="tile">
           <dt>${localize("card.secchi_depth", language)}</dt>
-          <dd class=${secchiMove ? "tile-value has-trend" : "tile-value"}>
+          <dd class="tile-value">
             ${this._renderReadingIcon(READING_ICON.secchi)}${formatNumber(
               numericState(secchi),
               language,
               2,
-            ) ?? "—"}${hasValue(secchi) && typeof secchiUnit === "string"
-              ? html`<span class="unit">${secchiUnit}</span>`
-              : nothing}${this._renderTrend(secchiMove, language)}
+            ) ?? "—"}${this._renderTail(
+              hasValue(secchi) && typeof secchiUnit === "string" ? secchiUnit : undefined,
+              secchiMove,
+              language,
+            )}
           </dd>
         </div>
         ${this._renderCount(KEY.eColi, entities[KEY.eColi], countTrend(samples, "e_coli"), language)}
@@ -1007,6 +1014,25 @@ export class BadegewaesserAustriaCard extends LitElement {
         )}
       </dl>
     `;
+  }
+
+  /**
+   * The unit and the trend after a value, as one piece that wraps as a
+   * whole. A narrow tile then moves both to the next line together instead
+   * of leaving the arrow alone on one of its own.
+   */
+  private _renderTail(
+    unit: string | undefined,
+    trend: Trend | null,
+    language: string | undefined,
+  ): TemplateResult | typeof nothing {
+    if (unit === undefined && !trend) return nothing;
+    return html`<span class="tile-tail"
+      >${unit === undefined ? nothing : html`<span class="unit">${unit}</span>`}${this._renderTrend(
+        trend,
+        language,
+      )}</span
+    >`;
   }
 
   private _renderReadingIcon(icon: string): TemplateResult {
@@ -1026,11 +1052,12 @@ export class BadegewaesserAustriaCard extends LitElement {
     return html`
       <div class="tile">
         <dt>${localize(`card.${key}`, language)}</dt>
-        <dd class=${move ? "tile-value has-trend" : "tile-value"}>
-          ${this._renderReadingIcon(READING_ICON[key])}${text ?? "—"}${text !== null &&
-          typeof unit === "string"
-            ? html`<span class="unit">${unit}</span>`
-            : nothing}${this._renderTrend(move, language)}
+        <dd class="tile-value">
+          ${this._renderReadingIcon(READING_ICON[key])}${text ?? "—"}${this._renderTail(
+            text !== null && typeof unit === "string" ? unit : undefined,
+            move,
+            language,
+          )}
         </dd>
         ${below
           ? html`<dd class="tile-detail">${localize("card.below_limit", language)}</dd>`

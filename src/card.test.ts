@@ -421,18 +421,21 @@ describe("tile trends", () => {
     const icons = tiles.map(
       (tile) => tile.querySelector(".tile-trend")?.getAttribute("icon") ?? null,
     );
-    // Order: quality, Secchi depth, E. coli, enterococci. The bundesliga
-    // table's glyphs, so the portfolio's trend arrows read alike.
-    expect(icons).toEqual([null, "mdi:minus", "mdi:arrow-down", "mdi:minus"]);
+    // Order: quality, Secchi depth, E. coli, enterococci. Steady is an
+    // arrow, not a minus: after the unit, a minus reads as a dash.
+    expect(icons).toEqual([null, "mdi:arrow-right", "mdi:arrow-down", "mdi:arrow-right"]);
     const ecoli = tiles[2]!;
     expect(ecoli.querySelector(".visually-hidden")?.textContent).toBe(
       "Gesunken seit der Probe davor",
     );
-    // The arrow comes after the value, and the tile holds room for it.
-    const value = ecoli.querySelector(".tile-value")!;
-    expect(value.classList.contains("has-trend")).toBe(true);
-    expect(value.lastElementChild?.classList.contains("visually-hidden")).toBe(true);
-    expect(tiles[0]!.querySelector(".tile-value")?.classList.contains("has-trend")).toBe(false);
+    // Unit and arrow travel together, the arrow right after the unit.
+    const tail = ecoli.querySelector(".tile-value > .tile-tail")!;
+    expect([...tail.children].map((child) => child.className)).toEqual([
+      "unit",
+      "tile-trend",
+      "visually-hidden",
+    ]);
+    expect(tiles[0]!.querySelector(".tile-trend")).toBeNull();
   });
 
   it("gives each measurement its icon in front of the value", async () => {
@@ -453,11 +456,20 @@ describe("tile trends", () => {
     expect(cssRule(".tile dt")).toMatch(/flex-wrap:\s*wrap/);
   });
 
-  it("sets the arrow at the tile's right edge, with its room held open", () => {
-    expect(cssRule(".tile-trend")).toMatch(/position:\s*absolute/);
-    expect(cssRule(".tile-trend")).toMatch(/inset-inline-end:\s*0/);
-    expect(cssRule(".tile-trend")).toMatch(/--mdc-icon-size:\s*15px/);
-    expect(cssRule(".tile-value.has-trend")).toMatch(/padding-inline-end:\s*20px/);
+  it("keeps unit and arrow on one line, at the unit's size", () => {
+    // At the tile's edge the arrow read as nobody's, and a narrow tile could
+    // strand it on a line of its own.
+    expect(cssRule(".tile-tail")).toMatch(/white-space:\s*nowrap/);
+    expect(cssRule(".tile-tail")).toMatch(/font-size:\s*var\(--ha-font-size-s/);
+    expect(cssRule(".tile-trend")).not.toMatch(/position:\s*absolute/);
+    expect(cardStyles.cssText).not.toContain("has-trend");
+  });
+
+  it("gives the icon twice the gap the unit gets", () => {
+    // 4px on top of the value's 4px column gap: the glyphs fill their box,
+    // and at 4px the bacteria touched the digits.
+    expect(cssRule(".tile-icon")).toMatch(/margin-inline-end:\s*4px/);
+    expect(cssRule(".tile-value")).toMatch(/column-gap:\s*4px/);
   });
 
   it("keeps the icon when a reading is missing, and drops only the arrow", async () => {

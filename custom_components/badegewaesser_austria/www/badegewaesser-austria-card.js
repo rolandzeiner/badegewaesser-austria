@@ -702,9 +702,9 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),Pe();const Ye=l`
 
   /* Proportional figures: these are standalone values, not a column of
      numbers that has to line up. */
-  /* A gap rather than margins between arrow, value and unit: where a narrow
-     tile wraps the unit to a second line, a gap vanishes at the break and
-     the unit starts flush left, where a margin would leave it indented. */
+  /* A gap rather than margins between value and unit: where a narrow tile
+     wraps the unit to a second line, a gap vanishes at the break and the
+     unit starts flush left, where a margin would leave it indented. */
   .tile-value {
     display: flex;
     align-items: baseline;
@@ -717,30 +717,31 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),Pe();const Ye=l`
     line-height: 1.2;
   }
 
-  /* What the reading is, in front of its value. */
+  /* What the reading is, in front of its value. Twice the gap the unit
+     gets: the icon labels the number, the unit belongs to it. The glyphs
+     fill most of their box, so 4px left the bacteria touching the digits. */
   .tile-icon {
     --mdc-icon-size: 0.9em;
     align-self: center;
+    margin-inline-end: 4px;
     color: var(--secondary-text-color);
   }
 
-  /* The trend at the tile's right edge, at the size of the bundesliga
-     table's trend column. Out of the flow with its room held open, so a
-     narrow tile wraps the unit rather than pushing the arrow onto a line of
-     its own; centred on the value's first line (line-height 1.2). */
-  .tile-value.has-trend {
-    position: relative;
-    padding-inline-end: 20px;
+  /* Unit and trend, kept together. Unit-sized, so the arrow reads with the
+     unit instead of competing with the figure; its baseline is the unit's,
+     which lines up with the figure's. The arrow is centred on the unit's
+     line, where it sits on the lowercase letters rather than above them. */
+  .tile-tail {
+    display: inline-flex;
+    align-items: center;
+    column-gap: 5px;
+    font-size: var(--ha-font-size-s, 0.857rem);
+    white-space: nowrap;
   }
 
   .tile-trend {
-    --mdc-icon-size: 15px;
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-end: 0;
-    display: flex;
-    align-items: center;
-    block-size: 1.2em;
+    --mdc-icon-size: 1.2em;
+    display: inline-flex;
     color: var(--secondary-text-color);
   }
 
@@ -1087,7 +1088,7 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),Pe();const Ye=l`
         .computeHelper=${this._computeHelper}
         @value-changed=${this._valueChanged}
       ></ha-form>
-    `}_valueChanged(e){St(this,`config-changed`,{config:e.detail.value})}},Y([Le({attribute:!1})],X.prototype,`hass`,void 0),Y([H()],X.prototype,`_config`,void 0),X=Y([Fe(`badegewaesser-austria-card-editor`)],X)}));Pe(),Je(),$e(),it(),bt(),xt();const Z={temperature:`water_temperature`,quality:`water_quality`,eColi:`e_coli`,enterococci:`enterococci`,secchi:`secchi_depth`,lastSample:`last_sample`,closed:`closed`,season:`bathing_season`,photo:`photo`},Dt={excellent:{icon:`mdi:star`,count:3},good:{icon:`mdi:star`,count:2},sufficient:{icon:`mdi:star`,count:1},poor:{icon:`mdi:minus`,count:1}},Q={temperature:`mdi:thermometer-water`,secchi:`mdi:eye-outline`,e_coli:`mdi:bacteria`,enterococci:`mdi:bacteria-outline`},Ot={up:`mdi:arrow-up`,down:`mdi:arrow-down`,steady:`mdi:minus`};function kt(e,t,n){let r=e.at(-1),i=r?t(r):null;if(!r||i==null)return null;let a=e.slice(0,-1).filter(e=>t(e)!=null).at(-1);if(!a)return null;let o=Math.round((i-(t(a)??i))*1e3)/1e3;return{direction:n(r,a,o)?`steady`:o>0?`up`:`down`,delta:o}}const At=e=>kt(e,e=>e.secchi_depth,(e,t,n)=>Math.abs(n)<.2);function jt(e,t){let n=e=>e[`${t}_below_limit`]===!0;return kt(e,e=>e[t],(e,r,i)=>{if(n(e)&&n(r))return!0;let a=Math.max(e[t]??0,r[t]??0);return Math.abs(i)<=.2*a})}function Mt(e){let t=e?.attributes.latitude,n=e?.attributes.longitude;if(typeof t==`number`&&typeof n==`number`&&Number.isFinite(t)&&Number.isFinite(n)&&t!==0&&n!==0&&!(Math.abs(t)>90||Math.abs(n)>180))return{latitude:t,longitude:n}}function Nt(e){let t=Mt(e);if(!t)return;let n=t.latitude.toFixed(6),r=t.longitude.toFixed(6);return`https://www.openstreetmap.org/?mlat=${n}&mlon=${r}#map=16/${n}/${r}`}function Pt(e){let t=e?.config?.components;return Array.isArray(t)&&t.includes(`map_tiles`)}function Ft(e){return{type:`map`,entities:[{entity:e,label_mode:`icon`}],theme_mode:`auto`,hours_to_show:0,default_zoom:13}}let $=class extends V{constructor(...e){super(...e),this._hoveredPoint=null,this._photoTip=!1,this._photoTipHovered=!1,this._photoTipPinned=!1,this._versionChecked=!1,this._showMap=!1,this._mapFailed=!1,this._mapLoading=!1,this._mapWheel={handleEvent:e=>{e.ctrlKey||e.stopPropagation()},capture:!0,passive:!0}}static{this.styles=[Ye,mt]}static async getConfigElement(){return await Promise.resolve().then(()=>(Et(),wt)),document.createElement(`badegewaesser-austria-card-editor`)}static getStubConfig(e){return{device:Object.values(e.entities??{}).find(e=>e.platform===`badegewaesser_austria`&&e.device_id)?.device_id??``}}setConfig(e){if(!e)throw Error(U(`error.no_device`,void 0));this._config=Xe(e)}getCardSize(){let e=this._config,t=1,n=this.hass?this._siteEntities()?.[Z.photo]:void 0;return e?.show_photo!==!1&&(!this.hass||K(n))&&(t+=4),e?.show_season_track!==!1&&(t+=1),e?.show_readings!==!1&&(t+=3),t}getGridOptions(){return{columns:12,min_columns:6,rows:`auto`}}connectedCallback(){super.connectedCallback(),typeof ResizeObserver<`u`&&(this._resizeObserver=new ResizeObserver(e=>{let t=Math.round(e[0]?.contentRect.width??0);t>0&&t!==this._width&&(this._width=t)}),this._resizeObserver.observe(this))}disconnectedCallback(){this._resizeObserver?.disconnect(),this._resizeObserver=void 0,super.disconnectedCallback()}willUpdate(e){let t=this._mapCard;if(t&&(e.has(`hass`)&&this.hass&&(t.hass=this.hass),e.has(`_config`))){let e=this._siteEntities()?.[Z.temperature]?.entity_id;e&&e!==this._mapEntityId&&(t.setConfig?.(Ft(e)),this._mapEntityId=e)}}updated(){this._checkVersion()}async _checkVersion(){if(!this._versionChecked&&this.hass?.callWS){this._versionChecked=!0;try{let e=await this.hass.callWS({type:`${ht}/card_version`});e?.version&&e.version!==`0.1.0`&&(this._staleVersion=e.version)}catch{}}}async _reload(){try{if(`caches`in window){let e=await caches.keys();await Promise.all(e.map(e=>caches.delete(e)))}}catch{}location.reload()}_siteEntities(){let e=this.hass,t=Ze(e,this._config);if(!e||!t)return;let n={};for(let r of Object.values(e.entities??{}))r.device_id===t&&r.platform===`badegewaesser_austria`&&r.translation_key&&(n[r.translation_key]=e.states[r.entity_id]);return n}_deviceName(){let e=Ze(this.hass,this._config),t=e?this.hass?.devices?.[e]:void 0;return t?.name_by_user??t?.name}render(){let e=this._config,t=this.hass;if(!e||!t)return I;let n=_t(t);if(!e.device&&!e.entity)return this._renderAlert(U(`error.no_device`,n));if(!e.device&&e.entity){let r=t.entities?.[e.entity];if(!r||!t.states[e.entity])return this._renderAlert(U(`error.entity_missing`,n,{entity:e.entity}));if(r.platform!==`badegewaesser_austria`)return this._renderAlert(U(`error.not_this_integration`,n,{entity:e.entity}))}let r=this._siteEntities()??{};if(Object.keys(r).length===0)return this._renderAlert(U(`error.device_missing`,n));let i=r[Z.temperature],a=r[Z.closed],o=r[Z.season],s=e.name??this._deviceName()??``,c=i?.attributes.season_samples??[],l=o?.state===`on`,u=a?.state===`on`,d=r[Z.photo],f=e.show_photo===!1?void 0:this._photoUrl(d),p=f!==void 0&&this._photoFailed!==f,m=this._renderMapLink(s,Nt(i),n),h=p&&e.show_map!==!1&&!this._mapFailed&&Mt(i)!==void 0&&Pt(t)?i?.entity_id:void 0;return N`
+    `}_valueChanged(e){St(this,`config-changed`,{config:e.detail.value})}},Y([Le({attribute:!1})],X.prototype,`hass`,void 0),Y([H()],X.prototype,`_config`,void 0),X=Y([Fe(`badegewaesser-austria-card-editor`)],X)}));Pe(),Je(),$e(),it(),bt(),xt();const Z={temperature:`water_temperature`,quality:`water_quality`,eColi:`e_coli`,enterococci:`enterococci`,secchi:`secchi_depth`,lastSample:`last_sample`,closed:`closed`,season:`bathing_season`,photo:`photo`},Dt={excellent:{icon:`mdi:star`,count:3},good:{icon:`mdi:star`,count:2},sufficient:{icon:`mdi:star`,count:1},poor:{icon:`mdi:minus`,count:1}},Q={temperature:`mdi:thermometer-water`,secchi:`mdi:eye-outline`,e_coli:`mdi:bacteria`,enterococci:`mdi:bacteria-outline`},Ot={up:`mdi:arrow-up`,down:`mdi:arrow-down`,steady:`mdi:arrow-right`};function kt(e,t,n){let r=e.at(-1),i=r?t(r):null;if(!r||i==null)return null;let a=e.slice(0,-1).filter(e=>t(e)!=null).at(-1);if(!a)return null;let o=Math.round((i-(t(a)??i))*1e3)/1e3;return{direction:n(r,a,o)?`steady`:o>0?`up`:`down`,delta:o}}const At=e=>kt(e,e=>e.secchi_depth,(e,t,n)=>Math.abs(n)<.2);function jt(e,t){let n=e=>e[`${t}_below_limit`]===!0;return kt(e,e=>e[t],(e,r,i)=>{if(n(e)&&n(r))return!0;let a=Math.max(e[t]??0,r[t]??0);return Math.abs(i)<=.2*a})}function Mt(e){let t=e?.attributes.latitude,n=e?.attributes.longitude;if(typeof t==`number`&&typeof n==`number`&&Number.isFinite(t)&&Number.isFinite(n)&&t!==0&&n!==0&&!(Math.abs(t)>90||Math.abs(n)>180))return{latitude:t,longitude:n}}function Nt(e){let t=Mt(e);if(!t)return;let n=t.latitude.toFixed(6),r=t.longitude.toFixed(6);return`https://www.openstreetmap.org/?mlat=${n}&mlon=${r}#map=16/${n}/${r}`}function Pt(e){let t=e?.config?.components;return Array.isArray(t)&&t.includes(`map_tiles`)}function Ft(e){return{type:`map`,entities:[{entity:e,label_mode:`icon`}],theme_mode:`auto`,hours_to_show:0,default_zoom:13}}let $=class extends V{constructor(...e){super(...e),this._hoveredPoint=null,this._photoTip=!1,this._photoTipHovered=!1,this._photoTipPinned=!1,this._versionChecked=!1,this._showMap=!1,this._mapFailed=!1,this._mapLoading=!1,this._mapWheel={handleEvent:e=>{e.ctrlKey||e.stopPropagation()},capture:!0,passive:!0}}static{this.styles=[Ye,mt]}static async getConfigElement(){return await Promise.resolve().then(()=>(Et(),wt)),document.createElement(`badegewaesser-austria-card-editor`)}static getStubConfig(e){return{device:Object.values(e.entities??{}).find(e=>e.platform===`badegewaesser_austria`&&e.device_id)?.device_id??``}}setConfig(e){if(!e)throw Error(U(`error.no_device`,void 0));this._config=Xe(e)}getCardSize(){let e=this._config,t=1,n=this.hass?this._siteEntities()?.[Z.photo]:void 0;return e?.show_photo!==!1&&(!this.hass||K(n))&&(t+=4),e?.show_season_track!==!1&&(t+=1),e?.show_readings!==!1&&(t+=3),t}getGridOptions(){return{columns:12,min_columns:6,rows:`auto`}}connectedCallback(){super.connectedCallback(),typeof ResizeObserver<`u`&&(this._resizeObserver=new ResizeObserver(e=>{let t=Math.round(e[0]?.contentRect.width??0);t>0&&t!==this._width&&(this._width=t)}),this._resizeObserver.observe(this))}disconnectedCallback(){this._resizeObserver?.disconnect(),this._resizeObserver=void 0,super.disconnectedCallback()}willUpdate(e){let t=this._mapCard;if(t&&(e.has(`hass`)&&this.hass&&(t.hass=this.hass),e.has(`_config`))){let e=this._siteEntities()?.[Z.temperature]?.entity_id;e&&e!==this._mapEntityId&&(t.setConfig?.(Ft(e)),this._mapEntityId=e)}}updated(){this._checkVersion()}async _checkVersion(){if(!this._versionChecked&&this.hass?.callWS){this._versionChecked=!0;try{let e=await this.hass.callWS({type:`${ht}/card_version`});e?.version&&e.version!==`0.1.0`&&(this._staleVersion=e.version)}catch{}}}async _reload(){try{if(`caches`in window){let e=await caches.keys();await Promise.all(e.map(e=>caches.delete(e)))}}catch{}location.reload()}_siteEntities(){let e=this.hass,t=Ze(e,this._config);if(!e||!t)return;let n={};for(let r of Object.values(e.entities??{}))r.device_id===t&&r.platform===`badegewaesser_austria`&&r.translation_key&&(n[r.translation_key]=e.states[r.entity_id]);return n}_deviceName(){let e=Ze(this.hass,this._config),t=e?this.hass?.devices?.[e]:void 0;return t?.name_by_user??t?.name}render(){let e=this._config,t=this.hass;if(!e||!t)return I;let n=_t(t);if(!e.device&&!e.entity)return this._renderAlert(U(`error.no_device`,n));if(!e.device&&e.entity){let r=t.entities?.[e.entity];if(!r||!t.states[e.entity])return this._renderAlert(U(`error.entity_missing`,n,{entity:e.entity}));if(r.platform!==`badegewaesser_austria`)return this._renderAlert(U(`error.not_this_integration`,n,{entity:e.entity}))}let r=this._siteEntities()??{};if(Object.keys(r).length===0)return this._renderAlert(U(`error.device_missing`,n));let i=r[Z.temperature],a=r[Z.closed],o=r[Z.season],s=e.name??this._deviceName()??``,c=i?.attributes.season_samples??[],l=o?.state===`on`,u=a?.state===`on`,d=r[Z.photo],f=e.show_photo===!1?void 0:this._photoUrl(d),p=f!==void 0&&this._photoFailed!==f,m=this._renderMapLink(s,Nt(i),n),h=p&&e.show_map!==!1&&!this._mapFailed&&Mt(i)!==void 0&&Pt(t)?i?.entity_id:void 0;return N`
       <ha-card>
         ${p?this._renderHero(f,d,s,m,h,i,c,n):I}
         ${this._renderVersionBanner(n)}
@@ -1241,18 +1242,20 @@ Ie(),Be(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe()}));Je(),Pe();const Ye=l`
         </div>
         <div class="tile">
           <dt>${U(`card.secchi_depth`,n)}</dt>
-          <dd class=${u?`tile-value has-trend`:`tile-value`}>
-            ${this._renderReadingIcon(Q.secchi)}${J(q(i),n,2)??`—`}${K(i)&&typeof l==`string`?N`<span class="unit">${l}</span>`:I}${this._renderTrend(u,n)}
+          <dd class="tile-value">
+            ${this._renderReadingIcon(Q.secchi)}${J(q(i),n,2)??`—`}${this._renderTail(K(i)&&typeof l==`string`?l:void 0,u,n)}
           </dd>
         </div>
         ${this._renderCount(Z.eColi,e[Z.eColi],jt(t,`e_coli`),n)}
         ${this._renderCount(Z.enterococci,e[Z.enterococci],jt(t,`enterococci`),n)}
       </dl>
-    `}_renderReadingIcon(e){return N`<ha-icon class="tile-icon" icon=${e} aria-hidden="true"></ha-icon>`}_renderCount(e,t,n,r){let i=t?.attributes.below_detection_limit===!0,a=yt(q(t),i,r),o=t?.attributes.unit_of_measurement,s=a===null?null:n;return N`
+    `}_renderTail(e,t,n){return e===void 0&&!t?I:N`<span class="tile-tail"
+      >${e===void 0?I:N`<span class="unit">${e}</span>`}${this._renderTrend(t,n)}</span
+    >`}_renderReadingIcon(e){return N`<ha-icon class="tile-icon" icon=${e} aria-hidden="true"></ha-icon>`}_renderCount(e,t,n,r){let i=t?.attributes.below_detection_limit===!0,a=yt(q(t),i,r),o=t?.attributes.unit_of_measurement,s=a===null?null:n;return N`
       <div class="tile">
         <dt>${U(`card.${e}`,r)}</dt>
-        <dd class=${s?`tile-value has-trend`:`tile-value`}>
-          ${this._renderReadingIcon(Q[e])}${a??`—`}${a!==null&&typeof o==`string`?N`<span class="unit">${o}</span>`:I}${this._renderTrend(s,r)}
+        <dd class="tile-value">
+          ${this._renderReadingIcon(Q[e])}${a??`—`}${this._renderTail(a!==null&&typeof o==`string`?o:void 0,s,r)}
         </dd>
         ${i?N`<dd class="tile-detail">${U(`card.below_limit`,r)}</dd>`:I}
       </div>
