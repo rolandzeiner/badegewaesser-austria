@@ -91,14 +91,14 @@ Each bathing water becomes one device with eight entities, plus a photo where AG
 
 ### Water quality
 
-The EU Bathing Water Directive classifies each bathing water once a year, over the previous four seasons:
+The EU Bathing Water Directive classifies each bathing water once a year, over the previous four seasons. The card shows each class next to the symbol the EU set for it in Commission Implementing Decision 2011/321/EU:
 
-| State | AGES letter | Meaning |
-|---|---|---|
-| `excellent` | A | Consistently free of faecal contamination |
-| `good` | B | Stable, occasional elevated readings |
-| `sufficient` | C | Elevated microbial readings occur regularly |
-| `poor` | D | A swimming ban or advice against swimming follows |
+| State | AGES letter | Card symbol | Meaning |
+|---|---|---|---|
+| `excellent` | A | ★★★ | Consistently free of faecal contamination |
+| `good` | B | ★★ | Stable, occasional elevated readings |
+| `sufficient` | C | ★ | Elevated microbial readings occur regularly |
+| `poor` | D | – | A swimming ban or advice against swimming follows |
 
 The current year's classification is empty until AGES publishes it after the season ends, so through the summer and autumn this sensor shows **last year's** rating. The `rating_year` attribute always says which year it means.
 

@@ -49,37 +49,47 @@ const KEY = {
 } as const;
 
 /**
- * Status icon for the water-quality verdict, in the tile's label row. It sits
- * beside words, never in place of them: colour and shape say "fine" or
- * "careful" at a glance, the verdict below says which of the four classes it
- * is. In the label row rather than beside the verdict because "Ausgezeichnet"
- * plus an icon does not fit half a sidebar-width card.
+ * The EU classification symbol, drawn with MDI glyphs.
+ *
+ * Commission Implementing Decision 2011/321/EU, Annex part 2, sets the symbols
+ * Directive 2006/7/EC Art. 12(1)(a) asks for: three stars for excellent, two
+ * for good, one for sufficient, a dash for poor, each beside its class in
+ * words. So the words stay, and the symbol never replaces them. AGES's "NEU"
+ * and "Veränderungen" are its own markers with no EU symbol, so a site
+ * without a class shows only its words.
  */
-const QUALITY_ICON: Readonly<Record<string, string>> = {
-  excellent: "mdi:check-circle",
-  good: "mdi:check-circle",
-  sufficient: "mdi:alert-circle",
-  poor: "mdi:close-circle",
+const QUALITY_SYMBOL: Readonly<Record<string, { icon: string; count: number }>> = {
+  excellent: { icon: "mdi:star", count: 3 },
+  good: { icon: "mdi:star", count: 2 },
+  sufficient: { icon: "mdi:star", count: 1 },
+  poor: { icon: "mdi:minus", count: 1 },
 };
+
+/** What each reading is, in front of its value. */
+const READING_ICON = {
+  temperature: "mdi:thermometer-water",
+  secchi: "mdi:eye-outline",
+  e_coli: "mdi:bacteria",
+  enterococci: "mdi:bacteria-outline",
+} as const;
 
 /**
  * How far a reading may move since the sample before it and still count as
  * steady -- an arrow for noise is a trend the water does not have.
  *
- * Temperature: readings come to a tenth, so half a degree.
  * Secchi depth: read off a disc to about 0.1 m, so 0.2 m.
  * Bacteria: plate counts carry large method uncertainty, so a change within
  * 20% of the larger count is steady, and "<15" to "<15" is the same limit
  * twice, not a measurement.
  */
-const TREND_STEADY_C = 0.5;
 const TREND_STEADY_M = 0.2;
 const TREND_STEADY_COUNT = 0.2;
 
+/** The bundesliga table card's trend glyphs, so the portfolio reads alike. */
 const TREND_ICON = {
-  up: "mdi:trending-up",
-  down: "mdi:trending-down",
-  steady: "mdi:trending-neutral",
+  up: "mdi:arrow-up",
+  down: "mdi:arrow-down",
+  steady: "mdi:minus",
 } as const;
 
 type Trend = { direction: keyof typeof TREND_ICON; delta: number };
@@ -110,13 +120,6 @@ export function sampleTrend(
   const direction = isSteady(last, previousSample, delta) ? "steady" : delta > 0 ? "up" : "down";
   return { direction, delta };
 }
-
-export const temperatureTrend = (samples: readonly SeasonSample[]): Trend | null =>
-  sampleTrend(
-    samples,
-    (sample) => sample.water_temperature,
-    (_latest, _previous, delta) => Math.abs(delta) < TREND_STEADY_C,
-  );
 
 export const secchiTrend = (samples: readonly SeasonSample[]): Trend | null =>
   sampleTrend(
@@ -463,7 +466,6 @@ export class BadegewaesserAustriaCard extends LitElement {
     const formatted = formatNumber(numericState(temperature), language);
     const unit = temperature?.attributes["unit_of_measurement"];
     const latest = samples.at(-1);
-    const trend = formatted === null ? null : temperatureTrend(samples);
 
     return html`
       <div class="hero">
@@ -480,18 +482,12 @@ export class BadegewaesserAustriaCard extends LitElement {
           <div class="hero-heading"><h2 class="hero-title">${title}</h2>${mapLink}</div>
           ${place ? html`<p class="hero-place">${place}</p>` : nothing}
           <p class=${formatted === null ? "hero-temperature is-missing" : "hero-temperature"}>
-            ${trend
-              ? html`<ha-icon
-                    class="hero-trend"
-                    icon=${TREND_ICON[trend.direction]}
-                    aria-hidden="true"
-                  ></ha-icon
-                  ><span class="visually-hidden"
-                    >${localize(`card.trend_${trend.direction}`, language, {
-                      delta: `${formatNumber(Math.abs(trend.delta), language) ?? ""} °C`,
-                    })}</span
-                  >`
-              : nothing}<span class="hero-value">${formatted ?? "—"}</span>${formatted !== null &&
+            <ha-icon
+              class="hero-icon"
+              icon=${READING_ICON.temperature}
+              aria-hidden="true"
+            ></ha-icon
+            ><span class="hero-value">${formatted ?? "—"}</span>${formatted !== null &&
             typeof unit === "string"
               ? html`<span class="hero-unit">${unit}</span>`
               : nothing}
@@ -625,8 +621,11 @@ export class BadegewaesserAustriaCard extends LitElement {
   }
 
   /**
-   * A tile's trend arrow, in secondary ink: up and down are facts about the
-   * reading, not verdicts on the water, so neither gets a status colour. The
+   * A tile's trend arrow, at the tile's right edge like the trend column of
+   * the bundesliga table. Secondary ink, unlike there: up and down are facts
+   * about the reading, not verdicts on the water -- more bacteria is bad news
+   * and a deeper Secchi disc good news, and a rise from "<15" to 30 is still
+   * excellent water -- so neither direction gets a status colour. The
    * sentence beside it is for screen readers.
    */
   private _renderTrend(
@@ -690,6 +689,11 @@ export class BadegewaesserAustriaCard extends LitElement {
           ${hero
             ? nothing
             : html`<div class="reading">
+                <ha-icon
+                  class="reading-icon"
+                  icon=${READING_ICON.temperature}
+                  aria-hidden="true"
+                ></ha-icon>
                 <span class=${formatted === null ? "temperature is-missing" : "temperature"}>
                   ${formatted ?? "—"}
                 </span>
@@ -725,8 +729,9 @@ export class BadegewaesserAustriaCard extends LitElement {
    * top, the two bacteria counts, which share a unit, underneath.
    *
    * Each tile is label, value, detail -- the label small above so the eye
-   * lands on the number. Still a description list, so a screen reader hears
-   * each label with its value. No boxes: the grid and the type carry the
+   * lands on the number, the reading's icon in front of it and its trend at
+   * the right edge. Still a description list, so a screen reader hears each
+   * label with its value. No boxes: the grid and the type carry the
    * structure.
    */
   private _renderReadings(
@@ -739,22 +744,23 @@ export class BadegewaesserAustriaCard extends LitElement {
     const ratingYear = quality?.attributes["rating_year"];
     const hasQuality = hasValue(quality);
     const state = quality?.state ?? "";
+    const symbol = hasQuality ? QUALITY_SYMBOL[state] : undefined;
     const secchiUnit = secchi?.attributes["unit_of_measurement"];
+    const secchiMove = hasValue(secchi) ? secchiTrend(samples) : null;
 
     return html`
       <dl class="tiles">
         <div class="tile">
-          <dt>
-            ${hasQuality && state in QUALITY_ICON
-              ? html`<ha-icon
-                  class=${`quality-icon is-${state}`}
-                  icon=${QUALITY_ICON[state]}
-                  aria-hidden="true"
-                ></ha-icon>`
-              : nothing}${localize("card.water_quality", language)}
-          </dt>
+          <dt>${localize("card.water_quality", language)}</dt>
           <dd class="tile-value">
-            ${hasQuality
+            ${symbol
+              ? html`<span class=${`quality-symbol is-${state}`} aria-hidden="true"
+                  >${Array.from(
+                    { length: symbol.count },
+                    () => html`<ha-icon icon=${symbol.icon}></ha-icon>`,
+                  )}</span
+                >`
+              : nothing}${hasQuality
               ? localize(`quality.${state}`, language)
               : localize("card.no_rating", language)}
           </dd>
@@ -766,15 +772,14 @@ export class BadegewaesserAustriaCard extends LitElement {
         </div>
         <div class="tile">
           <dt>${localize("card.secchi_depth", language)}</dt>
-          <dd class="tile-value">
-            ${hasValue(secchi) ? this._renderTrend(secchiTrend(samples), language) : nothing}${formatNumber(
+          <dd class=${secchiMove ? "tile-value has-trend" : "tile-value"}>
+            ${this._renderReadingIcon(READING_ICON.secchi)}${formatNumber(
               numericState(secchi),
               language,
               2,
-            ) ?? "—"}${hasValue(secchi) &&
-            typeof secchiUnit === "string"
+            ) ?? "—"}${hasValue(secchi) && typeof secchiUnit === "string"
               ? html`<span class="unit">${secchiUnit}</span>`
-              : nothing}
+              : nothing}${this._renderTrend(secchiMove, language)}
           </dd>
         </div>
         ${this._renderCount(KEY.eColi, entities[KEY.eColi], countTrend(samples, "e_coli"), language)}
@@ -788,8 +793,12 @@ export class BadegewaesserAustriaCard extends LitElement {
     `;
   }
 
+  private _renderReadingIcon(icon: string): TemplateResult {
+    return html`<ha-icon class="tile-icon" icon=${icon} aria-hidden="true"></ha-icon>`;
+  }
+
   private _renderCount(
-    key: string,
+    key: typeof KEY.eColi | typeof KEY.enterococci,
     entity: HassEntity | undefined,
     trend: Trend | null,
     language: string | undefined,
@@ -797,14 +806,15 @@ export class BadegewaesserAustriaCard extends LitElement {
     const below = entity?.attributes["below_detection_limit"] === true;
     const text = formatCount(numericState(entity), below, language);
     const unit = entity?.attributes["unit_of_measurement"];
+    const move = text === null ? null : trend;
     return html`
       <div class="tile">
         <dt>${localize(`card.${key}`, language)}</dt>
-        <dd class="tile-value">
-          ${text !== null ? this._renderTrend(trend, language) : nothing}${text ??
-          "—"}${text !== null && typeof unit === "string"
+        <dd class=${move ? "tile-value has-trend" : "tile-value"}>
+          ${this._renderReadingIcon(READING_ICON[key])}${text ?? "—"}${text !== null &&
+          typeof unit === "string"
             ? html`<span class="unit">${unit}</span>`
-            : nothing}
+            : nothing}${this._renderTrend(move, language)}
         </dd>
         ${below
           ? html`<dd class="tile-detail">${localize("card.below_limit", language)}</dd>`

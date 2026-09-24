@@ -251,9 +251,9 @@ export const cardStyles = css`
     letter-spacing: -0.02em;
   }
 
-  /* Sits on the text baseline, so it stands as tall as the digits. No
-     colour: warmer water is not good or bad news in itself. */
-  .hero-trend {
+  /* What the figure is. Sits on the text baseline, as tall as the digits;
+     no colour, because warmer water is not good or bad news in itself. */
+  .hero-icon {
     --mdc-icon-size: 1.75rem;
     margin-right: 4px;
   }
@@ -381,6 +381,11 @@ export const cardStyles = css`
     margin-block: calc((1.2em - 32px) / 2);
     margin-inline: 2px calc((1.1em - 32px) / 2);
     vertical-align: middle;
+    /* Middle is half the x-height, which left the pin's head level with
+       the lowercase letters and its point well below the line. Raised to
+       sit on the capitals, the point just under the baseline. A transform,
+       so the line itself does not move. */
+    translate: 0 -0.12em;
     border-radius: 50%;
     color: var(--secondary-text-color);
     text-decoration: none;
@@ -465,6 +470,12 @@ export const cardStyles = css`
     text-align: right;
   }
 
+  .reading-icon {
+    --mdc-icon-size: 1.15em;
+    align-self: center;
+    color: var(--secondary-text-color);
+  }
+
   .reading {
     display: flex;
     align-items: baseline;
@@ -535,10 +546,30 @@ export const cardStyles = css`
     line-height: 1.2;
   }
 
-  /* Sits on the value's baseline, as tall as its digits. */
-  .tile-trend {
-    --mdc-icon-size: 1em;
+  /* What the reading is, in front of its value. */
+  .tile-icon {
+    --mdc-icon-size: 0.9em;
     align-self: center;
+    color: var(--secondary-text-color);
+  }
+
+  /* The trend at the tile's right edge, at the size of the bundesliga
+     table's trend column. Out of the flow with its room held open, so a
+     narrow tile wraps the unit rather than pushing the arrow onto a line of
+     its own; centred on the value's first line (line-height 1.2). */
+  .tile-value.has-trend {
+    position: relative;
+    padding-inline-end: 20px;
+  }
+
+  .tile-trend {
+    --mdc-icon-size: 15px;
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    display: flex;
+    align-items: center;
+    block-size: 1.2em;
     color: var(--secondary-text-color);
   }
 
@@ -559,21 +590,26 @@ export const cardStyles = css`
     margin-left: 4px;
   }
 
-  /* Status colour on the icon only; the words beside it stay in text ink. */
-  .quality-icon {
-    --mdc-icon-size: 1.15em;
+  /* The EU symbol in front of the class (Decision 2011/321/EU): stars, or a
+     dash for poor. Status colour on the symbol only; the words beside it
+     stay in text ink. Where the words do not fit beside it, they wrap below
+     and the symbol keeps its line. */
+  .quality-symbol {
+    --mdc-icon-size: 0.85em;
+    display: inline-flex;
+    align-self: center;
   }
 
-  .quality-icon.is-excellent,
-  .quality-icon.is-good {
+  .quality-symbol.is-excellent,
+  .quality-symbol.is-good {
     color: var(--bade-ok);
   }
 
-  .quality-icon.is-sufficient {
+  .quality-symbol.is-sufficient {
     color: var(--bade-warn);
   }
 
-  .quality-icon.is-poor {
+  .quality-symbol.is-poor {
     color: var(--bade-alert);
   }
 
@@ -644,7 +680,7 @@ export const cardStyles = css`
     .hero-value {
       font-size: var(--ha-font-size-3xl, 2rem);
     }
-    .hero-trend {
+    .hero-icon {
       --mdc-icon-size: 1.25rem;
     }
     .hero-heading {

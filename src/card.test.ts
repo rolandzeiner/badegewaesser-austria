@@ -19,7 +19,6 @@ import {
   countTrend,
   secchiTrend,
   siteMapUrl,
-  temperatureTrend,
   type BadegewaesserAustriaCard,
 } from "./badegewaesser-austria-card";
 import type { BadegewaesserAustriaCardEditor } from "./editor";
@@ -97,6 +96,13 @@ async function mount(
 
 const text = (card: BadegewaesserAustriaCard): string =>
   card.shadowRoot?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+
+/** The body of the first rule for a selector. happy-dom does no layout. */
+const cssRule = (selector: string): string => {
+  const css = cardStyles.cssText;
+  const start = css.indexOf(`${selector} {`);
+  return start < 0 ? "" : css.slice(start, css.indexOf("}", start));
+};
 
 beforeAll(() => {
   document.body.innerHTML = "";
@@ -271,6 +277,13 @@ describe("the reading", () => {
     expect(card.shadowRoot?.querySelector(".reading-row")).toBeNull();
     expect(card.shadowRoot?.querySelector(".reading-block")).not.toBeNull();
   });
+
+  it("is marked with a thermometer without a photo too", async () => {
+    const card = await mount({ device: DEVICE });
+    const icon = card.shadowRoot?.querySelector(".reading .reading-icon");
+    expect(icon?.getAttribute("icon")).toBe("mdi:thermometer-water");
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
+  });
 });
 
 describe("the season-track tooltip", () => {
@@ -345,30 +358,6 @@ describe("the season-track tooltip", () => {
   });
 });
 
-describe("temperatureTrend", () => {
-  const s = (...temps: Array<number | null>) =>
-    temps.map((water_temperature, i) => ({ date: `2026-07-0${i + 1}`, water_temperature }));
-
-  it.each([
-    [[20, 21.5], "up"],
-    [[22, 20.1], "down"],
-    [[21.4, 21.5], "steady"],
-    [[21.5, 21.1], "steady"],
-  ] as const)("reads %j as %s", (temps, direction) => {
-    expect(temperatureTrend(s(...temps))?.direction).toBe(direction);
-  });
-
-  it("compares against the last sample that was actually measured", () => {
-    expect(temperatureTrend(s(18, null, 21))).toEqual({ direction: "up", delta: 3 });
-  });
-
-  it("has nothing to say without two measured samples", () => {
-    expect(temperatureTrend(s(21))).toBeNull();
-    expect(temperatureTrend(s(20, null))).toBeNull();
-    expect(temperatureTrend([])).toBeNull();
-  });
-});
-
 describe("tile trends", () => {
   const sample = (fields: Record<string, unknown>) => ({
     date: "2026-07-01",
@@ -416,15 +405,52 @@ describe("tile trends", () => {
       },
     };
     const card = await mount({ device: DEVICE }, hass);
-    const icons = [...(card.shadowRoot?.querySelectorAll(".tiles .tile") ?? [])].map(
+    const tiles = [...(card.shadowRoot?.querySelectorAll(".tiles .tile") ?? [])];
+    const icons = tiles.map(
       (tile) => tile.querySelector(".tile-trend")?.getAttribute("icon") ?? null,
     );
-    // Order: quality, Secchi depth, E. coli, enterococci.
-    expect(icons).toEqual([null, "mdi:trending-neutral", "mdi:trending-down", "mdi:trending-neutral"]);
-    const ecoli = card.shadowRoot!.querySelectorAll(".tiles .tile")[2]!;
+    // Order: quality, Secchi depth, E. coli, enterococci. The bundesliga
+    // table's glyphs, so the portfolio's trend arrows read alike.
+    expect(icons).toEqual([null, "mdi:minus", "mdi:arrow-down", "mdi:minus"]);
+    const ecoli = tiles[2]!;
     expect(ecoli.querySelector(".visually-hidden")?.textContent).toBe(
       "Gesunken seit der Probe davor",
     );
+    // The arrow comes after the value, and the tile holds room for it.
+    const value = ecoli.querySelector(".tile-value")!;
+    expect(value.classList.contains("has-trend")).toBe(true);
+    expect(value.lastElementChild?.classList.contains("visually-hidden")).toBe(true);
+    expect(tiles[0]!.querySelector(".tile-value")?.classList.contains("has-trend")).toBe(false);
+  });
+
+  it("gives each measurement its icon in front of the value", async () => {
+    const card = await mount({ device: DEVICE });
+    const tiles = [...(card.shadowRoot?.querySelectorAll(".tiles .tile") ?? [])];
+    const icons = tiles.map((tile) => {
+      const first = tile.querySelector(".tile-value")?.firstElementChild;
+      return first?.classList.contains("tile-icon") ? first.getAttribute("icon") : null;
+    });
+    expect(icons).toEqual([null, "mdi:eye-outline", "mdi:bacteria", "mdi:bacteria-outline"]);
+    for (const icon of card.shadowRoot!.querySelectorAll(".tile-icon")) {
+      expect(icon.getAttribute("aria-hidden")).toBe("true");
+    }
+  });
+
+  it("sets the arrow at the tile's right edge, with its room held open", () => {
+    expect(cssRule(".tile-trend")).toMatch(/position:\s*absolute/);
+    expect(cssRule(".tile-trend")).toMatch(/inset-inline-end:\s*0/);
+    expect(cssRule(".tile-trend")).toMatch(/--mdc-icon-size:\s*15px/);
+    expect(cssRule(".tile-value.has-trend")).toMatch(/padding-inline-end:\s*20px/);
+  });
+
+  it("keeps the icon when a reading is missing, and drops only the arrow", async () => {
+    const hass = makeHass();
+    hass.states["sensor.koenigsdorf_secchi_depth"] = { state: "unknown", attributes: {} };
+    const card = await mount({ device: DEVICE }, hass);
+    const secchi = card.shadowRoot!.querySelectorAll(".tiles .tile")[1]!;
+    expect(secchi.querySelector(".tile-icon")).not.toBeNull();
+    expect(secchi.querySelector(".tile-trend")).toBeNull();
+    expect(secchi.querySelector(".tile-value")?.textContent?.trim()).toBe("—");
   });
 });
 
@@ -500,28 +526,37 @@ describe("the readings", () => {
     );
   });
 
-  it("marks the verdict with an icon beside words, never instead of them", async () => {
+  it("marks the class with its EU symbol beside the words, never instead of them", async () => {
+    // Decision 2011/321/EU, Annex part 2: three stars for excellent.
     const card = await mount({ device: DEVICE });
     const quality = tiles(card)[0]!;
-    const icon = quality.querySelector("dt ha-icon");
-    expect(icon?.getAttribute("icon")).toBe("mdi:check-circle");
-    expect(icon?.classList.contains("is-excellent")).toBe(true);
-    expect(icon?.getAttribute("aria-hidden")).toBe("true");
-    expect(quality.querySelector("dt")?.textContent).toContain("Wasserqualität");
+    const symbol = quality.querySelector(".tile-value .quality-symbol");
+    expect(symbol?.classList.contains("is-excellent")).toBe(true);
+    expect(symbol?.getAttribute("aria-hidden")).toBe("true");
+    const icons = [...(symbol?.querySelectorAll("ha-icon") ?? [])].map((icon) =>
+      icon.getAttribute("icon"),
+    );
+    expect(icons).toEqual(["mdi:star", "mdi:star", "mdi:star"]);
+    expect(quality.querySelector("dt")?.textContent?.trim()).toBe("Wasserqualität");
     expect(quality.querySelector(".tile-value")?.textContent?.trim()).toBe("Ausgezeichnet");
   });
 
   it.each([
-    ["sufficient", "mdi:alert-circle"],
-    ["poor", "mdi:close-circle"],
-  ])("warns with a different shape for %s", async (state, icon) => {
+    ["good", ["mdi:star", "mdi:star"]],
+    ["sufficient", ["mdi:star"]],
+    ["poor", ["mdi:minus"]],
+  ])("mirrors the EU symbol for %s", async (state, expected) => {
     const hass = makeHass();
     hass.states["sensor.koenigsdorf_water_quality"] = {
       state,
       attributes: { rating_year: 2025 },
     };
     const card = await mount({ device: DEVICE }, hass);
-    expect(tiles(card)[0]!.querySelector("ha-icon")?.getAttribute("icon")).toBe(icon);
+    const symbol = tiles(card)[0]!.querySelector(".quality-symbol");
+    expect(symbol?.classList.contains(`is-${state}`)).toBe(true);
+    expect([...(symbol?.querySelectorAll("ha-icon") ?? [])].map((i) => i.getAttribute("icon"))).toEqual(
+      expected,
+    );
   });
 
   it("shows no icon when there is no rating to mark", async () => {
@@ -612,16 +647,15 @@ describe("the photo header", () => {
     expect(q(card, ".hero-fallback .sampled")?.textContent).toContain("Probe vom");
   });
 
-  it("shows which way the temperature moved since the sample before", async () => {
-    // SAMPLES: 24,9 then 26,2 -- up 1,3 degrees.
+  it("marks the temperature with a thermometer, and leaves trends to the tiles", async () => {
+    // SAMPLES rise from 24,9 to 26,2; that is no longer drawn on the photo.
     const card = await mount({ device: DEVICE }, withPhoto());
     const reading = q(card, ".hero-temperature")!;
-    expect(reading.querySelector("ha-icon.hero-trend")?.getAttribute("icon")).toBe(
-      "mdi:trending-up",
-    );
-    expect(reading.querySelector(".visually-hidden")?.textContent).toBe(
-      "1,3 °C wärmer als bei der Probe davor",
-    );
+    const icon = reading.querySelector("ha-icon.hero-icon");
+    expect(icon?.getAttribute("icon")).toBe("mdi:thermometer-water");
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
+    expect(reading.querySelector(".visually-hidden")).toBeNull();
+    expect(reading.textContent?.replace(/\s+/g, "")).toBe("26,2°C");
   });
 
   it("keeps the credit off the photo, behind an info button", async () => {
@@ -905,6 +939,11 @@ describe("the map link", () => {
     it("gives the line back the pin's extra height, so the baseline stays put", () => {
       expect(rule(".map-link")).toMatch(/margin-block:\s*calc\(\(1\.2em - 32px\) \/ 2\)/);
       expect(rule(".hero-heading")).toMatch(/line-height:\s*1\.2/);
+    });
+
+    it("raises the pin onto the capitals without moving the line", () => {
+      // A transform, so the baseline the temperature aligns to stays put.
+      expect(rule(".map-link")).toMatch(/translate:\s*0 -0\.12em/);
     });
 
     it("rings the pin in white on the photo", () => {
