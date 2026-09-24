@@ -751,16 +751,18 @@ export class BadegewaesserAustriaCard extends LitElement {
     return html`
       <dl class="tiles">
         <div class="tile">
-          <dt>${localize("card.water_quality", language)}</dt>
-          <dd class="tile-value">
-            ${symbol
+          <dt>
+            ${localize("card.water_quality", language)}${symbol
               ? html`<span class=${`quality-symbol is-${state}`} aria-hidden="true"
                   >${Array.from(
                     { length: symbol.count },
                     () => html`<ha-icon icon=${symbol.icon}></ha-icon>`,
                   )}</span
                 >`
-              : nothing}${hasQuality
+              : nothing}
+          </dt>
+          <dd class="tile-value">
+            ${hasQuality
               ? localize(`quality.${state}`, language)
               : localize("card.no_rating", language)}
           </dd>

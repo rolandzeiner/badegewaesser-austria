@@ -278,6 +278,15 @@ describe("the reading", () => {
     expect(card.shadowRoot?.querySelector(".reading-block")).not.toBeNull();
   });
 
+  it("stands the thermometer on the digits' baseline", () => {
+    // Its baseline is its bottom edge; the glyph ends 2/24 above that.
+    for (const selector of [".hero-icon", ".reading-icon"]) {
+      expect(cssRule(selector)).toMatch(/display:\s*(inline-)?flex/);
+      expect(cssRule(selector)).toMatch(/translate:\s*0 calc\(.* \* 2 \/ 24\)/);
+    }
+    expect(cssRule(".reading-icon")).toMatch(/align-self:\s*baseline/);
+  });
+
   it("is marked with a thermometer without a photo too", async () => {
     const card = await mount({ device: DEVICE });
     const icon = card.shadowRoot?.querySelector(".reading .reading-icon");
@@ -436,6 +445,11 @@ describe("tile trends", () => {
     }
   });
 
+  it("lets the quality stars wrap rather than run into the next column", () => {
+    // A 300px card leaves 126px per tile; "Wasserqualität" takes about 91.
+    expect(cssRule(".tile dt")).toMatch(/flex-wrap:\s*wrap/);
+  });
+
   it("sets the arrow at the tile's right edge, with its room held open", () => {
     expect(cssRule(".tile-trend")).toMatch(/position:\s*absolute/);
     expect(cssRule(".tile-trend")).toMatch(/inset-inline-end:\s*0/);
@@ -530,7 +544,13 @@ describe("the readings", () => {
     // Decision 2011/321/EU, Annex part 2: three stars for excellent.
     const card = await mount({ device: DEVICE });
     const quality = tiles(card)[0]!;
-    const symbol = quality.querySelector(".tile-value .quality-symbol");
+    // After the label, so the class in words has its line to itself.
+    const symbol = quality.querySelector("dt .quality-symbol");
+    const nodes = [...(quality.querySelector("dt")?.childNodes ?? [])];
+    const label = nodes.findIndex((node) => node.textContent?.trim() === "Wasserqualität");
+    expect(label).toBeGreaterThanOrEqual(0);
+    expect(nodes.indexOf(symbol as ChildNode)).toBeGreaterThan(label);
+    expect(quality.querySelector(".tile-value .quality-symbol")).toBeNull();
     expect(symbol?.classList.contains("is-excellent")).toBe(true);
     expect(symbol?.getAttribute("aria-hidden")).toBe("true");
     const icons = [...(symbol?.querySelectorAll("ha-icon") ?? [])].map((icon) =>

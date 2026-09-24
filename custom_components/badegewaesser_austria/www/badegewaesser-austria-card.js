@@ -321,10 +321,15 @@ Le(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe(),Je()}));Ye(),Fe();const Xe=l`
     letter-spacing: -0.02em;
   }
 
-  /* What the figure is. Sits on the text baseline, as tall as the digits;
-     no colour, because warmer water is not good or bad news in itself. */
+  /* What the figure is, standing on the digits' baseline. As an inline
+     flex box its baseline is its bottom edge, and the thermometer glyph
+     stops 2 of MDI's 24 units above that edge, so it moves down by as much.
+     No colour: warmer water is not good or bad news in itself. */
   .hero-icon {
-    --mdc-icon-size: 1.75rem;
+    --bade-hero-icon: 1.75rem;
+    --mdc-icon-size: var(--bade-hero-icon);
+    display: inline-flex;
+    translate: 0 calc(var(--bade-hero-icon) * 2 / 24);
     margin-right: 4px;
   }
 
@@ -540,9 +545,12 @@ Le(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe(),Je()}));Ye(),Fe();const Xe=l`
     text-align: right;
   }
 
+  /* The same thermometer on the same baseline as on the photo. */
   .reading-icon {
     --mdc-icon-size: 1.15em;
-    align-self: center;
+    display: flex;
+    align-self: baseline;
+    translate: 0 calc(1.15em * 2 / 24);
     color: var(--secondary-text-color);
   }
 
@@ -587,10 +595,13 @@ Le(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe(),Je()}));Ye(),Fe();const Xe=l`
 
   /* The label is the detail, the value the point: small and quiet above, so
      the eye lands on the number. */
+  /* Wraps only as a last resort, so the quality stars can never run into
+     the next column. */
   .tile dt {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
+    gap: 0 4px;
     color: var(--secondary-text-color);
     font-size: var(--ha-font-size-s, 0.857rem);
   }
@@ -660,14 +671,13 @@ Le(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe(),Je()}));Ye(),Fe();const Xe=l`
     margin-left: 4px;
   }
 
-  /* The EU symbol in front of the class (Decision 2011/321/EU): stars, or a
-     dash for poor. Status colour on the symbol only; the words beside it
-     stay in text ink. Where the words do not fit beside it, they wrap below
-     and the symbol keeps its line. */
+  /* The EU symbol (Decision 2011/321/EU) after the tile's label: stars, or a
+     dash for poor. Status colour on the symbol only; the class in words
+     below stays in text ink. Smaller in a narrow card, where the tile is
+     126px and "Wasserqualität" alone takes about 91 of them. */
   .quality-symbol {
-    --mdc-icon-size: 0.85em;
+    --mdc-icon-size: 1.1em;
     display: inline-flex;
-    align-self: center;
   }
 
   .quality-symbol.is-excellent,
@@ -747,11 +757,14 @@ Le(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe(),Je()}));Ye(),Fe();const Xe=l`
     .tile-value {
       font-size: var(--ha-font-size-l, 1.143rem);
     }
+    .quality-symbol {
+      --mdc-icon-size: 0.85em;
+    }
     .hero-value {
       font-size: var(--ha-font-size-3xl, 2rem);
     }
     .hero-icon {
-      --mdc-icon-size: 1.25rem;
+      --bade-hero-icon: 1.25rem;
     }
     .hero-heading {
       font-size: var(--ha-font-size-l, 1.143rem);
@@ -1108,11 +1121,13 @@ Le(),Ve(),He(),Ue(),We(),Ge(),Ke(),qe(),Je()}));Ye(),Fe();const Xe=l`
     `}_renderReadings(e,t,n){let r=e[Z.quality],i=e[Z.secchi],a=r?.attributes.rating_year,o=G(r),s=r?.state??``,c=o?Dt[s]:void 0,l=i?.attributes.unit_of_measurement,u=G(i)?At(t):null;return j`
       <dl class="tiles">
         <div class="tile">
-          <dt>${H(`card.water_quality`,n)}</dt>
-          <dd class="tile-value">
-            ${c?j`<span class=${`quality-symbol is-${s}`} aria-hidden="true"
+          <dt>
+            ${H(`card.water_quality`,n)}${c?j`<span class=${`quality-symbol is-${s}`} aria-hidden="true"
                   >${Array.from({length:c.count},()=>j`<ha-icon icon=${c.icon}></ha-icon>`)}</span
-                >`:P}${H(o?`quality.${s}`:`card.no_rating`,n)}
+                >`:P}
+          </dt>
+          <dd class="tile-value">
+            ${H(o?`quality.${s}`:`card.no_rating`,n)}
           </dd>
           ${typeof a==`number`?j`<dd class="tile-detail">
                 ${H(`card.rating_year`,n,{year:a})}
