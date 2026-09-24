@@ -1412,6 +1412,30 @@ describe("editor", () => {
       | null;
     expect(form?.hass).toBe(next);
   });
+
+  it("lists the toggles one per row, as the portfolio's other editors do", async () => {
+    const editor = document.createElement(
+      "badegewaesser-austria-card-editor",
+    ) as unknown as BadegewaesserAustriaCardEditor;
+    editor.hass = makeHass();
+    editor.setConfig({ type: `custom:${CARD_TAG}`, device: DEVICE });
+    document.body.append(editor);
+    await editor.updateComplete;
+
+    const form = editor.shadowRoot?.querySelector("ha-form") as
+      | (HTMLElement & { schema?: { name: string; type?: string }[] })
+      | null;
+    expect(form?.schema?.some((row) => row.type === "grid")).toBe(false);
+    expect(form?.schema?.map((row) => row.name)).toEqual([
+      "device",
+      "name",
+      "show_photo",
+      "show_map",
+      "show_season_track",
+      "show_readings",
+      "show_attribution",
+    ]);
+  });
 });
 
 describe("legacy entity-shaped configs", () => {

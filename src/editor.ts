@@ -35,21 +35,13 @@ const SCHEMA: HaFormSchema[] = [
     selector: { device: { filter: { integration: PLATFORM } } },
   },
   { name: "name", selector: { text: {} } },
-  {
-    type: "grid",
-    name: "",
-    // `flatten: true` is mandatory for a flat config: without it the grid
-    // nests its children under its own name and the values never reach the
-    // saved config.
-    flatten: true,
-    schema: [
-      { name: "show_photo", selector: { boolean: {} } },
-      { name: "show_map", selector: { boolean: {} } },
-      { name: "show_season_track", selector: { boolean: {} } },
-      { name: "show_readings", selector: { boolean: {} } },
-      { name: "show_attribution", selector: { boolean: {} } },
-    ],
-  },
+  // One toggle per row, as in the portfolio's other editors. A two-column
+  // grid squeezed each label and its helper text into half the width.
+  { name: "show_photo", selector: { boolean: {} } },
+  { name: "show_map", selector: { boolean: {} } },
+  { name: "show_season_track", selector: { boolean: {} } },
+  { name: "show_readings", selector: { boolean: {} } },
+  { name: "show_attribution", selector: { boolean: {} } },
 ];
 
 @customElement("badegewaesser-austria-card-editor")
