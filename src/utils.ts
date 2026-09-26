@@ -4,6 +4,9 @@ import type { HassEntity, HomeAssistant } from "./types";
 /** The integration's domain, as the entity registry reports it. */
 export const PLATFORM = "badegewaesser_austria";
 
+/** The photo entity's translation key. Shared by the card and its editor. */
+export const PHOTO_KEY = "photo";
+
 /** A state HA uses for "no value" — never render these as a number. */
 const EMPTY_STATES = new Set(["unknown", "unavailable", "", "none"]);
 

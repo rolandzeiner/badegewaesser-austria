@@ -9,7 +9,7 @@
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
-import { normaliseConfig } from "./config";
+import { normaliseConfig, resolveDeviceId } from "./config";
 import { localize } from "./localize/localize";
 import type {
   BadegewaesserCardConfig,
@@ -18,7 +18,7 @@ import type {
   LovelaceCardConfig,
 } from "./types";
 import { fireEvent } from "./types";
-import { PLATFORM, languageOf } from "./utils";
+import { PHOTO_KEY, PLATFORM, languageOf } from "./utils";
 
 const SCHEMA: HaFormSchema[] = [
   {
@@ -44,6 +44,12 @@ const SCHEMA: HaFormSchema[] = [
   { name: "show_attribution", selector: { boolean: {} } },
 ];
 
+// Both need a photo: the map is the photo header's other view. Only a local
+// photos/ folder creates the photo entity and no release ships one (see
+// .gitignore), so without it these two rows would be switches that do nothing.
+const PHOTO_OPTIONS = new Set(["show_photo", "show_map"]);
+const SCHEMA_WITHOUT_PHOTO = SCHEMA.filter((row) => !PHOTO_OPTIONS.has(row.name));
+
 @customElement("badegewaesser-austria-card-editor")
 export class BadegewaesserAustriaCardEditor extends LitElement {
   // Reactive, like every other editor in the portfolio. As a plain field a new
@@ -63,12 +69,24 @@ export class BadegewaesserAustriaCardEditor extends LitElement {
       <ha-form
         .hass=${this.hass}
         .data=${normaliseConfig(this._config)}
-        .schema=${SCHEMA}
+        .schema=${this._hasPhoto() ? SCHEMA : SCHEMA_WITHOUT_PHOTO}
         .computeLabel=${this._computeLabel}
         .computeHelper=${this._computeHelper}
         @value-changed=${this._valueChanged}
       ></ha-form>
     `;
+  }
+
+  /** Whether the chosen bathing water has a photo entity. */
+  private _hasPhoto(): boolean {
+    const deviceId = resolveDeviceId(this.hass, this._config);
+    if (!deviceId) return false;
+    return Object.values(this.hass?.entities ?? {}).some(
+      (entry) =>
+        entry.device_id === deviceId &&
+        entry.platform === PLATFORM &&
+        entry.translation_key === PHOTO_KEY,
+    );
   }
 
   private _computeLabel = (schema: HaFormSchema): string =>

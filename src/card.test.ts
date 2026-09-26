@@ -1479,6 +1479,37 @@ describe("editor", () => {
     expect(form?.schema?.map((row) => row.name)).toEqual([
       "device",
       "name",
+      "show_season_track",
+      "show_readings",
+      "show_attribution",
+    ]);
+  });
+
+  it("offers the photo and map toggles only for a bathing water with a photo", async () => {
+    // No release ships the photos, so for everyone else they would be
+    // switches that do nothing.
+    const hass = makeHass();
+    const photo = "image.koenigsdorf_photo";
+    hass.entities![photo] = {
+      entity_id: photo,
+      device_id: DEVICE,
+      platform: PLATFORM,
+      translation_key: "photo",
+    };
+    const editor = document.createElement(
+      "badegewaesser-austria-card-editor",
+    ) as unknown as BadegewaesserAustriaCardEditor;
+    editor.hass = hass;
+    editor.setConfig({ type: `custom:${CARD_TAG}`, device: DEVICE });
+    document.body.append(editor);
+    await editor.updateComplete;
+
+    const form = editor.shadowRoot?.querySelector("ha-form") as
+      | (HTMLElement & { schema?: { name: string }[] })
+      | null;
+    expect(form?.schema?.map((row) => row.name)).toEqual([
+      "device",
+      "name",
       "show_photo",
       "show_map",
       "show_season_track",

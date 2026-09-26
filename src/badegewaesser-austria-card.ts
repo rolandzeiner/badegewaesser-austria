@@ -30,6 +30,7 @@ import type {
   WindowWithCustomCards,
 } from "./types";
 import {
+  PHOTO_KEY,
   PLATFORM,
   formatCount,
   formatNumber,
@@ -49,7 +50,7 @@ const KEY = {
   lastSample: "last_sample",
   closed: "closed",
   season: "bathing_season",
-  photo: "photo",
+  photo: PHOTO_KEY,
 } as const;
 
 /**
