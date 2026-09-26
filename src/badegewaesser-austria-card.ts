@@ -9,7 +9,7 @@ import { LitElement, html, nothing, type PropertyValues, type TemplateResult } f
 import { customElement, property, state } from "lit/decorators.js";
 
 import { cardStyles } from "./card-styles";
-import { normaliseConfig, resolveDeviceId } from "./config";
+import { type NormalisedConfig, normaliseConfig, resolveDeviceId } from "./config";
 import { CARD_TAG, CARD_VERSION } from "./const";
 import { localize } from "./localize/localize";
 import {
@@ -241,7 +241,7 @@ export class BadegewaesserAustriaCard extends LitElement {
 
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @state() private _config?: BadegewaesserCardConfig;
+  @state() private _config?: NormalisedConfig;
   @state() private _staleVersion?: string;
   @state() private _hoveredPoint: number | null = null;
   // Which reading the season track shows: the hovered tile's, else the one
@@ -303,12 +303,12 @@ export class BadegewaesserAustriaCard extends LitElement {
    * width (it is 20:7), so its 4 is generous at a typical column.
    */
   public getCardSize(): number {
-    const config = this._config;
+    const config = this._config ?? normaliseConfig({});
     let size = 1; // padding and the attribution footer
     const photo = this.hass ? this._siteEntities()?.[KEY.photo] : undefined;
-    if (config?.show_photo !== false && (!this.hass || hasValue(photo))) size += 4;
-    if (config?.show_season_track !== false) size += 1;
-    if (config?.show_readings !== false) size += 3;
+    if (config.show_photo && (!this.hass || hasValue(photo))) size += 4;
+    if (config.show_season_track) size += 1;
+    if (config.show_readings) size += 3;
     return size;
   }
 
@@ -461,14 +461,14 @@ export class BadegewaesserAustriaCard extends LitElement {
     const isClosed = closed?.state === "on";
 
     const photo = entities[KEY.photo];
-    const photoSrc = config.show_photo === false ? undefined : this._photoUrl(photo);
+    const photoSrc = config.show_photo ? this._photoUrl(photo) : undefined;
     const hero = photoSrc !== undefined && this._photoFailed !== photoSrc;
     const mapLink = this._renderMapLink(title, siteMapUrl(temperature), language);
     // The map is the photo's other view, so without a photo there is none:
     // it would either load for everyone or push the card down when opened.
     const mapEntity =
       hero &&
-      config.show_map !== false &&
+      config.show_map &&
       !this._mapFailed &&
       sitePosition(temperature) !== undefined &&
       servesMapTiles(hass)
@@ -493,15 +493,13 @@ export class BadegewaesserAustriaCard extends LitElement {
         ${isClosed ? this._renderClosure(closed, language) : nothing}
         <div class="body">
           ${hero ? nothing : this._renderHeader(title, mapLink, temperature, samples, language)}
-          ${config.show_season_track === false
-            ? nothing
-            : this._renderSeason(temperature, entities, samples, inSeason, language, hero)}
-          ${config.show_readings === false
-            ? nothing
-            : this._renderReadings(entities, samples, language)}
-          ${config.show_attribution === false
-            ? nothing
-            : html`<p class="attribution">${localize("card.attribution", language)}</p>`}
+          ${config.show_season_track
+            ? this._renderSeason(temperature, entities, samples, inSeason, language, hero)
+            : nothing}
+          ${config.show_readings ? this._renderReadings(entities, samples, language) : nothing}
+          ${config.show_attribution
+            ? html`<p class="attribution">${localize("card.attribution", language)}</p>`
+            : nothing}
         </div>
       </ha-card>
     `;

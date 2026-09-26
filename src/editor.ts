@@ -9,7 +9,7 @@
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
-import { normaliseConfig, resolveDeviceId } from "./config";
+import { normaliseConfig, resolveDeviceId, tidyConfig } from "./config";
 import { localize } from "./localize/localize";
 import type {
   BadegewaesserCardConfig,
@@ -101,12 +101,15 @@ export class BadegewaesserAustriaCardEditor extends LitElement {
   };
 
   private _valueChanged(event: CustomEvent<{ value: BadegewaesserCardConfig }>): void {
-    // The emitted value already carries the defaults, because `data` did.
-    // Feeding ha-form the raw config instead is what made both toggles render
-    // OFF on a freshly added card while both sections were visibly on.
+    // The emitted value carries every default, because `data` did (feeding
+    // ha-form the raw config is what made the toggles render OFF on a freshly
+    // added card). tidyConfig takes the defaults and cleared fields back out,
+    // so the saved YAML holds only what the user changed.
+    const next = tidyConfig(event.detail.value);
+    this._config = next;
     // Must be composed to cross the Shadow DOM boundary; without it Lovelace
     // never hears the change and the editor silently discards every edit.
-    fireEvent(this, "config-changed", { config: event.detail.value });
+    fireEvent(this, "config-changed", { config: next });
   }
 }
 

@@ -724,6 +724,13 @@ describe("the photo header", () => {
     expect(q(card, ".body .title")?.textContent).toBe("Naturbadesee Königsdorf");
   });
 
+  it("falls back to the bathing water's name when the name was cleared", async () => {
+    // A cleared text field hands back "", which `name ?? deviceName` took as a
+    // real name and rendered as an empty heading.
+    const card = await mount({ device: DEVICE, name: "" });
+    expect(q(card, ".body .title")?.textContent).toBe("Naturbadesee Königsdorf");
+  });
+
   it("loads through the image proxy, described by the bathing water's name", async () => {
     const card = await mount({ device: DEVICE }, withPhoto());
     expect(img(card)?.getAttribute("src")).toBe(`/api/image_proxy/${PHOTO}?token=first`);
@@ -1510,6 +1517,49 @@ describe("editor", () => {
       "show_readings",
       "show_attribution",
     ]);
+  });
+
+  it("shows every default, and saves only what the user changed", async () => {
+    // ha-form draws a missing boolean as off, so the editor must be shown the
+    // defaults. Saving them back would pin them in the YAML, where a later
+    // change to DEFAULTS could never reach the card.
+    const editor = document.createElement(
+      "badegewaesser-austria-card-editor",
+    ) as unknown as BadegewaesserAustriaCardEditor;
+    editor.hass = makeHass();
+    editor.setConfig({ type: `custom:${CARD_TAG}`, device: DEVICE });
+    document.body.append(editor);
+    await editor.updateComplete;
+
+    const form = editor.shadowRoot?.querySelector("ha-form") as
+      | (HTMLElement & { data?: Record<string, unknown> })
+      | null;
+    expect(form?.data).toMatchObject({
+      show_photo: true,
+      show_map: true,
+      show_season_track: true,
+      show_readings: true,
+      show_attribution: true,
+    });
+
+    const saved = new Promise<Record<string, unknown>>((resolve) => {
+      editor.addEventListener(
+        "config-changed",
+        (event) => resolve((event as CustomEvent<{ config: Record<string, unknown> }>).detail.config),
+        { once: true },
+      );
+    });
+    // What ha-form sends: everything it was shown, with one field changed
+    // and the name field cleared.
+    form?.dispatchEvent(
+      new CustomEvent("value-changed", {
+        detail: { value: { ...form.data, show_readings: false, name: "" } },
+      }),
+    );
+    const config = await saved;
+    expect(config).toEqual({ type: `custom:${CARD_TAG}`, device: DEVICE, show_readings: false });
+    // The user's own order survives: `device` stays above the option.
+    expect(Object.keys(config)).toEqual(["type", "device", "show_readings"]);
   });
 
   it("offers the photo and map toggles only for a bathing water with a photo", async () => {
