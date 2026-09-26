@@ -16,6 +16,7 @@ itself — see `__init__.py`.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import logging
 import os
@@ -223,6 +224,9 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
         # to suppress listener callbacks, and a fetch timestamp inside it
         # would change on every poll and defeat that.
         self.last_fetch_utc: datetime | None = None
+        # The readiness fetch under way, which concurrent callers join. See
+        # `async_ensure_fresh`.
+        self._fresh_fetch: asyncio.Task[None] | None = None
         self.update_interval = self._compute_interval()
 
     # -- cadence ----------------------------------------------------------
@@ -360,11 +364,25 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
         one back weeks later would otherwise serve the snapshot from whenever
         polling stopped until the next scheduled poll.
 
+        A caller that arrives while that fetch is under way joins it rather
+        than starting its own. Home Assistant sets up every entry of a domain
+        at once at startup, and each saw no snapshot yet: twenty bathing
+        waters made twenty identical requests per restart. Measured with six
+        entries, six requests. The fetch is shielded, so one caller being
+        cancelled does not cancel it for the others.
+
         Returns whether the latest refresh succeeded. Callers raise their own
         error, because a flow aborts where a setup retries.
         """
-        if not self.data or self._snapshot_is_stale():
-            await self.async_refresh()
+        fetch = self._fresh_fetch
+        # A finished fetch is not one to join: the next caller decides afresh.
+        if fetch is None or fetch.done():
+            if self.data and not self._snapshot_is_stale():
+                return self.last_update_success
+            fetch = self._fresh_fetch = self.hass.async_create_task(
+                self.async_refresh(), f"{DOMAIN} readiness fetch"
+            )
+        await asyncio.shield(fetch)
         return self.last_update_success
 
     async def _async_update_data(self) -> SiteMap:

@@ -118,7 +118,7 @@ The integration polls once for every bathing water you follow, because AGES publ
 
 You can set the season interval in the entry's **Configure** dialog, between 3 and 168 hours. Entries share one poll, so the shortest interval you set applies to all of them.
 
-Home Assistant also fetches the document once at every restart, since the integration keeps no copy on disk. If a poll fails, the integration keeps retrying, daily outside the season, until one succeeds.
+Home Assistant also fetches the document at every restart, once for all your bathing waters, since the integration keeps no copy on disk. If a poll fails, the integration keeps retrying, daily outside the season, until one succeeds.
 
 The integration sends no `If-Modified-Since` header, on purpose. AGES regenerates the file every ten minutes whether or not anything changed, so a cached copy is never considered fresh and the request would return the whole document anyway. Instead it fingerprints the content and skips the parse when nothing moved.
 

@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.badegewaesser_austria.const import (
@@ -85,6 +88,85 @@ async def test_second_entry_does_not_refetch(
     )
 
     assert session.get.call_count == 1
+
+
+# Every site in the fixture document, each as its own config entry.
+FIXTURE_SITE_IDS = (
+    "AT1051051100150010",
+    "AT9999999999999001",
+    "AT9999999999999002",
+    "AT9999999999999003",
+    "AT3230004400240040",
+    "AT1300002200020010",
+)
+
+
+def _in_flight(session: MagicMock, document: bytes | None) -> None:
+    """Keep every request open for a moment, as a real one is.
+
+    The fixture's session answers without ever yielding, so concurrent
+    callers could never overlap. `None` makes the request fail instead.
+    """
+
+    async def respond() -> MagicMock:
+        await asyncio.sleep(0.01)
+        if document is None:
+            raise aiohttp.ClientConnectionError("AGES is down")
+        response = MagicMock()
+        response.status = 200
+        response.read = AsyncMock(return_value=document)
+        return response
+
+    def request(*_args: object, **_kwargs: object) -> MagicMock:
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(side_effect=respond)
+        cm.__aexit__ = AsyncMock(return_value=None)
+        return cm
+
+    session.get = MagicMock(side_effect=request)
+
+
+async def _set_up_all_at_once(hass: HomeAssistant) -> list[MockConfigEntry]:
+    """What a restart does: every entry of the domain set up together."""
+    entries = [
+        MockConfigEntry(
+            domain=DOMAIN, title=site, data={CONF_SITE_ID: site}, unique_id=site
+        )
+        for site in FIXTURE_SITE_IDS
+    ]
+    for entry in entries:
+        entry.add_to_hass(hass)
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    return entries
+
+
+async def test_a_restart_makes_one_request_for_every_entry(
+    hass: HomeAssistant, session: MagicMock, document: bytes
+) -> None:
+    """Entries set up at once share the fetch the first one starts.
+
+    Each used to find no snapshot yet and fetch on its own: six entries
+    made six requests for the same document, twenty would have made twenty.
+    """
+    _in_flight(session, document)
+
+    entries = await _set_up_all_at_once(hass)
+
+    assert session.get.call_count == 1
+    assert all(entry.state is ConfigEntryState.LOADED for entry in entries)
+
+
+async def test_an_outage_at_restart_costs_one_request_not_one_per_entry(
+    hass: HomeAssistant, session: MagicMock
+) -> None:
+    """A failed shared fetch fails every entry that joined it, once."""
+    _in_flight(session, None)
+
+    entries = await _set_up_all_at_once(hass)
+
+    assert session.get.call_count == 1
+    assert all(entry.state is ConfigEntryState.SETUP_RETRY for entry in entries)
 
 
 async def test_an_options_change_applies_the_new_interval_at_once(
