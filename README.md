@@ -25,6 +25,7 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 - [Known Limitations](#known-limitations)
 - [Removal](#removal)
 - [Attribution](#attribution)
+- [Acknowledgements](#acknowledgements)
 - [License](#license)
 - [Disclaimer](#disclaimer)
 
@@ -243,6 +244,10 @@ Every entity and the card footer carry:
 In full: **AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH**.
 
 Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition.
+
+## Acknowledgements
+
+This integration started with an email from Johannes Spreitzer of [zeitwesentech](https://zeitwesentech.com/). His blog post [*Home Assistant – Anzeige der österreichische Badegewässer und Badeplätze*](https://zeitwesentech.com/blog/?p=1037) (June 2024) showed how to put the AGES bathing-water data on a Home Assistant dashboard with a REST sensor. Thank you, Johannes.
 
 ## License
 
