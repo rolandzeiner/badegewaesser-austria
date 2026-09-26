@@ -492,10 +492,7 @@ export class BadegewaesserAustriaCard extends LitElement {
         ${this._renderVersionBanner(language)}
         ${isClosed ? this._renderClosure(closed, language) : nothing}
         <div class="body">
-          ${hero
-            ? nothing
-            : html`<div class="heading"><h2 class="title">${title}</h2>${mapLink}</div>
-                ${this._renderPlace()}`}
+          ${hero ? nothing : this._renderHeader(title, mapLink, temperature, samples, language)}
           ${config.show_season_track === false
             ? nothing
             : this._renderSeason(temperature, entities, samples, inSeason, language, hero)}
@@ -871,6 +868,56 @@ export class BadegewaesserAustriaCard extends LitElement {
       >`;
   }
 
+  /**
+   * The heading without a photo, laid out like the photo's caption: the name
+   * and the temperature on one row, the Bundesland and the sample date on
+   * the next. Two rows where the plain card used to spend four.
+   *
+   * The Bundesland and the date share one row under both columns, so only
+   * the temperature sizes the right column: as a grid cell of its own the
+   * date took 130px there and squeezed a long name onto three lines at
+   * 300px. The temperature is inline text, not a flex row, so the grid
+   * aligns the digits' baseline with the name's (see .reading).
+   */
+  private _renderHeader(
+    title: string,
+    mapLink: TemplateResult | typeof nothing,
+    temperature: HassEntity | undefined,
+    samples: SeasonSample[],
+    language: string | undefined,
+  ): TemplateResult {
+    const formatted = formatNumber(numericState(temperature), language);
+    const unit = temperature?.attributes["unit_of_measurement"];
+    const latest = samples.at(-1);
+    return html`
+      <div class="header">
+        <div class="heading"><h2 class="title">${title}</h2>${mapLink}</div>
+        <p class="reading">
+          <ha-icon
+            class="reading-icon"
+            icon=${READING_ICON.temperature}
+            aria-hidden="true"
+          ></ha-icon
+          ><span class=${formatted === null ? "temperature is-missing" : "temperature"}
+            >${formatted ?? "—"}</span
+          >${formatted !== null && typeof unit === "string"
+            ? html`<span class="unit">${unit}</span>`
+            : nothing}
+        </p>
+        <div class="meta">
+          ${this._renderPlace()}
+          ${latest
+            ? html`<p class="sampled">
+                ${localize("card.sampled_on", language, {
+                  date: formatSampleDate(new Date(`${latest.date}T00:00:00Z`), language),
+                })}
+              </p>`
+            : nothing}
+        </div>
+      </div>
+    `;
+  }
+
   private _renderPlace(): TemplateResult | typeof nothing {
     const deviceId = resolveDeviceId(this.hass, this._config);
     const model = deviceId ? this.hass?.devices?.[deviceId]?.model : undefined;
@@ -885,8 +932,6 @@ export class BadegewaesserAustriaCard extends LitElement {
     language: string | undefined,
     hero = false,
   ): TemplateResult {
-    const value = numericState(temperature);
-    const formatted = formatNumber(value, language);
     const unit = temperature?.attributes["unit_of_measurement"];
     const latest = samples.at(-1);
     const latestDate = latest ? new Date(`${latest.date}T00:00:00Z`) : null;
@@ -911,34 +956,20 @@ export class BadegewaesserAustriaCard extends LitElement {
       ...this._trackMetric(this._trackHover ?? this._trackPinned, entities, language),
     };
 
-    // With the photo header the temperature sits on the photo. The date stays
-    // here too, shown only where the card is too narrow for it on the photo.
+    // The temperature and the date head the card, on the photo or in the
+    // plain header. With the photo the date keeps a copy here, shown only
+    // where the card is too narrow for it on the photo.
     return html`
       <div class="season">
-        <div class=${hero ? "reading-block hero-fallback" : "reading-block"}>
-          ${hero
-            ? nothing
-            : html`<div class="reading">
-                <ha-icon
-                  class="reading-icon"
-                  icon=${READING_ICON.temperature}
-                  aria-hidden="true"
-                ></ha-icon>
-                <span class=${formatted === null ? "temperature is-missing" : "temperature"}>
-                  ${formatted ?? "—"}
-                </span>
-                ${formatted !== null && typeof unit === "string"
-                  ? html`<span class="unit">${unit}</span>`
-                  : nothing}
-              </div>`}
-          ${latestDate
-            ? html`<p class="sampled">
+        ${hero && latestDate
+          ? html`<div class="reading-block hero-fallback">
+              <p class="sampled">
                 ${localize("card.sampled_on", language, {
                   date: formatSampleDate(latestDate, language),
                 })}
-              </p>`
-            : nothing}
-        </div>
+              </p>
+            </div>`
+          : nothing}
         ${renderSeasonTrack(options)}
         ${
           // Only an empty track gets a line. "Season over" / "season under way"
