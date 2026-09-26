@@ -39,9 +39,9 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 - **Honest about detection limits** — most samples report "below the laboratory's detection limit" rather than a measured count. The card shows `<15`, and the sensor carries a `below_detection_limit` attribute, so you never read a limit as a measurement *(0.1.0)*
 - **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
 - **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
-- **A photo of the bathing spot** — the picture AGES shows for the site, as an `image` entity and as the card's header, with the name, the Bundesland and the water temperature over it. Its credit is behind the ⓘ button on the photo. 259 of the 260 have one *(0.2.0)*
+- **Readings at a glance** — water quality with its EU symbol, plus Secchi depth, E. coli and enterococci, each with an arrow showing how it moved since the previous sample. Hover or tap a measurement to see its season on the track *(0.2.0)*
 - **Quiet out of season** — from October to mid-May, when nothing can change, the integration stops polling. Through September it still checks once a day for late lab results *(0.2.0)*
-- **On the map** — each bathing water shows up as a marker on Home Assistant's map. On the card, the map button swaps the photo for a map of the bathing water and back, and the pin next to the name opens it on OpenStreetMap. Your browser talks only to Home Assistant until you select the pin *(0.2.0)*
+- **On the map** — each bathing water shows up as a marker on Home Assistant's map, and the pin next to its name on the card opens it on OpenStreetMap *(0.2.0)*
 
 ## Requirements
 
@@ -76,7 +76,7 @@ To change how often it checks, open the entry's **Configure** dialog. See [Data 
 
 ## Entities
 
-Each bathing water becomes one device with eight entities, plus a photo where AGES has one.
+Each bathing water becomes one device with eight entities.
 
 | Entity | Type | Notes |
 |---|---|---|
@@ -88,7 +88,6 @@ Each bathing water becomes one device with eight entities, plus a photo where AG
 | Last sample | `sensor` | When the newest sample was taken. |
 | Closed | `binary_sensor` | On when the authority has banned swimming. `closure_reason` says why. |
 | Bathing season | `binary_sensor` | On between 15 June and 31 August, the season defined in Badegewässerverordnung § 4. |
-| Photo | `image` | The bathing spot, where AGES has a photo. Its attribution names who to credit. |
 
 ### Water quality
 
@@ -141,8 +140,6 @@ The editor's picker fills this in for you — pick the bathing water by name.
 | `device` | string | *required* | The bathing water's device. The card finds all of its entities itself. |
 | `entity` | string | — | Legacy alternative to `device`: any one entity of the bathing water. Still honoured so older cards keep working. |
 | `name` | string | the lake's name | Overrides the card title. |
-| `show_photo` | boolean | `true` | The photo of the bathing spot as the card's header, with the name and temperature over it. Only where there is one. |
-| `show_map` | boolean | `true` | A button on the photo that swaps it for a map of the bathing water and back. Only with the photo, the bathing water's position and Home Assistant 2026.9 or newer. |
 | `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
 | `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth. |
 | `show_attribution` | boolean | `true` | The "Datenquelle: AGES · CC BY 3.0 AT" line at the bottom. The entities carry the attribution either way. |
@@ -210,12 +207,6 @@ AGES no longer lists that site. It may come back on the next update, or it may h
 **The temperature shows a dash.**
 That sample has no temperature. AGES reports `0` when nothing was measured, and the integration treats that as missing rather than as 0 °C.
 
-**The card shows no photo.**
-AGES has no photo for *Naturbadesee Königsdorf*. For any other bathing water, check that **Show the photo** is on in the card editor.
-
-**The photo has no map button.**
-The button needs Home Assistant 2026.9 or newer, which loads map tiles through Home Assistant itself. Older versions have your browser fetch them from CARTO, so the card leaves the button out there. It also needs the bathing water's position, and **Offer the map** switched on in the card editor. On older versions, the pin next to the name still opens OpenStreetMap.
-
 **The card looks out of date and offers to reload.**
 Your browser cached an older version of the card than the integration ships. Click **Reload**. If it comes back, clear the browser cache for your Home Assistant URL.
 
@@ -235,7 +226,6 @@ logger:
 - **One bathing water's position comes from its profile.** AGES publishes `0` / `0` for *Wolfgangsee, St. Gilgen – Gamsjaga*. The integration uses the sampling point from the site's bathing-water profile instead, until AGES publishes one.
 - **A few historical ratings use letters AGES does not document.** Two sites carry an `F` or a `G` in an older year. The integration will not publish a letter it cannot interpret, so it falls back to the most recent year it can, and keeps the original in `rating_raw`.
 - **The per-sample assessment is a raw number.** Each sample carries a 1, 2 or 3 whose meaning AGES does not publish; sources disagree on whether the scale even has four levels. It is exposed as `sample_assessment` without a label rather than guessed at.
-- **The photos are years old.** Most were taken between 2008 and 2016, the newest in 2020, so a bathing spot may look different today.
 - **Closures have not been seen in live data.** `TGESPERRT` was `0` for all 260 sites when this integration was written, so the closure banner is built to the documented shape rather than an observed one.
 
 ## Removal
@@ -246,15 +236,13 @@ To uninstall completely, remove the integration in HACS and restart Home Assista
 
 ## Attribution
 
-Every entity except the photo, and the card footer, carry:
+Every entity and the card footer carry:
 
 > Datenquelle: AGES · CC BY 3.0 AT
 
 In full: **AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH**.
 
 Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition.
-
-The photos are not part of that dataset and not under its licence. They come from the AGES bathing-water pages, and each one carries its own credit, behind the ⓘ button on the photo in the card and as the photo entity's attribution. The credit names the rights holder given in the site's bathing-water profile, or else the photographer recorded in the file, or else AGES.
 
 ## License
 

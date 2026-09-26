@@ -39,6 +39,14 @@ README = (REPO / "README.md").read_text(encoding="utf-8")
 CONTRIBUTING = (REPO / "CONTRIBUTING.md").read_text(encoding="utf-8")
 HACS = json.loads((REPO / "hacs.json").read_text(encoding="utf-8"))
 
+# The photo surface is in the code but ships dormant: only a local photos/
+# folder creates the image entity, and no release carries one until AGES
+# consents to the photos' reproduction (see .gitignore). Documenting it would
+# promise every HACS user a photo they cannot get, so it stays out of the
+# README until the photos may ship. The editor hides these rows without one.
+PHOTO_ONLY_OPTIONS = {"show_photo", "show_map"}
+PHOTO_ONLY_PLATFORMS = {"image"}
+
 
 def test_ha_min_badge_matches_hacs_json() -> None:
     """The badge is what users read before installing."""
@@ -66,8 +74,12 @@ def test_documented_card_options_match_the_editor() -> None:
     # Schema rows carry `name: "..."`; the grid container's own name is empty.
     in_editor = {name for name in re.findall(r'name:\s*"([a-z_]+)"', editor) if name}
     documented = set(re.findall(r"^\| `([a-z_]+)` \|", README, re.MULTILINE))
-    assert in_editor <= documented, (
-        f"undocumented card options: {in_editor - documented}"
+    assert in_editor - PHOTO_ONLY_OPTIONS <= documented, (
+        f"undocumented card options: {in_editor - PHOTO_ONLY_OPTIONS - documented}"
+    )
+    assert not documented & PHOTO_ONLY_OPTIONS, (
+        f"photo options documented before the photos ship: "
+        f"{documented & PHOTO_ONLY_OPTIONS}"
     )
 
 
@@ -80,11 +92,17 @@ def test_documented_entities_match_the_translations() -> None:
     )
     names = {
         entry["name"]
-        for platform in strings["entity"].values()
-        for entry in platform.values()
+        for platform, entries in strings["entity"].items()
+        if platform not in PHOTO_ONLY_PLATFORMS
+        for entry in entries.values()
     }
     for name in names:
         assert f"| {name} |" in README, f"{name} is missing from the entity table"
+    for platform in PHOTO_ONLY_PLATFORMS:
+        for entry in strings["entity"][platform].values():
+            assert f"| {entry['name']} |" not in README, (
+                f"{entry['name']} documented before the photos ship"
+            )
 
 
 def test_documented_quality_states_match_the_code() -> None:
