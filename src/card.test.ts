@@ -278,16 +278,43 @@ describe("the reading", () => {
     // failed, and reads as a deliberate edge.
     const card = await mount({ device: DEVICE });
     expect(card.shadowRoot?.querySelector(".reading-row")).toBeNull();
-    expect(card.shadowRoot?.querySelector(".reading-block")).not.toBeNull();
+    expect(card.shadowRoot?.querySelector(".header .reading")).not.toBeNull();
+    expect(cssRule(".reading")).toMatch(/justify-self:\s*end/);
+  });
+
+  it("shares the name's row, and the date the Bundesland's", async () => {
+    // Two rows instead of four: the plain card spent one on the name, one on
+    // the Bundesland, then one each on the temperature and the date.
+    const card = await mount({ device: DEVICE });
+    const header = card.shadowRoot?.querySelector(".body > .header");
+    const classes = (element: Element | null | undefined) =>
+      [...(element?.children ?? [])].map((child) => child.className);
+    expect(classes(header)).toEqual(["heading", "reading", "meta"]);
+    expect(classes(header?.querySelector(".meta"))).toEqual(["place", "sampled"]);
+    expect(header?.querySelector(".meta .sampled")?.textContent).toContain("Probe vom");
+    expect(cssRule(".header")).toMatch(/"title temperature"\s*"meta meta"/);
+    expect(cssRule(".header")).toMatch(/align-items:\s*last baseline/);
+    // The date spans the row, not the temperature's column: as a cell there
+    // it took 130px and squeezed a long name onto three lines at 300px.
+    expect(cssRule(".header .meta")).toMatch(/grid-area:\s*meta/);
+    // Once is enough: the season block no longer repeats the reading or date.
+    expect(card.shadowRoot?.querySelector(".season .reading-block")).toBeNull();
   });
 
   it("stands the thermometer on the digits' baseline", () => {
-    // Its baseline is its bottom edge; the glyph ends 2/24 above that.
+    // Inline flex, so its baseline is its bottom edge; the glyph ends 2/24
+    // above that.
     for (const selector of [".hero-icon", ".reading-icon"]) {
-      expect(cssRule(selector)).toMatch(/display:\s*(inline-)?flex/);
+      expect(cssRule(selector)).toMatch(/display:\s*inline-flex/);
       expect(cssRule(selector)).toMatch(/translate:\s*0 calc\(.* \* 2 \/ 24\)/);
     }
-    expect(cssRule(".reading-icon")).toMatch(/align-self:\s*baseline/);
+  });
+
+  it("keeps the reading inline, so the digits carry the baseline", () => {
+    // As a flex row the unit supplied the baseline on the photo, and the name
+    // lined up with the degree sign instead of the digits.
+    expect(cssRule(".reading")).not.toMatch(/display:\s*flex/);
+    expect(cssRule(".hero-temperature")).not.toMatch(/display:\s*flex/);
   });
 
   it("is marked with a thermometer without a photo too", async () => {

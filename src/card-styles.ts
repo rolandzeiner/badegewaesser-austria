@@ -447,9 +447,39 @@ export const cardStyles = css`
 
   /* -- heading ---------------------------------------------------------- */
 
-  /* Without a photo. The same run of name and pin as .hero-heading, and
-     balanced for the same reason. */
+  /* Without a photo, the caption's layout in the body's colours: the name and
+     the temperature on one row, the Bundesland and the sample date on the
+     next, each pair on a shared baseline. */
+  .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title temperature"
+      "meta meta";
+    column-gap: var(--bade-pad-x);
+    align-items: last baseline;
+  }
+
+  /* Across both columns, so the date never widens the temperature's column
+     and narrows the name's. On a card too narrow for both, the date wraps
+     under the Bundesland and stays on the right. */
+  .header .meta {
+    grid-area: meta;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: var(--bade-pad-x);
+  }
+
+  .header .sampled {
+    margin-inline-start: auto;
+    white-space: nowrap;
+  }
+
+  /* The same run of name and pin as .hero-heading, and balanced for the
+     same reason. */
   .heading {
+    grid-area: title;
     font-size: var(--ha-font-size-l, 1.143rem);
     font-weight: var(--ha-font-weight-medium, 500);
     line-height: var(--ha-line-height-condensed, 1.2);
@@ -548,38 +578,44 @@ export const cardStyles = css`
     margin-top: var(--bade-section-gap);
   }
 
+  /* The photo's date fallback, on the right like the date it stands in for. */
+  .reading-block {
+    text-align: right;
+  }
+
   /* Right-aligned, and deliberately so after a detour.
-     
+
      An earlier version tried to anchor the reading exactly over the newest
      sample's dot. Exact anchoring is not achievable here: the newest sample
      is always near the end of the axis (the season closes 31 August), so a
      centred label at that position overflows the card and gets clipped. The
      proportional-spacer approximation that avoided clipping landed about
      60px short — too close to read as alignment, too far to read as an
-     anchor, i.e. it just looked like a mistake.
-     
-     Right alignment lands near the newest dot anyway, for the same reason
-     exact anchoring failed, and it reads as a deliberate edge rather than an
-     accident. The date line underneath ties it to the series. */
-  .reading-block {
-    text-align: right;
-  }
+     anchor, i.e. it just looked like a mistake. The right edge reads as
+     deliberate.
 
-  /* The same thermometer on the same baseline as on the photo. */
-  .reading-icon {
-    --mdc-icon-size: 1.15em;
-    display: flex;
-    align-self: baseline;
-    translate: 0 calc(1.15em * 2 / 24);
-    color: var(--secondary-text-color);
-  }
-
+     Inline text rather than a flex row, like .hero-temperature: the row's
+     baseline then comes from the digits, which the grid lines up with the
+     name's last line. Sized like the tiles' values below it. */
   .reading {
-    display: flex;
-    align-items: baseline;
-    justify-content: flex-end;
-    gap: var(--bade-gap);
+    grid-area: temperature;
+    justify-self: end;
+    margin: 0;
+    font-size: var(--ha-font-size-xl, 1.429rem);
+    font-weight: var(--ha-font-weight-medium, 500);
+    line-height: 1.2;
     white-space: nowrap;
+  }
+
+  /* The same thermometer on the same baseline as on the photo: an inline
+     flex box's baseline is its bottom edge, and the glyph stops 2 of MDI's
+     24 units above it. Sized and inked like the tiles' icons. */
+  .reading-icon {
+    --mdc-icon-size: 0.9em;
+    display: inline-flex;
+    translate: 0 calc(0.9em * 2 / 24);
+    margin-inline-end: 4px;
+    color: var(--secondary-text-color);
   }
 
   .sampled {
@@ -785,7 +821,8 @@ export const cardStyles = css`
   /* A sidebar column: a smaller figure, and the date moves off the photo to
      the body, where there is room for it. */
   @container (max-width: 360px) {
-    .tile-value {
+    .tile-value,
+    .reading {
       font-size: var(--ha-font-size-l, 1.143rem);
     }
     .quality-symbol {
@@ -805,12 +842,6 @@ export const cardStyles = css`
     }
     .reading-block.hero-fallback {
       display: block;
-    }
-  }
-
-  @container (max-width: 320px) {
-    .temperature {
-      font-size: var(--ha-font-size-2xl, 1.429rem);
     }
   }
 
