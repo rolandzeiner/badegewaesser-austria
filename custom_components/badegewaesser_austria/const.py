@@ -115,18 +115,52 @@ VERSION_FIELD_PATTERN: Final = r'"VERSION"\s*:\s*"[^"]*"\s*,'
 # Season
 # ---------------------------------------------------------------------------
 
-# One window, used by BOTH the poll cadence and the `Badesaison` binary sensor,
-# so the two can never disagree about what "in season" means.
+# THE LEGAL BATHING SEASON, and the only thing the `Badesaison` sensor may
+# report. Austria's Badegewässerverordnung § 4 is explicit:
 #
-# Measured against the live document on 2026-09-22: 1362 samples across 260
-# sites fall in months 5-8 only, spanning 2026-05-26 to 2026-08-31 (May 12,
-# Jun 525, Jul 407, Aug 418). The window below is a superset of that with
-# headroom at both ends, so an earlier start next season is picked up without
-# a code change.
-SEASON_START_MONTH: Final = 5
+#   "Die Badesaison ist der Zeitraum vom 15. Juni bis 31. August eines jeden
+#    Kalenderjahres."
+#   https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20006509
+#
+# This was 15 May - 30 September until 2026-09-22, which is the GERMAN
+# definition (BadegewVO) applied to an Austrian integration by mistake. The
+# visible symptom was the card cheerfully reporting "Badesaison läuft" on
+# 22 September, five weeks after the last sample of the year.
+#
+# The live document corroborates the statute almost exactly: of 1362 samples,
+# ZERO fall after 31 August, and exactly 260 fall before 15 June — one per
+# bathing water, which is the pre-season sample Anlage 3 requires ("Kurz vor
+# Beginn jeder Badesaison ist eine Probenahme vorzunehmen"). The data was
+# saying this all along.
+SEASON_START_MONTH: Final = 6
 SEASON_START_DAY: Final = 15
-SEASON_END_MONTH: Final = 9
-SEASON_END_DAY: Final = 30
+SEASON_END_MONTH: Final = 8
+SEASON_END_DAY: Final = 31
+
+# THE MONITORING WINDOW — when readings can actually arrive, which is wider
+# than the legal season at the front because of that mandated pre-season
+# sample. Measured: samples span 26 May to 31 August, and the pre-season ones
+# run 26 May to 10 June.
+#
+# Deliberately a second window rather than reusing the one above. The two
+# answer different questions — "may one swim" versus "can the data move" — and
+# collapsing them is what produced the bug: either the sensor lies in
+# September, or the poll sleeps through the pre-season sample. Both end on
+# 31 August, and both are justified above rather than chosen.
+MONITORING_START_MONTH: Final = 5
+MONITORING_START_DAY: Final = 15
+MONITORING_END_MONTH: Final = 8
+MONITORING_END_DAY: Final = 31
+
+# THE LATE-RESULTS TAIL. Sampling stops on 31 August, but results arrive after
+# the lab work, so the last samples of August can be published in September.
+# The 9 Sep 2025 archive copy of the document already held a 29 Aug sample;
+# upload times are not published, so the tail is a whole month rather than a
+# measured lag. Without it, a late result would wait for the next May.
+LATE_RESULTS_START_MONTH: Final = 9
+LATE_RESULTS_START_DAY: Final = 1
+LATE_RESULTS_END_MONTH: Final = 9
+LATE_RESULTS_END_DAY: Final = 30
 
 # ---------------------------------------------------------------------------
 # Poll cadence
@@ -139,10 +173,31 @@ SEASON_END_DAY: Final = 30
 # during the season and is the one thing a bather needs promptly.
 DEFAULT_SCAN_INTERVAL_SEASON_HOURS: Final = 6
 
-# Out of season nothing can change at all: no samples are taken and the annual
-# rating is already fixed. 24 KB/day is a courtesy poll that keeps the entry
-# alive and picks up the new annual rating when AGES publishes it.
-DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS: Final = 24
+# In the late-results tail. Daily is plenty for a result that is days late;
+# never faster than the season's own interval, if that is set longer.
+LATE_RESULTS_POLL_HOURS: Final = 24
+
+# From 1 October to 14 May there is NO poll at all: the next one is scheduled
+# for the day the monitoring window opens. Nothing in the document moves in
+# those months except the annual rating, and when that appears was checked on
+# 2026-09-24 against the Wayback Machine's copies of the document:
+#   25 Nov 2020  QUALITAET_2020 still empty      12 May 2025  QUALITAET_2024 filled
+#   and every copy from mid-May on holds the previous season's rating.
+# The classification must reach the Commission by 31 December (Directive
+# 2006/7/EC Art. 13) and the public before the season, so AGES publishes it
+# somewhere from December to mid-May, and the first poll on 15 May finds it.
+# Every Home Assistant restart fetches once anyway, since the snapshot is not
+# stored, so a restart in the winter picks it up sooner.
+#
+# A dormant poll wakes every install on the same day, so the wake-up is
+# spread over one season interval instead of the ten minutes of POLL_JITTER.
+# After months asleep, every install's phase would otherwise be the same.
+WAKE_SPREAD_SECONDS: Final = DEFAULT_SCAN_INTERVAL_SEASON_HOURS * 3600
+
+# While polling sleeps, a config flow or an entry setup still refetches a
+# snapshot older than this, so a bathing water added in winter starts from
+# today's document. Only user actions trigger it.
+MAX_SNAPSHOT_AGE_HOURS: Final = 24
 
 # Enforced in the coordinator, not only in the options-flow hints — a user
 # editing the entry directly must not be able to go below this.
@@ -165,7 +220,9 @@ BACKOFF_AFTER_FAILURES: Final = 2
 
 CONF_SITE_ID: Final = "site_id"
 CONF_SCAN_INTERVAL_SEASON_HOURS: Final = "scan_interval_season_hours"
-CONF_SCAN_INTERVAL_OFFSEASON_HOURS: Final = "scan_interval_offseason_hours"
+# "scan_interval_offseason_hours" was the second option until 0.2.0, when the
+# off-season poll went away. Entries that stored it keep the key; it is
+# ignored, and the options form drops it the next time it is saved.
 
 # ---------------------------------------------------------------------------
 # Data semantics
@@ -231,17 +288,55 @@ RATING_STATES: Final = {
 # second source for the field meanings this parser relies on.
 SAMPLE_ASSESSMENT_IS_UNDOCUMENTED: Final = True
 
-# Newest first. `WASSERQUALITAET_JAHR_*` is NOT a year label — it duplicates
-# the matching `QUALITAET_<year>` letter (verified byte-equal on all 260
-# sites), so it is ignored entirely.
-RATING_YEARS: Final = (2026, 2025, 2024, 2023, 2022)
+# The per-year rating columns, matched against the WHOLE key (`re.fullmatch`)
+# and discovered from the document rather than listed here. This was a fixed
+# (2026, ..., 2022) tuple until 2026-09-23, which would have stopped reading
+# new ratings the day AGES published a year it did not name: `QUALITAET_2027`
+# would have been ignored and the sensor would have kept reporting 2026's
+# class as current, with nothing anywhere to say so.
+#
+# `WASSERQUALITAET_JAHR_*` must NOT match. Those columns duplicate the matching
+# `QUALITAET_<year>` letter (verified byte-equal on all 260 sites) under
+# relative names — HEUER, VORIGES, VOR_VORIGES — so they carry no year and
+# are ignored entirely.
+RATING_KEY_PATTERN: Final = r"QUALITAET_(\d{4})"
+
+# Positions for sites whose upstream coordinates are "0"/"0", taken from the
+# site's own bathing-water profile (section 1.18, "Koordinaten der
+# Probenahmestelle im Bezugssystem ETRS89" — within a metre of WGS84 here).
+# Used only while upstream sends no position, so an upstream fix wins
+# automatically. Measured 2026-09-23: this is the only such site of 260.
+#   https://www.ages.at/fileadmin/badegewaesser/pdf/AT3230004400240040.pdf
+COORDINATE_FALLBACKS: Final[dict[str, tuple[float, float]]] = {
+    # Wolfgangsee, St. Gilgen - Gamsjaga
+    "AT3230004400240040": (47.7489768867, 13.4191829076),
+}
 
 # Upstream sends 0 for an unmeasured water temperature. Two of 1362 samples do
 # this, in months when an Austrian lake cannot be at 0 °C, so it is a sentinel
 # and not a reading. Sichttiefe has no such sentinel (its minimum is 0.1 m).
 UNMEASURED_TEMPERATURE: Final = 0.0
 
-ATTRIBUTION: Final = (
-    "Datenquelle: AGES — Österreichische Agentur für Gesundheit und "
-    "Ernährungssicherheit GmbH · CC BY 3.0 AT"
-)
+# On-screen attribution. CC BY 3.0 AT asks for attribution "in the manner
+# specified by the author"; naming AGES and the licence does that, and AGES is
+# how the agency names itself. The full legal name is spelled out once in the
+# README's Attribution section, where there is room for it — in a card footer
+# it wrapped to two lines and pushed the licence onto the second.
+ATTRIBUTION: Final = "Datenquelle: AGES · CC BY 3.0 AT"
+
+# ---------------------------------------------------------------------------
+# Photos
+# ---------------------------------------------------------------------------
+
+# One photo per bathing water, built by `scripts/build_photos.py` into
+# `photos/<BADEGEWAESSERID>.webp` with a `credits.json` beside them. They are
+# AGES's site pictures and are NOT covered by the CC BY 3.0 AT data licence
+# above, so they carry their own credit instead of ATTRIBUTION. The folder is
+# gitignored until AGES consents to their reproduction; without it the image
+# platform creates nothing and every other entity is unaffected.
+PHOTO_DIR_NAME: Final = "photos"
+PHOTO_CREDITS_FILE: Final = "credits.json"
+PHOTO_CONTENT_TYPE: Final = "image/webp"
+# AGES claims the rights to everything on its site (https://www.ages.at/impressum),
+# so it is the credit of last resort when the build found no better one.
+PHOTO_FALLBACK_CREDIT: Final = "© AGES"

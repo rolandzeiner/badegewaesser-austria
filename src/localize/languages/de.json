@@ -1,7 +1,5 @@
 {
   "card": {
-    "season_over": "Saison beendet",
-    "in_season": "Badesaison läuft",
     "no_samples": "Noch keine Proben in dieser Saison",
     "closed": "Baden verboten",
     "sampled_on": "Probe vom {date}",
@@ -15,7 +13,16 @@
     "rating_year": "Bewertung {year}",
     "no_rating": "noch nicht bewertet",
     "below_limit": "unter der Nachweisgrenze",
-    "attribution": "Datenquelle: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT"
+    "attribution": "Datenquelle: AGES · CC BY 3.0 AT",
+    "tile_trend_up": "Gestiegen seit der Probe davor",
+    "tile_trend_down": "Gesunken seit der Probe davor",
+    "tile_trend_steady": "Etwa gleich wie bei der Probe davor",
+    "photo_alt": "Badestelle {name}",
+    "photo_credit": "Fotonachweis",
+    "photo_source": "Quelle: AGES Badegewässer-Monitoring",
+    "map_link": "{name} auf der Karte zeigen",
+    "show_map": "Karte zeigen",
+    "show_photo": "Foto zeigen"
   },
   "quality": {
     "excellent": "Ausgezeichnet",
@@ -24,22 +31,29 @@
     "poor": "Mangelhaft"
   },
   "error": {
-    "no_entity": "Wähle im Karteneditor ein Badegewässer aus.",
     "entity_missing": "Die Entität {entity} gibt es nicht mehr. Wähle im Karteneditor eine andere aus.",
-    "not_this_integration": "{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration."
+    "not_this_integration": "{entity} gehört nicht zu Badegewässer Austria. Wähle eine Entität dieser Integration.",
+    "no_device": "Wähle im Karteneditor ein Badegewässer aus.",
+    "device_missing": "Dieses Badegewässer gibt es nicht mehr. Wähle im Karteneditor ein anderes aus."
   },
   "version": {
     "mismatch": "Diese Karte ist veraltet ({card} statt {integration}).",
     "reload": "Neu laden"
   },
   "editor": {
-    "entity": "Badegewässer",
-    "entity_helper": "Eine beliebige Entität des Badegewässers — die übrigen findet die Karte selbst.",
+    "device": "Badegewässer",
+    "device_helper": "Welchen See oder Fluss die Karte zeigen soll.",
     "name": "Titel",
     "name_helper": "Leer lassen, um den Namen des Badegewässers zu verwenden.",
+    "show_photo": "Foto zeigen",
+    "show_photo_helper": "Ein Bild der Badestelle, sofern es eines gibt.",
+    "show_map": "Karte anbieten",
+    "show_map_helper": "Eine Schaltfläche auf dem Foto wechselt zur Karte der Badestelle und zurück. Ab Home Assistant 2026.9.",
     "show_season_track": "Saisonverlauf zeigen",
     "show_season_track_helper": "Die Proben der Saison als Zeitachse.",
     "show_readings": "Messwerte zeigen",
-    "show_readings_helper": "Wasserqualität, E. coli, Enterokokken und Sichttiefe."
+    "show_readings_helper": "Wasserqualität, E. coli, Enterokokken und Sichttiefe.",
+    "show_attribution": "Datenquelle zeigen",
+    "show_attribution_helper": "Die Quellenangabe der AGES unter den Messwerten. Die Entitäten tragen sie so oder so."
   }
 }

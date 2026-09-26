@@ -88,17 +88,45 @@ def test_real_temperatures_survive(sites: dict) -> None:
 # --- coordinates -----------------------------------------------------------
 
 
-def test_null_island_coordinates_become_no_position(sites: dict) -> None:
+def test_null_island_coordinates_become_no_position(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """ "0"/"0" is missing data, not a location off West Africa.
 
     Exactly one of the 260 live sites is in this state. Taken literally it
     sits ~5000 km from Austria, which would quietly win any "nearest bathing
     water" ranking — so the config flow must be able to tell it apart from a
-    real position.
+    real position. The fallback table is emptied because that one site now
+    has a profile position; this is the rule for any site that does not.
     """
-    site = sites[NULL_ISLAND]
+    monkeypatch.setattr(
+        "custom_components.badegewaesser_austria.api.COORDINATE_FALLBACKS", {}
+    )
+    site = parse_document(json.loads(fixture_bytes()))[NULL_ISLAND]
     assert site.latitude is None
     assert site.longitude is None
+
+
+def test_null_island_site_takes_its_profile_position(sites: dict) -> None:
+    """Gamsjaga's position comes from its bathing-water profile, section 1.18."""
+    site = sites[NULL_ISLAND]
+    assert site.latitude == pytest.approx(47.7489768867)
+    assert site.longitude == pytest.approx(13.4191829076)
+
+
+def test_upstream_position_wins_over_the_fallback() -> None:
+    """Once AGES publishes real coordinates, the hardcoded pair steps aside."""
+    payload = json.loads(fixture_bytes())
+    for land in payload["BUNDESLAENDER"]:
+        for row in land["BADEGEWAESSER"]:
+            if row["BADEGEWAESSERID"] == NULL_ISLAND:
+                row["LATITUDE"], row["LONGITUDE"] = "47.76", "13.37"
+
+    site = parse_document(payload)[NULL_ISLAND]
+    assert (site.latitude, site.longitude) == (
+        pytest.approx(47.76),
+        pytest.approx(13.37),
+    )
 
 
 def test_real_coordinates_are_parsed(sites: dict) -> None:
@@ -136,6 +164,36 @@ def test_unclassified_letter_is_skipped_but_kept_visible(sites: dict) -> None:
     assert site.rating_year == 2024
     assert site.rating_raw == "G"
     assert site.rating_raw_year == 2025
+
+
+def _document_with(site_id: str, **columns: str) -> dict[str, object]:
+    """The fixture document with extra columns set on one site."""
+    document = json.loads(fixture_bytes())
+    for region in document["BUNDESLAENDER"]:
+        for row in region["BADEGEWAESSER"]:
+            if row["BADEGEWAESSERID"] == site_id:
+                row.update(columns)
+    return document
+
+
+def test_a_newly_published_year_is_read_without_a_code_change() -> None:
+    """Rating years come from the document, not from a list in the code.
+
+    Until 2026-09-23 they were a fixed (2026, ..., 2022) tuple. The day AGES
+    published `QUALITAET_2027`, that tuple would have ignored it and kept
+    reporting 2026's class as current, with no error anywhere.
+    """
+    sites = parse_document(_document_with(NORMAL, QUALITAET_2027="B"))
+    assert sites[NORMAL].rating == "B"
+    assert sites[NORMAL].rating_year == 2027
+
+
+def test_relative_year_columns_are_never_read_as_ratings() -> None:
+    """`WASSERQUALITAET_JAHR_*` carries no year, so it must not match."""
+    sites = parse_document(_document_with(NORMAL, WASSERQUALITAET_JAHR_HEUER="D"))
+    assert sites[NORMAL].rating == "A"
+    assert sites[NORMAL].rating_year == 2025
+    assert sites[NORMAL].rating_raw == "A"
 
 
 def test_rating_raw_matches_rating_for_an_ordinary_site(sites: dict) -> None:

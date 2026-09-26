@@ -18,11 +18,15 @@ import pytest
 
 from custom_components.badegewaesser_austria.const import (
     ATTRIBUTION,
-    DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS,
     DEFAULT_SCAN_INTERVAL_SEASON_HOURS,
     INTEGRATION_VERSION,
+    LATE_RESULTS_POLL_HOURS,
     MAX_POLL_HOURS,
     MIN_POLL_HOURS,
+    MONITORING_END_DAY,
+    MONITORING_END_MONTH,
+    MONITORING_START_DAY,
+    MONITORING_START_MONTH,
     RATING_STATES,
     SEASON_END_DAY,
     SEASON_END_MONTH,
@@ -34,6 +38,14 @@ REPO = Path(__file__).parent.parent
 README = (REPO / "README.md").read_text(encoding="utf-8")
 CONTRIBUTING = (REPO / "CONTRIBUTING.md").read_text(encoding="utf-8")
 HACS = json.loads((REPO / "hacs.json").read_text(encoding="utf-8"))
+
+# The photo surface is in the code but ships dormant: only a local photos/
+# folder creates the image entity, and no release carries one until AGES
+# consents to the photos' reproduction (see .gitignore). Documenting it would
+# promise every HACS user a photo they cannot get, so it stays out of the
+# README until the photos may ship. The editor hides these rows without one.
+PHOTO_ONLY_OPTIONS = {"show_photo", "show_map"}
+PHOTO_ONLY_PLATFORMS = {"image"}
 
 
 def test_ha_min_badge_matches_hacs_json() -> None:
@@ -62,8 +74,12 @@ def test_documented_card_options_match_the_editor() -> None:
     # Schema rows carry `name: "..."`; the grid container's own name is empty.
     in_editor = {name for name in re.findall(r'name:\s*"([a-z_]+)"', editor) if name}
     documented = set(re.findall(r"^\| `([a-z_]+)` \|", README, re.MULTILINE))
-    assert in_editor <= documented, (
-        f"undocumented card options: {in_editor - documented}"
+    assert in_editor - PHOTO_ONLY_OPTIONS <= documented, (
+        f"undocumented card options: {in_editor - PHOTO_ONLY_OPTIONS - documented}"
+    )
+    assert not documented & PHOTO_ONLY_OPTIONS, (
+        f"photo options documented before the photos ship: "
+        f"{documented & PHOTO_ONLY_OPTIONS}"
     )
 
 
@@ -76,11 +92,17 @@ def test_documented_entities_match_the_translations() -> None:
     )
     names = {
         entry["name"]
-        for platform in strings["entity"].values()
-        for entry in platform.values()
+        for platform, entries in strings["entity"].items()
+        if platform not in PHOTO_ONLY_PLATFORMS
+        for entry in entries.values()
     }
     for name in names:
         assert f"| {name} |" in README, f"{name} is missing from the entity table"
+    for platform in PHOTO_ONLY_PLATFORMS:
+        for entry in strings["entity"][platform].values():
+            assert f"| {entry['name']} |" not in README, (
+                f"{entry['name']} documented before the photos ship"
+            )
 
 
 def test_documented_quality_states_match_the_code() -> None:
@@ -95,21 +117,46 @@ def test_documented_quality_states_match_the_code() -> None:
 def test_documented_poll_intervals_match_the_defaults() -> None:
     """Cadence is the most-read number in the file and the easiest to drift."""
     assert f"every {DEFAULT_SCAN_INTERVAL_SEASON_HOURS} hours" in README
-    assert f"every {DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS} hours" in README
+    assert f"every {LATE_RESULTS_POLL_HOURS} hours" in README
+    assert "| 1 Oct – 14 May | no polls |" in README
     assert f"between {MIN_POLL_HOURS} and {MAX_POLL_HOURS} hours" in README
 
 
-def test_documented_season_window_matches_the_code() -> None:
-    """One window, and the docs quote it in two places."""
-    assert SEASON_START_MONTH == 5 and SEASON_END_MONTH == 9
-    assert f"{SEASON_START_DAY} May" in README
-    assert f"{SEASON_END_DAY} Sep" in README
+def test_documented_legal_season_matches_the_statute() -> None:
+    """The docs must quote the statute, not a neighbouring country's.
+
+    Badegewässerverordnung § 4 is 15 June to 31 August. The README said
+    15 May to 30 September until 2026-09-22, which is the German definition.
+    """
+    assert (SEASON_START_MONTH, SEASON_START_DAY) == (6, 15)
+    assert (SEASON_END_MONTH, SEASON_END_DAY) == (8, 31)
+    assert "15 June and 31 August" in README
+    assert "Badegewässerverordnung" in README
 
 
-def test_attribution_block_is_the_licence_text_verbatim() -> None:
-    """CC BY 3.0 AT asks for exactly one thing; it has to be exact."""
+def test_documented_monitoring_window_matches_the_code() -> None:
+    """And the cadence table must quote the wider window it actually uses."""
+    assert (MONITORING_START_MONTH, MONITORING_START_DAY) == (5, 15)
+    assert (MONITORING_END_MONTH, MONITORING_END_DAY) == (8, 31)
+    assert "15 May – 31 Aug" in README
+
+
+def test_docs_never_mention_the_old_window() -> None:
+    """A stale date in the copy is how the wrong season survives a fix."""
+    assert "30 September" not in README
+    assert "30 Sep" not in README
+
+
+def test_attribution_is_short_on_screen_and_full_in_the_docs() -> None:
+    """CC BY 3.0 AT asks for exactly one thing, so both forms have to be right.
+
+    The on-screen string names the source and the licence, which is what the
+    licence asks for; the full legal name is spelled out once here, where it
+    does not wrap a card footer onto two lines.
+    """
+    assert ATTRIBUTION == "Datenquelle: AGES · CC BY 3.0 AT"
     assert ATTRIBUTION in README
-    assert "CC BY 3.0 AT" in README
+    assert "Österreichische Agentur für Gesundheit und Ernährungssicherheit" in README
     assert "creativecommons.org/licenses/by/3.0/at/" in README
 
 
@@ -122,16 +169,23 @@ def test_every_feature_bullet_carries_a_version_marker() -> None:
         assert re.search(r"\*\(\d+\.\d+\.\d+\)\*", bullet), bullet
 
 
-def test_first_release_markers_all_say_the_current_version() -> None:
-    """Nothing has shipped yet, so every marker names the version in flight.
+def test_release_markers_name_a_shipped_or_the_next_version() -> None:
+    """A marker names a version that shipped, or the one being built.
 
-    Markers freeze once a release goes out; until then they simply track
-    manifest.json, which is why this compares against INTEGRATION_VERSION
-    rather than a literal.
+    Until 0.1.0 shipped, every marker simply equalled the manifest. Since then
+    a new feature carries the NEXT version while manifest.json still says the
+    last release — the workflow bumps once per cycle, just before the release
+    PR. So a marker is valid if it is not newer than the manifest, or if it is
+    exactly one patch, minor or major step past it. A typo such as 0.12.0
+    is neither.
     """
+    major, minor, patch = (int(part) for part in INTEGRATION_VERSION.split("."))
+    current = (major, minor, patch)
+    upcoming = {(major, minor, patch + 1), (major, minor + 1, 0), (major + 1, 0, 0)}
     section = README.split("## Supported Functions")[1].split("## Requirements")[0]
     for marker in re.findall(r"\*\((\d+\.\d+\.\d+)\)\*", section):
-        assert marker == INTEGRATION_VERSION
+        version = tuple(int(part) for part in marker.split("."))
+        assert version <= current or version in upcoming, marker
 
 
 @pytest.mark.parametrize(

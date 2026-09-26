@@ -16,15 +16,18 @@ rules:
   appropriate-polling:
     status: done
     comment: >-
-      6 h in season, 24 h out of it, configurable within a 3 h floor enforced
-      in the coordinator. Derived from measurement rather than taste: samples
+      6 h from 15 May to 31 August, configurable within a 3 h floor enforced
+      in the coordinator; daily through September for late lab results; no
+      poll at all from October to 14 May, when nothing in the document moves
+      (the next one is scheduled for 15 May, spread over six hours, and never
+      while a poll is failing). Derived from measurement rather than taste: samples
       arrive roughly every 20 days per site (median 20, p10 14, p90 21 across
       1102 gaps), so even 6 h is far faster than the data moves. The
       justification for 6 h is TGESPERRT, an acute closure that can post any
       day during the season.
   brands:
-    status: todo
-    comment: Local brand/ assets land in Phase 5.
+    status: done
+    comment: Local brand/ assets (icon, icon@2x, logo), read by HA 2026.3+.
   common-modules:
     status: done
     comment: api.py / coordinator.py / entity.py split.

@@ -49,33 +49,469 @@ export const cardStyles = css`
     --bade-track: light-dark(#e4e9ea, #262b2d);
 
     --bade-pad-x: var(--ha-space-4, 16px);
-    --bade-pad-y: var(--ha-space-4, 16px);
+    /* 12px, not 16: every section below adds its own gap, and at 16 the
+       card spent more height on air than on readings. */
+    --bade-pad-y: var(--ha-space-3, 12px);
+    --bade-section-gap: var(--ha-space-3, 12px);
     --bade-gap: var(--ha-space-2, 8px);
     --bade-radius-sm: var(--ha-border-radius-sm, 4px);
     --bade-radius-md: var(--ha-border-radius-md, 8px);
 
     display: block;
+    /* Fill the grid cell the dashboard gives us. A sections view puts a fixed
+       height on the cell wrapper whenever rows is numeric -- and the user
+       causes that by dragging the height handle, since a stored grid_options
+       overrides getGridOptions(). Because of display: block above, this
+       element is ha-card's containing block, so ha-card's block-size: 100%
+       resolves against this line; without it the percentage computes to auto
+       and the card paints over the card below. Resolves to auto in an
+       auto-height cell, so it costs nothing there. The two declarations only
+       work as a pair: ha-lovelace-card, references/gotchas.md. */
+    block-size: 100%;
   }
 
   ha-card {
     /* The card can sit in a 280px sidebar column or a full-width section, and
        it must reflow to its own width rather than the viewport's. */
     container-type: inline-size;
+    /* Takes the height :host took from the cell. In a cell shorter than the
+       content, the photo and banners keep their size and the body scrolls,
+       instead of the card spilling over its neighbour. */
+    block-size: 100%;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ha-card > * {
+    flex-shrink: 0;
   }
 
   .body {
     padding: var(--bade-pad-y) var(--bade-pad-x);
   }
 
+  /* min-block-size: 0 is what lets a flex child shrink below its content,
+     without which overflow-y never engages. */
+  ha-card > .body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    overflow-y: auto;
+  }
+
+  /* -- photo header ----------------------------------------------------- */
+
+  .hero {
+    --bade-scrim: rgb(0 0 0 / 0.55);
+    /* How far above the text the bottom band spends fading out. The dark
+       part stays exactly behind the text; this is only the dissolve above
+       it, on an eased curve so it has no visible top edge. A short straight
+       ramp (1.25rem) read as a hard band. */
+    --hero-fade: 3rem;
+    /* How long the photo and the map take to swap: HA's normal step rather
+       than its fast one, since each travels the card's full width. */
+    --hero-slide: var(--ha-animation-duration-normal, 250ms);
+
+    position: relative;
+    isolation: isolate;
+    /* Clips the sliding views at the card's sides, and only there: clip,
+       unlike hidden, leaves the other axis visible, and the credit's tooltip
+       may reach below the photo in a narrow card. */
+    overflow-x: clip;
+    color: #fff;
+  }
+
+  /* The photo's view: picture, shading and caption, which slide as one.
+     Positioned, so the caption and the shading stay on it as it moves. */
+  .hero-photo {
+    position: relative;
+    transition: translate var(--hero-slide) ease-in-out;
+  }
+
+  /* Every photo is built at 600x210 (20:7). The ratio is pinned here too, so
+     the card keeps its height while the image loads; the minimum height gives
+     the overlay room in a narrow column, where the sides are cropped instead. */
+  .hero-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 20 / 7;
+    min-height: 8.5rem;
+    object-fit: cover;
+    background: var(--bade-track);
+  }
+
+  /* The shading: black from the right edge dissolving towards the left on
+     the same eased curve as the band, and a soft vignette at the corners. Both are atmosphere; the contrast the
+     text needs comes from the band below, not from these. On the photo's
+     view, not the header, so it never darkens the map. */
+  .hero-photo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        to left,
+        rgb(0 0 0 / 0.7) 0%,
+        rgb(0 0 0 / 0.517) 14.25%,
+        rgb(0 0 0 / 0.379) 25.5%,
+        rgb(0 0 0 / 0.267) 35.25%,
+        rgb(0 0 0 / 0.195) 42.375%,
+        rgb(0 0 0 / 0.136) 48.75%,
+        rgb(0 0 0 / 0.088) 54.75%,
+        rgb(0 0 0 / 0.052) 60.15%,
+        rgb(0 0 0 / 0.029) 64.575%,
+        rgb(0 0 0 / 0.015) 68.25%,
+        rgb(0 0 0 / 0.006) 71.4%,
+        rgb(0 0 0 / 0.001) 73.65%,
+        transparent 75%
+      ),
+      radial-gradient(
+        ellipse 90% 115% at 38% 35%,
+        transparent 55%,
+        rgb(0 0 0 / 0.4) 100%
+      );
+  }
+
+  /* One row along the bottom: the name on the left and the temperature on
+     the right share a baseline, and the Bundesland and the sample date share
+     the one below it.
+
+     CONTRAST: the row sits on a band that is 55% black wherever there is
+     text, fading out only above it. Over pure white -- the brightest thing a
+     photo can put underneath -- that leaves rgb(115 115 115), relative
+     luminance 0.171, and white on it measures 4.7:1: over the 4.5:1 floor
+     for normal text, so it holds for the 12px lines as well as the large
+     figure. This is the floor, not a starting point: 50% fails the small
+     lines (3.9:1). */
+  .hero-caption {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title temperature"
+      "place sampled";
+    column-gap: var(--bade-pad-x);
+    align-items: last baseline;
+    padding: var(--hero-fade) var(--bade-pad-x) var(--ha-space-3, 12px);
+    /* Eased "scrim" stops (opacity falls fast, then trails off), which is
+       what makes a gradient dissolve instead of ending on a line. */
+    background: linear-gradient(
+      to top,
+      var(--bade-scrim) calc(100% - var(--hero-fade)),
+      rgb(0 0 0 / 0.406) calc(100% - var(--hero-fade) * 0.81),
+      rgb(0 0 0 / 0.298) calc(100% - var(--hero-fade) * 0.66),
+      rgb(0 0 0 / 0.21) calc(100% - var(--hero-fade) * 0.53),
+      rgb(0 0 0 / 0.153) calc(100% - var(--hero-fade) * 0.435),
+      rgb(0 0 0 / 0.107) calc(100% - var(--hero-fade) * 0.35),
+      rgb(0 0 0 / 0.069) calc(100% - var(--hero-fade) * 0.27),
+      rgb(0 0 0 / 0.041) calc(100% - var(--hero-fade) * 0.198),
+      rgb(0 0 0 / 0.023) calc(100% - var(--hero-fade) * 0.139),
+      rgb(0 0 0 / 0.012) calc(100% - var(--hero-fade) * 0.09),
+      rgb(0 0 0 / 0.004) calc(100% - var(--hero-fade) * 0.048),
+      rgb(0 0 0 / 0.001) calc(100% - var(--hero-fade) * 0.018),
+      transparent 100%
+    );
+  }
+
+  /* The name and its map pin, as one run of text. A plain block on purpose:
+     a line clamp (display: -webkit-box) has no baseline to offer the grid,
+     which then top-aligns the name and leaves it floating above the
+     temperature. The grid aligns this block's last line, and the pin keeps
+     that line's baseline where the text puts it (see .map-link). */
+  .hero-heading {
+    grid-area: title;
+    font-size: var(--ha-font-size-xl, 1.429rem);
+    font-weight: var(--ha-font-weight-bold, 600);
+    line-height: 1.2;
+    /* Also what keeps the pin off a line of its own: balancing spreads the
+       words over the lines, so the last one keeps a word beside the pin. */
+    text-wrap: balance;
+  }
+
+  /* Inline, so the pin after it continues the same line. */
+  .hero-title,
+  .title {
+    display: inline;
+    margin: 0;
+    font: inherit;
+  }
+
+  .hero-place {
+    grid-area: place;
+    margin: 2px 0 0;
+    font-size: var(--ha-font-size-s, 0.857rem);
+  }
+
+  /* Inline text rather than a flex row: the row's baseline then comes from
+     the figures. As flex items, the raised unit supplied the baseline and
+     the name lined up with the degree sign instead of the digits. */
+  .hero-temperature {
+    grid-area: temperature;
+    justify-self: end;
+    margin: 0;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* The one loud element, in light weight. Proportional figures: tabular
+     ones give every digit the width of a 0, which makes "21,5" look loose at
+     this size (dataviz: tabular only where numbers stack in a column). */
+  .hero-value {
+    font-size: var(--ha-font-size-5xl, 2.857rem);
+    font-weight: var(--ha-font-weight-light, 300);
+    letter-spacing: -0.02em;
+  }
+
+  /* What the figure is, standing on the digits' baseline. As an inline
+     flex box its baseline is its bottom edge, and the thermometer glyph
+     stops 2 of MDI's 24 units above that edge, so it moves down by as much.
+     No colour: warmer water is not good or bad news in itself. */
+  .hero-icon {
+    --bade-hero-icon: 1.75rem;
+    --mdc-icon-size: var(--bade-hero-icon);
+    display: inline-flex;
+    translate: 0 calc(var(--bade-hero-icon) * 2 / 24);
+    margin-right: 4px;
+  }
+
+  .hero-unit {
+    margin-left: 3px;
+    font-size: var(--ha-font-size-l, 1.143rem);
+    vertical-align: top;
+  }
+
+  .hero-sampled {
+    grid-area: sampled;
+    justify-self: end;
+    margin: 2px 0 0;
+    font-size: var(--ha-font-size-s, 0.857rem);
+    white-space: nowrap;
+  }
+
+  /* The date lives on the photo; the body keeps a copy for narrow cards. */
+  .reading-block.hero-fallback {
+    display: none;
+  }
+
+  /* -- photo credit ----------------------------------------------------- */
+
+  .photo-info {
+    position: absolute;
+    top: var(--bade-gap);
+    right: var(--bade-gap);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    max-width: calc(100% - 2 * var(--bade-gap));
+  }
+
+  /* The map button takes the corner; the credit moves one disc to its left.
+     The tooltip keeps its right edge under the credit's button. */
+  .has-map .photo-info {
+    right: calc(2 * var(--bade-gap) + 32px);
+    max-width: calc(100% - 3 * var(--bade-gap) - 32px);
+  }
+
+  .photo-info[hidden] {
+    display: none;
+  }
+
+  /* 32px: over the 24px WCAG 2.5.8 minimum, and about a fingertip. The
+     disc is its own backdrop, since the corner may be bright sky: at 55%
+     black, over pure white, the white icon measures 4.7:1, above the 3:1
+     WCAG 1.4.11 asks of a control. The map button is the same disc, and
+     over the map it measures the same, since the disc is its backdrop
+     there too. */
+  .photo-info-button,
+  .map-toggle {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.55);
+    color: #fff;
+    cursor: pointer;
+    --mdc-icon-size: 22px;
+  }
+
+  .photo-info-button:hover,
+  .map-toggle:hover {
+    background: rgb(0 0 0 / 0.8);
+  }
+
+  /* The body's teal ring would disappear against the dark corner. */
+  .photo-info-button:focus-visible,
+  .map-toggle:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 0;
+  }
+
+  /* Same look as the season-track tooltip. Not pointer-events: none, unlike
+     that one: WCAG 1.4.13 asks that the pointer can move onto the tooltip
+     without it closing, and the wrapper's hover covers both. */
+  .photo-tip {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 18rem;
+    margin-top: 4px;
+    padding: 6px 10px;
+    border-radius: var(--bade-radius-sm);
+    background: var(--ha-card-background, var(--card-background-color, #fff));
+    border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.3));
+    box-shadow: var(--ha-card-box-shadow, 0 2px 6px rgba(0, 0, 0, 0.25));
+    color: var(--primary-text-color);
+    font-size: var(--ha-font-size-s, 0.857rem);
+    line-height: 1.4;
+  }
+
+  .photo-tip[hidden] {
+    display: none;
+  }
+
+  .photo-tip-source {
+    color: var(--secondary-text-color);
+  }
+
+  /* -- map view --------------------------------------------------------- */
+
+  /* Top-right: the map card keeps its own zoom and reset buttons down the
+     top-left edge, where this would cover the zoom-in button. */
+  .map-toggle {
+    position: absolute;
+    top: var(--bade-gap);
+    right: var(--bade-gap);
+    z-index: 3;
+  }
+
+  /* Exactly the photo's box, so nothing below moves when the map opens.
+     The map card's styles are out of reach inside its shadow root, so its
+     card chrome is switched off from here through the variables it reads:
+     no corners, border or shadow of its own inside this card. Its text is
+     set back to the theme's, which the header's white would override. The
+     track colour shows until the map has drawn. */
+  .hero-map {
+    --ha-card-border-radius: 0;
+    --ha-card-border-width: 0;
+    --ha-card-box-shadow: none;
+
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--bade-track);
+    color: var(--primary-text-color);
+    translate: 100% 0;
+    visibility: hidden;
+    /* Hidden only once it has slid out; see the photo's twin below. */
+    transition:
+      translate var(--hero-slide) ease-in-out,
+      visibility 0s var(--hero-slide);
+  }
+
+  .hero-map-card {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  /* The swap. The map comes in from the side its button is on and pushes
+     the photo out the other. Each view becomes visible as it starts to
+     move in and hidden once it is out, so the one off screen is never
+     painted. The reduced-motion block at the end makes both instant. */
+  .hero.is-map .hero-photo {
+    translate: -100% 0;
+    visibility: hidden;
+    transition:
+      translate var(--hero-slide) ease-in-out,
+      visibility 0s var(--hero-slide);
+  }
+
+  .hero.is-map .hero-map {
+    translate: 0;
+    visibility: visible;
+    transition: translate var(--hero-slide) ease-in-out;
+  }
+
+  /* The body opens with whatever the photo header did not take. */
+  .body > :first-child {
+    margin-top: 0;
+  }
+
   /* -- heading ---------------------------------------------------------- */
 
-  .title {
-    margin: 0;
+  /* Without a photo. The same run of name and pin as .hero-heading, and
+     balanced for the same reason. */
+  .heading {
     font-size: var(--ha-font-size-l, 1.143rem);
     font-weight: var(--ha-font-weight-medium, 500);
     line-height: var(--ha-line-height-condensed, 1.2);
     color: var(--primary-text-color);
+    text-wrap: balance;
+  }
+
+  /* -- map link --------------------------------------------------------- */
+
+  /* 32px, like the photo credit's button: over the 24px WCAG 2.5.8 minimum,
+     and about a fingertip. The negative block margins give the line back
+     what the box takes beyond one line of text (1.2em), so the name's last
+     line keeps its height and its baseline, which is what the temperature
+     aligns to. The box's own padding makes the gap to the last word; the
+     2px before it keeps the focus ring off that word, and the padding after
+     the icon is handed back, so a short name on a narrow card does not wrap
+     for the sake of empty space. */
+  .map-link {
+    --mdc-icon-size: 1.1em;
+    display: inline-grid;
+    place-items: center;
+    inline-size: 32px;
+    block-size: 32px;
+    margin-block: calc((1.2em - 32px) / 2);
+    margin-inline: 2px calc((1.1em - 32px) / 2);
+    vertical-align: middle;
+    /* Middle is half the x-height, which left the pin's head level with
+       the lowercase letters and its point well below the line. Raised to
+       sit on the capitals, the point just under the baseline. A transform,
+       so the line itself does not move. */
+    translate: 0 -0.12em;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    text-decoration: none;
+  }
+
+  .map-link:hover {
+    color: var(--primary-text-color);
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+
+  /* Inside the target rather than around it: the ring then marks exactly
+     what a tap hits, and stays clear of the name. */
+  .map-link:focus-visible {
+    outline-offset: -2px;
+  }
+
+  /* On the photo the pin is white on the band: 4.7:1 over pure white, above
+     the 3:1 WCAG 1.4.11 asks of an icon. Hover darkens rather than tints, as
+     on the credit button, so the contrast only goes up. */
+  .hero .map-link {
+    color: inherit;
+  }
+
+  .hero .map-link:hover {
+    background: rgb(0 0 0 / 0.3);
+  }
+
+  /* The body's teal ring would disappear against the band. */
+  .hero .map-link:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
   }
 
   .place {
@@ -109,54 +545,41 @@ export const cardStyles = css`
   /* -- season track ----------------------------------------------------- */
 
   .season {
-    margin-top: var(--ha-space-5, 20px);
+    margin-top: var(--bade-section-gap);
   }
 
-  /* Anchors the reading over the newest sample's dot rather than parking it
-     at the right edge. Three grid columns -- a proportional spacer, the label
-     at its natural width, another proportional spacer -- so the label tracks
-     the dot and the fr units guarantee it can never overflow the card, which
-     absolute positioning would not.
-
-     The centring is approximate by design: the spacers split the space LEFT
-     OVER after the label, so the label's centre lands about (0.5 - f) x its
-     own width off the dot. That is roughly 20px on a typical card, against
-     the ~140px it was adrift when the label was simply right-aligned. Exact
-     placement would need either absolute positioning (which needs a measured
-     container height) or a JS width measurement, and neither is worth it for
-     20px. */
-  .reading-row {
-    display: grid;
-    grid-template-columns: var(--before, 1fr) auto var(--after, 0fr);
-  }
-
+  /* Right-aligned, and deliberately so after a detour.
+     
+     An earlier version tried to anchor the reading exactly over the newest
+     sample's dot. Exact anchoring is not achievable here: the newest sample
+     is always near the end of the axis (the season closes 31 August), so a
+     centred label at that position overflows the card and gets clipped. The
+     proportional-spacer approximation that avoided clipping landed about
+     60px short — too close to read as alignment, too far to read as an
+     anchor, i.e. it just looked like a mistake.
+     
+     Right alignment lands near the newest dot anyway, for the same reason
+     exact anchoring failed, and it reads as a deliberate edge rather than an
+     accident. The date line underneath ties it to the series. */
   .reading-block {
-    grid-column: 2;
-    text-align: center;
-    min-width: 0;
+    text-align: right;
+  }
+
+  /* The same thermometer on the same baseline as on the photo. */
+  .reading-icon {
+    --mdc-icon-size: 1.15em;
+    display: flex;
+    align-self: baseline;
+    translate: 0 calc(1.15em * 2 / 24);
+    color: var(--secondary-text-color);
   }
 
   .reading {
     display: flex;
     align-items: baseline;
-    justify-content: center;
+    justify-content: flex-end;
     gap: var(--bade-gap);
     white-space: nowrap;
-  }
-
-  .temperature {
-    font-size: var(--ha-font-size-3xl, 1.714rem);
-    font-weight: var(--ha-font-weight-bold, 700);
-    line-height: var(--ha-line-height-condensed, 1.2);
-    color: var(--primary-text-color);
-    /* Deliberately NOT tabular-nums. Equal-width digits make a large
-       standalone figure look loose; the value rows below, which do align
-       vertically, get tabular-nums instead. */
-  }
-
-  .temperature.is-missing {
-    color: var(--secondary-text-color);
-    font-weight: var(--ha-font-weight-normal, 400);
   }
 
   .sampled {
@@ -169,58 +592,146 @@ export const cardStyles = css`
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-top: var(--ha-space-2, 8px);
+    margin-top: var(--ha-space-1, 4px);
     font-size: var(--ha-font-size-s, 0.857rem);
     color: var(--secondary-text-color);
   }
 
   /* -- readings --------------------------------------------------------- */
 
-  .readings {
+  /* Two by two at every width, and still no boxes: four readings in four
+     identical rounded tiles is the generic default and reads as a template.
+     Whitespace and the type scale carry the grid. */
+  .tiles {
     display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: var(--ha-space-4, 16px);
-    row-gap: var(--ha-space-2, 8px);
-    margin-top: var(--ha-space-5, 20px);
-    font-size: var(--ha-font-size-m, 1rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--bade-section-gap) var(--ha-space-4, 16px);
+    margin: var(--bade-section-gap) 0 0;
   }
 
-  /* No tiles, no borders, no shadows. The grid alignment is the structure --
-     six readings in six identical rounded boxes is the generic default and
-     reads as a template. */
-  .readings dt {
+  .tile {
+    min-width: 0;
+  }
+
+  /* The label is the detail, the value the point: small and quiet above, so
+     the eye lands on the number. */
+  /* Wraps only as a last resort, so the quality stars can never run into
+     the next column. */
+  .tile dt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 4px;
     color: var(--secondary-text-color);
     font-size: var(--ha-font-size-s, 0.857rem);
-    align-self: baseline;
   }
 
-  .readings dd {
+  .tile dd {
     margin: 0;
+  }
+
+  /* Hovering or tapping a measurement puts its season on the track; the
+     tile's label lights up to say which reading the track now shows. */
+  .tile.is-trackable {
+    cursor: pointer;
+  }
+
+  .tile.is-tracked dt {
     color: var(--primary-text-color);
-    /* These DO align vertically row to row, so equal-width digits help. */
-    font-variant-numeric: tabular-nums;
+  }
+
+  /* Proportional figures: these are standalone values, not a column of
+     numbers that has to line up. */
+  /* A gap rather than margins between value and unit: where a narrow tile
+     wraps the unit to a second line, a gap vanishes at the break and the
+     unit starts flush left, where a margin would leave it indented. */
+  .tile-value {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    column-gap: 4px;
+    margin-top: 2px;
+    color: var(--primary-text-color);
+    font-size: var(--ha-font-size-xl, 1.429rem);
+    font-weight: var(--ha-font-weight-medium, 500);
+    line-height: 1.2;
+  }
+
+  /* What the reading is, in front of its value. Twice the gap the unit
+     gets: the icon labels the number, the unit belongs to it. The glyphs
+     fill most of their box, so 4px left the bacteria touching the digits. */
+  .tile-icon {
+    --mdc-icon-size: 0.9em;
+    align-self: center;
+    margin-inline-end: 4px;
+    color: var(--secondary-text-color);
+  }
+
+  /* Unit and trend, kept together. Unit-sized, so the arrow reads with the
+     unit instead of competing with the figure; its baseline is the unit's,
+     which lines up with the figure's. The arrow is centred on the unit's
+     line, where it sits on the lowercase letters rather than above them. */
+  .tile-tail {
+    display: inline-flex;
+    align-items: center;
+    column-gap: 5px;
+    font-size: var(--ha-font-size-s, 0.857rem);
+    white-space: nowrap;
+  }
+
+  .tile-trend {
+    --mdc-icon-size: 1.2em;
+    display: inline-flex;
+    color: var(--secondary-text-color);
+  }
+
+  .tile-value .unit {
+    margin-left: 0;
+  }
+
+  .tile-detail {
+    margin-top: 2px;
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s, 0.857rem);
   }
 
   .unit {
     color: var(--secondary-text-color);
     font-size: var(--ha-font-size-s, 0.857rem);
+    font-weight: var(--ha-font-weight-normal, 400);
     margin-left: 4px;
   }
 
-  .qualifier {
-    color: var(--secondary-text-color);
-    font-size: var(--ha-font-size-s, 0.857rem);
-    margin-left: var(--bade-gap);
+  /* The EU symbol (Decision 2011/321/EU) after the tile's label: stars, or a
+     dash for poor. Status colour on the symbol only; the class in words
+     below stays in text ink. Smaller in a narrow card, where the tile is
+     126px and "Wasserqualität" alone takes about 91 of them. */
+  .quality-symbol {
+    --mdc-icon-size: 1.1em;
+    display: inline-flex;
+  }
+
+  .quality-symbol.is-excellent,
+  .quality-symbol.is-good {
+    color: var(--bade-ok);
+  }
+
+  .quality-symbol.is-sufficient {
+    color: var(--bade-warn);
+  }
+
+  .quality-symbol.is-poor {
+    color: var(--bade-alert);
   }
 
   /* -- attribution ------------------------------------------------------ */
 
   .attribution {
-    margin-top: var(--ha-space-5, 20px);
-    padding-top: var(--ha-space-3, 12px);
+    margin: var(--bade-section-gap) 0 0;
+    padding-top: var(--ha-space-2, 8px);
     border-top: 1px solid var(--divider-color, rgba(127, 127, 127, 0.2));
     font-size: var(--ha-font-size-xs, 0.786rem);
-    line-height: var(--ha-line-height-normal, 1.6);
+    line-height: var(--ha-line-height-condensed, 1.2);
     color: var(--secondary-text-color);
   }
 
@@ -271,14 +782,33 @@ export const cardStyles = css`
 
   /* -- narrow columns --------------------------------------------------- */
 
+  /* A sidebar column: a smaller figure, and the date moves off the photo to
+     the body, where there is room for it. */
+  @container (max-width: 360px) {
+    .tile-value {
+      font-size: var(--ha-font-size-l, 1.143rem);
+    }
+    .quality-symbol {
+      --mdc-icon-size: 0.85em;
+    }
+    .hero-value {
+      font-size: var(--ha-font-size-3xl, 2rem);
+    }
+    .hero-icon {
+      --bade-hero-icon: 1.25rem;
+    }
+    .hero-heading {
+      font-size: var(--ha-font-size-l, 1.143rem);
+    }
+    .hero-sampled {
+      display: none;
+    }
+    .reading-block.hero-fallback {
+      display: block;
+    }
+  }
+
   @container (max-width: 320px) {
-    .readings {
-      grid-template-columns: 1fr;
-      row-gap: 2px;
-    }
-    .readings dd {
-      margin-bottom: var(--ha-space-2, 8px);
-    }
     .temperature {
       font-size: var(--ha-font-size-2xl, 1.429rem);
     }

@@ -15,7 +15,6 @@ from custom_components.badegewaesser_austria.config_flow import (
     _format_distance,
 )
 from custom_components.badegewaesser_austria.const import (
-    CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
     CONF_SCAN_INTERVAL_SEASON_HOURS,
     CONF_SITE_ID,
     DOMAIN,
@@ -123,13 +122,19 @@ async def test_site_labels_carry_the_municipality(hass: HomeAssistant) -> None:
 # --- near me ---------------------------------------------------------------
 
 
-async def test_nearby_excludes_sites_with_no_position(hass: HomeAssistant) -> None:
+async def test_nearby_excludes_sites_with_no_position(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The Null Island site must not be ranked as if (0, 0) were a location.
 
     Upstream sends "0"/"0" for one of the 260 sites. Taken literally that is
     ~5000 km away in the Gulf of Guinea, so it would sort last rather than
-    look obviously broken — a silent wrong answer.
+    look obviously broken — a silent wrong answer. That site now takes its
+    profile position, so the fallback is emptied to test the general rule.
     """
+    monkeypatch.setattr(
+        "custom_components.badegewaesser_austria.api.COORDINATE_FALLBACKS", {}
+    )
     hass.config.latitude = 48.2082
     hass.config.longitude = 16.3738
 
@@ -281,10 +286,10 @@ async def test_site_that_vanishes_mid_flow_aborts(hass: HomeAssistant) -> None:
 # --- options ---------------------------------------------------------------
 
 
-async def test_options_flow_stores_both_intervals(
+async def test_options_flow_stores_the_season_interval(
     hass: HomeAssistant, config_entry: MockConfigEntry
 ) -> None:
-    """Season and off-season are separate settings, not one."""
+    """The one setting left: outside the season the schedule is fixed."""
     config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
@@ -294,18 +299,12 @@ async def test_options_flow_stores_both_intervals(
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {
-            CONF_SCAN_INTERVAL_SEASON_HOURS: 4,
-            CONF_SCAN_INTERVAL_OFFSEASON_HOURS: 72,
-        },
+        {CONF_SCAN_INTERVAL_SEASON_HOURS: 4},
     )
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert config_entry.options == {
-        CONF_SCAN_INTERVAL_SEASON_HOURS: 4,
-        CONF_SCAN_INTERVAL_OFFSEASON_HOURS: 72,
-    }
+    assert config_entry.options == {CONF_SCAN_INTERVAL_SEASON_HOURS: 4}
 
 
 async def test_options_change_reloads_the_entry(
@@ -326,10 +325,7 @@ async def test_options_change_reloads_the_entry(
         result = await hass.config_entries.options.async_init(config_entry.entry_id)
         await hass.config_entries.options.async_configure(
             result["flow_id"],
-            {
-                CONF_SCAN_INTERVAL_SEASON_HOURS: 8,
-                CONF_SCAN_INTERVAL_OFFSEASON_HOURS: 24,
-            },
+            {CONF_SCAN_INTERVAL_SEASON_HOURS: 8},
         )
         await hass.async_block_till_done()
 

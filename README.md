@@ -34,11 +34,14 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 
 - **All 260 EU-designated bathing waters**, across every Bundesland — Burgenland 20, Niederösterreich 28, Wien 17, Kärnten 32, Steiermark 32, Oberösterreich 43, Salzburg 37, Tirol 35, Vorarlberg 16 *(0.1.0)*
 - **Six sensors and two binary sensors per bathing water** — water temperature, E. coli, enterococci, Secchi depth, the annual EU classification, the sampling date, a closure flag and a bathing-season flag *(0.1.0)*
-- **A Lovelace card built around the season**, not the instant. The samples sit on a calendar axis from 15 May to 30 September, so you can see the rhythm of the season and how fresh the newest reading is *(0.1.0)*
+- **A Lovelace card built around the season**, not the instant. The samples sit on a calendar axis from 15 May to 31 August, so you can see the rhythm of the season and how fresh the newest reading is *(0.1.0)*
 - **Find a lake by distance** — the setup flow can rank bathing waters by how far they are from your Home Assistant location *(0.1.0)*
 - **Honest about detection limits** — most samples report "below the laboratory's detection limit" rather than a measured count. The card shows `<15`, and the sensor carries a `below_detection_limit` attribute, so you never read a limit as a measurement *(0.1.0)*
-- **Keeps working out of season** — from October to May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
+- **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
 - **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
+- **Readings at a glance** — water quality with its EU symbol, plus Secchi depth, E. coli and enterococci, each with an arrow showing how it moved since the previous sample. Hover or tap a measurement to see its season on the track *(0.2.0)*
+- **Quiet out of season** — from October to mid-May, when nothing can change, the integration stops polling. Through September it still checks once a day for late lab results *(0.2.0)*
+- **On the map** — each bathing water shows up as a marker on Home Assistant's map, and the pin next to its name on the card opens it on OpenStreetMap *(0.2.0)*
 
 ## Requirements
 
@@ -77,25 +80,25 @@ Each bathing water becomes one device with eight entities.
 
 | Entity | Type | Notes |
 |---|---|---|
-| Water temperature | `sensor` | °C. Carries the season's samples for the card. |
+| Water temperature | `sensor` | °C. Carries the season's samples for the card, and the bathing water's position as `latitude` and `longitude`. The only entity with a position, so each lake gets one marker on the map. |
 | E. coli | `sensor` | KBE/100 ml, with a `below_detection_limit` attribute. |
 | Enterococci | `sensor` | KBE/100 ml, with a `below_detection_limit` attribute. |
 | Secchi depth | `sensor` | Metres. How far down you can see. |
 | Water quality | `sensor` | The annual EU classification, plus `rating_year` and `rating_class`. |
 | Last sample | `sensor` | When the newest sample was taken. |
 | Closed | `binary_sensor` | On when the authority has banned swimming. `closure_reason` says why. |
-| Bathing season | `binary_sensor` | On between 15 May and 30 September. |
+| Bathing season | `binary_sensor` | On between 15 June and 31 August, the season defined in Badegewässerverordnung § 4. |
 
 ### Water quality
 
-The EU Bathing Water Directive classifies each bathing water once a year, over the previous four seasons:
+The EU Bathing Water Directive classifies each bathing water once a year, over the previous four seasons. The card shows each class next to the symbol the EU set for it in Commission Implementing Decision 2011/321/EU:
 
-| State | AGES letter | Meaning |
-|---|---|---|
-| `excellent` | A | Consistently free of faecal contamination |
-| `good` | B | Stable, occasional elevated readings |
-| `sufficient` | C | Elevated microbial readings occur regularly |
-| `poor` | D | A swimming ban or advice against swimming follows |
+| State | AGES letter | Card symbol | Meaning |
+|---|---|---|---|
+| `excellent` | A | ★★★ | Consistently free of faecal contamination |
+| `good` | B | ★★ | Stable, occasional elevated readings |
+| `sufficient` | C | ★ | Elevated microbial readings occur regularly |
+| `poor` | D | – | A swimming ban or advice against swimming follows |
 
 The current year's classification is empty until AGES publishes it after the season ends, so through the summer and autumn this sensor shows **last year's** rating. The `rating_year` attribute always says which year it means.
 
@@ -109,10 +112,13 @@ The integration polls once for every bathing water you follow, because AGES publ
 
 | When | Default | Why |
 |---|---|---|
-| In season (15 May – 30 Sep) | every 6 hours | Samples arrive about every 20 days, so this is already far faster than the data moves. The reason for 6 hours is a closure, which can be posted any day. |
-| Out of season | every 24 hours | Nothing changes. This is a courtesy poll that picks up the new annual classification when AGES publishes it. |
+| Readings arrive (15 May – 31 Aug) | every 6 hours | Samples arrive about every 20 days, so this is already far faster than the data moves. The reason for 6 hours is a closure, which can be posted any day. |
+| Late results (September) | every 24 hours | Sampling has stopped, but lab results for the last samples of August can still come in. |
+| 1 Oct – 14 May | no polls | Nothing changes. The next poll comes on 15 May, at a random time in its first six hours. AGES publishes the new annual classification before the season, so that poll picks it up. |
 
-You can set both intervals in the entry's **Configure** dialog, between 3 and 168 hours. Entries share one poll, so the shortest interval you set applies to all of them.
+You can set the season interval in the entry's **Configure** dialog, between 3 and 168 hours. Entries share one poll, so the shortest interval you set applies to all of them.
+
+Home Assistant also fetches the document once at every restart, since the integration keeps no copy on disk. If a poll fails, the integration keeps retrying, daily outside the season, until one succeeds.
 
 The integration sends no `If-Modified-Since` header, on purpose. AGES regenerates the file every ten minutes whether or not anything changed, so a cached copy is never considered fresh and the request would return the whole document anyway. Instead it fingerprints the content and skips the parse when nothing moved.
 
@@ -122,17 +128,21 @@ The card is installed and registered automatically. Add it from the card picker,
 
 ```yaml
 type: custom:badegewaesser-austria-card
-entity: sensor.naturbadesee_konigsdorf_water_temperature
+device: 1a2b3c4d5e6f7890abcdef1234567890
 ```
+
+The editor's picker fills this in for you — pick the bathing water by name.
 
 ### Card configuration
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `entity` | string | *required* | Any entity of the bathing water. The card finds the other seven itself. |
+| `device` | string | *required* | The bathing water's device. The card finds all of its entities itself. |
+| `entity` | string | — | Legacy alternative to `device`: any one entity of the bathing water. Still honoured so older cards keep working. |
 | `name` | string | the lake's name | Overrides the card title. |
 | `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
 | `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth. |
+| `show_attribution` | boolean | `true` | The "Datenquelle: AGES · CC BY 3.0 AT" line at the bottom. The entities carry the attribution either way. |
 
 ## Use Cases
 
@@ -212,23 +222,27 @@ logger:
 ## Known Limitations
 
 - **Samples are sparse.** Each bathing water is sampled 4 to 9 times a season, about 20 days apart. This is not live data and the card does not pretend otherwise — every reading is shown with the date it was taken.
-- **Nothing changes from October to mid-May.** No samples are taken, so the newest reading stays put until the following summer.
-- **One bathing water has no coordinates.** AGES publishes `0` / `0` for *Wolfgangsee, St. Gilgen – Gamsjaga*, so it never appears in the "near you" list. You can still add it by province.
+- **Nothing changes from September to mid-May.** No samples are taken, so the newest reading stays put until the following summer.
+- **One bathing water's position comes from its profile.** AGES publishes `0` / `0` for *Wolfgangsee, St. Gilgen – Gamsjaga*. The integration uses the sampling point from the site's bathing-water profile instead, until AGES publishes one.
 - **A few historical ratings use letters AGES does not document.** Two sites carry an `F` or a `G` in an older year. The integration will not publish a letter it cannot interpret, so it falls back to the most recent year it can, and keeps the original in `rating_raw`.
 - **The per-sample assessment is a raw number.** Each sample carries a 1, 2 or 3 whose meaning AGES does not publish; sources disagree on whether the scale even has four levels. It is exposed as `sample_assessment` without a label rather than guessed at.
 - **Closures have not been seen in live data.** `TGESPERRT` was `0` for all 260 sites when this integration was written, so the closure banner is built to the documented shape rather than an observed one.
 
 ## Removal
 
-Go to **Settings → Devices & services → Badegewässer Austria**, open the entry's menu and choose **Delete**. That removes its device and all eight entities. Removing the last entry also withdraws the Lovelace card resource.
+Go to **Settings → Devices & services → Badegewässer Austria**, open the entry's menu and choose **Delete**. That removes its device and all of its entities. Removing the last entry also withdraws the Lovelace card resource.
 
 To uninstall completely, remove the integration in HACS and restart Home Assistant.
 
 ## Attribution
 
-> Datenquelle: AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH · CC BY 3.0 AT
+Every entity and the card footer carry:
 
-Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition, and it appears on every entity and in the card footer.
+> Datenquelle: AGES · CC BY 3.0 AT
+
+In full: **AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH**.
+
+Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition.
 
 ## License
 

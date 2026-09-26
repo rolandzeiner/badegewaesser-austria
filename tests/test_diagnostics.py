@@ -42,7 +42,7 @@ async def test_envelope_shape(
 
 
 async def test_coordinator_block_reports_counts_not_payloads(
-    hass: HomeAssistant, config_entry: MockConfigEntry
+    hass: HomeAssistant, config_entry: MockConfigEntry, document: bytes
 ) -> None:
     """Every bathing water but this entry's is a count, not a record.
 
@@ -59,6 +59,10 @@ async def test_coordinator_block_reports_counts_not_payloads(
     assert isinstance(block["content_digest"], str)
     assert block["upstream_version"] == "121625"
     assert "in_season" in block
+    # The decoded size. It was labelled `last_wire_bytes` until 2026-09-23,
+    # which overstated the gzip transfer thirteen-fold.
+    assert block["last_payload_bytes"] == len(document)
+    assert "last_wire_bytes" not in block
 
 
 async def test_conditional_get_absence_is_stated(

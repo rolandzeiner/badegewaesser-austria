@@ -29,10 +29,8 @@ from homeassistant.util.location import distance
 
 from .api import BadegewaesserApiError, BathingSite
 from .const import (
-    CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
     CONF_SCAN_INTERVAL_SEASON_HOURS,
     CONF_SITE_ID,
-    DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS,
     DEFAULT_SCAN_INTERVAL_SEASON_HOURS,
     DOMAIN,
     MAX_POLL_HOURS,
@@ -90,9 +88,7 @@ class BadegewaesserConfigFlow(ConfigFlow, domain=DOMAIN):
         snapshot already in memory.
         """
         coordinator = await async_get_coordinator(self.hass)
-        if not coordinator.data:
-            await coordinator.async_refresh()
-        if not coordinator.last_update_success:
+        if not await coordinator.async_ensure_fresh():
             raise BadegewaesserApiError(
                 "cannot_connect", str(coordinator.last_exception)
             )
@@ -274,7 +270,11 @@ class BadegewaesserOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Show and store the two intervals."""
+        """Show and store the in-season interval.
+
+        The only one left: outside the season the schedule is fixed, daily
+        through September and then nothing until 15 May (see const.py).
+        """
         if user_input is not None:
             return self.async_create_entry(data=user_input)
 
@@ -288,21 +288,6 @@ class BadegewaesserOptionsFlow(OptionsFlow):
                         default=options.get(
                             CONF_SCAN_INTERVAL_SEASON_HOURS,
                             DEFAULT_SCAN_INTERVAL_SEASON_HOURS,
-                        ),
-                    ): NumberSelector(
-                        NumberSelectorConfig(
-                            min=MIN_POLL_HOURS,
-                            max=MAX_POLL_HOURS,
-                            step=1,
-                            mode=NumberSelectorMode.BOX,
-                            unit_of_measurement="h",
-                        )
-                    ),
-                    vol.Required(
-                        CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
-                        default=options.get(
-                            CONF_SCAN_INTERVAL_OFFSEASON_HOURS,
-                            DEFAULT_SCAN_INTERVAL_OFFSEASON_HOURS,
                         ),
                     ): NumberSelector(
                         NumberSelectorConfig(

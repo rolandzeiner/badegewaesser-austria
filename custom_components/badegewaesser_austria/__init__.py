@@ -28,7 +28,7 @@ from .websocket import async_register_websocket_commands
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.IMAGE, Platform.SENSOR]
 
 
 @dataclass(slots=True)
@@ -80,14 +80,17 @@ async def async_setup_entry(
     """Set up one bathing water."""
     coordinator = await async_get_coordinator(hass)
 
+    # Before the freshness check: an options change arrives here through the
+    # reload listener, and a shorter interval also shortens what counts as
+    # stale.
+    coordinator.async_update_cadence()
+
     # `async_config_entry_first_refresh()` refuses an entry-less coordinator
     # ("only supported for coordinators with a config entry"), so the
     # test-before-setup guarantee is made explicitly here instead. Only the
     # first entry pays for a fetch; later entries reuse the snapshot that is
     # already in memory, which is the whole point of sharing the coordinator.
-    if not coordinator.data:
-        await coordinator.async_refresh()
-    if not coordinator.last_update_success:
+    if not await coordinator.async_ensure_fresh():
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN,
             translation_key="cannot_connect",
@@ -143,7 +146,8 @@ async def async_unload_entry(
     polling on its own once the last entity unsubscribes — the base class only
     reschedules while `_listeners` is non-empty — so there is nothing to tear
     down, and popping it would mean re-registering the HA-stop listener on
-    every re-add.
+    every re-add. The snapshot it keeps is not trusted on a re-add:
+    `async_ensure_fresh` refetches once it is older than the cadence.
     """
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 

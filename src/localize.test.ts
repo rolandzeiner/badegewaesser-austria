@@ -5,20 +5,20 @@ import { localize } from "./localize/localize";
 
 describe("localize", () => {
   it("resolves a key in the requested language", () => {
-    expect(localize("card.season_over", "de")).toBe("Saison beendet");
-    expect(localize("card.season_over", "en")).toBe("Season over");
+    expect(localize("card.no_samples", "de")).toBe("Noch keine Proben in dieser Saison");
+    expect(localize("card.no_samples", "en")).toBe("No samples yet this season");
   });
 
   it("is region-agnostic, so de-AT gets German", () => {
     // This integration's audience is Austrian; a catalogue that had to
     // enumerate de-AT, de-CH and de-DE would be wrong the first time it met
     // a locale nobody listed.
-    expect(localize("card.season_over", "de-AT")).toBe("Saison beendet");
-    expect(localize("card.season_over", "de-CH")).toBe("Saison beendet");
+    expect(localize("card.no_samples", "de-AT")).toBe("Noch keine Proben in dieser Saison");
+    expect(localize("card.no_samples", "de-CH")).toBe("Noch keine Proben in dieser Saison");
   });
 
   it("falls back to English for an unknown language", () => {
-    expect(localize("card.season_over", "fi")).toBe("Season over");
+    expect(localize("card.no_samples", "fi")).toBe("No samples yet this season");
   });
 
   it("falls back per key, not per catalogue", () => {

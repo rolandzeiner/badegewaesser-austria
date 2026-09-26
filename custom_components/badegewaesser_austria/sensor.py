@@ -13,7 +13,12 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfLength, UnitOfTemperature
+from homeassistant.const import (
+    ATTR_LATITUDE,
+    ATTR_LONGITUDE,
+    UnitOfLength,
+    UnitOfTemperature,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -147,6 +152,27 @@ def _season_series(site: BathingSite) -> dict[str, Any]:
     }
 
 
+def _position(site: BathingSite) -> dict[str, Any]:
+    """Where the bathing water is, for maps and for the card's map link.
+
+    On the temperature sensor only. HA's Map dashboard is a map card with
+    `show_all`, which draws every entity carrying `latitude` and `longitude`,
+    so the pair on all eight entities would stack eight markers on each lake.
+    One marker per lake, opening the reading people look for first.
+
+    Nothing at all without a position: an absent pair keeps the site off the
+    map, where (0, 0) would put it in the Gulf of Guinea.
+    """
+    if site.latitude is None or site.longitude is None:
+        return {}
+    return {ATTR_LATITUDE: site.latitude, ATTR_LONGITUDE: site.longitude}
+
+
+def _temperature_attrs(site: BathingSite) -> dict[str, Any]:
+    """The season series and the bathing water's position."""
+    return {**_season_series(site), **_position(site)}
+
+
 def _sample_attrs(site: BathingSite) -> dict[str, Any]:
     """The per-sample assessment that rides with the newest reading.
 
@@ -168,7 +194,7 @@ SENSORS: tuple[BadegewaesserSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         value_fn=_latest_temperature,
-        attrs_fn=_season_series,
+        attrs_fn=_temperature_attrs,
     ),
     BadegewaesserSensorDescription(
         key="e_coli",
@@ -229,7 +255,10 @@ class BadegewaesserSensor(BadegewaesserEntity, SensorEntity):
     entity_description: BadegewaesserSensorDescription
 
     # The season series is for the card to draw, not for the recorder to keep.
-    _unrecorded_attributes = frozenset({"season_samples"})
+    # The position never changes, so recording it would repeat one pair forever.
+    _unrecorded_attributes = frozenset(
+        {"season_samples", ATTR_LATITUDE, ATTR_LONGITUDE}
+    )
 
     @property
     def native_value(self) -> StateType | datetime:

@@ -156,6 +156,22 @@ def _reset_shared_coordinator() -> Generator[None]:
     yield
 
 
+@pytest.fixture(autouse=True, name="photo_dir")
+def photo_dir_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """An empty photo folder, unless a test puts something in it.
+
+    The real `photos/` is gitignored and exists only where somebody ran
+    `scripts/build_photos.py`. Without this the same suite would create image
+    entities on that machine and none in CI.
+    """
+    directory = tmp_path / "photos"
+    directory.mkdir()
+    monkeypatch.setattr(
+        "custom_components.badegewaesser_austria.image.PHOTO_DIR", directory
+    )
+    return directory
+
+
 @pytest.fixture(name="config_entry")
 def config_entry_fixture() -> MockConfigEntry:
     """An entry for the fixture document's ordinary bathing water."""
