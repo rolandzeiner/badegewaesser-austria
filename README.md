@@ -5,6 +5,7 @@
 [![Version](https://img.shields.io/github/v/release/rolandzeiner/badegewaesser-austria?label=version&color=blue)](https://github.com/rolandzeiner/badegewaesser-austria/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![vibe-coded](https://img.shields.io/badge/vibe-coded-ff69b4?logo=musicbrainz&logoColor=white)](https://en.wikipedia.org/wiki/Vibe_coding)
+[![Live demo](https://img.shields.io/badge/live-demo-2196F3.svg)](https://demo.rolandzeiner.at/#badegewaesser)
 
 Water quality and temperature for all 260 EU-designated Austrian bathing waters, from the official [AGES](https://www.ages.at/) dataset. Pick your lake by province or by distance from home — no API key, no YAML.
 
