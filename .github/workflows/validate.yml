@@ -112,7 +112,7 @@ jobs:
       - name: Install uv
         # uv replaces pip for resolution + install: faster, cached, and
         # consistent with the local dev workflow (uv-built venvs).
-        uses: astral-sh/setup-uv@v10.1.0
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
       - name: Install dependencies
