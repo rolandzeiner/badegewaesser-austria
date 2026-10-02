@@ -11,7 +11,7 @@
 # and break lint (mypy --strict is the usual casualty) with no runtime
 # fault. Fix with a temporary exact `==` pin carrying its removal
 # condition — never by widening the range.
-pytest-homeassistant-custom-component>=0.13.365,<0.14
+pytest-homeassistant-custom-component>=0.13.366,<0.14
 
 # Not pinned by PHACC, so ours to govern. Exact by design: the `rev:`
 # values in .pre-commit-config.yaml must equal these or the local gate
