@@ -70,6 +70,8 @@ Not in the search yet? In HACS, open ⋮ → **Custom repositories**, add `https
 
 ## Setup
 
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=badegewaesser_austria)
+
 Go to **Settings → Devices & services → Add integration** and search for **Badegewässer Austria**. You then choose how to find your lake:
 
 - **Choose by province** — pick a Bundesland, then a bathing water from that province's list.
