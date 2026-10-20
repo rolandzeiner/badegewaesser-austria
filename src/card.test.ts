@@ -107,7 +107,7 @@ async function mount(
   config: Record<string, unknown>,
   hass: HomeAssistant = makeHass(),
 ): Promise<BadegewaesserAustriaCard> {
-  const card = document.createElement(CARD_TAG) as BadegewaesserAustriaCard;
+  const card = document.createElement(CARD_TAG);
   card.setConfig({ type: `custom:${CARD_TAG}`, ...config });
   card.hass = hass;
   document.body.append(card);
@@ -157,12 +157,12 @@ describe("registration", () => {
 
 describe("config", () => {
   it("throws on a missing config so HA renders hui-error-card", () => {
-    const card = document.createElement(CARD_TAG) as BadegewaesserAustriaCard;
+    const card = document.createElement(CARD_TAG);
     expect(() => card.setConfig(undefined as never)).toThrow();
   });
 
   it("defaults both sections on", () => {
-    const card = document.createElement(CARD_TAG) as BadegewaesserAustriaCard;
+    const card = document.createElement(CARD_TAG);
     card.setConfig({ type: "x", entity: "sensor.a" });
     expect(card.getGridOptions()).toEqual({ columns: 12, min_columns: 6, rows: "auto" });
   });

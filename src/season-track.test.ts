@@ -39,7 +39,7 @@ describe("seasonFraction", () => {
   it("is monotonic through the season", () => {
     const dates = ["2026-05-26", "2026-06-24", "2026-07-08", "2026-08-20", "2026-08-31"];
     const positions = dates.map((iso) => seasonFraction(at(iso)));
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    positions.slice(1).forEach((position, i) => expect(position).toBeGreaterThan(positions[i]!));
   });
 
   it("spaces samples by real elapsed time", () => {

@@ -380,7 +380,7 @@ export class BadegewaesserAustriaCard extends LitElement {
     }
   }
 
-  private async _reload(): Promise<void> {
+  private _reload = async (): Promise<void> => {
     try {
       if ("caches" in window) {
         const keys = await caches.keys();
@@ -390,7 +390,7 @@ export class BadegewaesserAustriaCard extends LitElement {
       // Clearing the cache is best-effort; reload regardless.
     }
     location.reload();
-  }
+  };
 
   /**
    * Find every entity belonging to the configured bathing water.
@@ -1065,8 +1065,8 @@ export class BadegewaesserAustriaCard extends LitElement {
     const secchi = entities[KEY.secchi];
     const ratingYear = quality?.attributes["rating_year"];
     const hasQuality = hasValue(quality);
-    const state = quality?.state ?? "";
-    const symbol = hasQuality ? QUALITY_SYMBOL[state] : undefined;
+    const qualityState = quality?.state ?? "";
+    const symbol = hasQuality ? QUALITY_SYMBOL[qualityState] : undefined;
     const secchiUnit = secchi?.attributes["unit_of_measurement"];
     const secchiMove = hasValue(secchi) ? secchiTrend(samples) : null;
 
@@ -1076,7 +1076,7 @@ export class BadegewaesserAustriaCard extends LitElement {
           <dt>
             ${localize("card.water_quality", language)}${
               symbol
-                ? html`<span class=${`quality-symbol is-${state}`} aria-hidden="true"
+                ? html`<span class=${`quality-symbol is-${qualityState}`} aria-hidden="true"
                   >${Array.from(
                     { length: symbol.count },
                     () => html`<ha-icon icon=${symbol.icon}></ha-icon>`,
@@ -1088,7 +1088,7 @@ export class BadegewaesserAustriaCard extends LitElement {
           <dd class="tile-value">
             ${
               hasQuality
-                ? localize(`quality.${state}`, language)
+                ? localize(`quality.${qualityState}`, language)
                 : localize("card.no_rating", language)
             }
           </dd>
