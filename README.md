@@ -239,7 +239,7 @@ logger:
 
 Go to **Settings → Devices & services → Badegewässer Austria**, open the entry's menu and choose **Delete**. That removes its device and all of its entities. Removing the last entry also withdraws the Lovelace card resource.
 
-To uninstall completely, remove the integration in HACS and restart Home Assistant.
+To uninstall completely, remove the integration in HACS and restart Home Assistant. If you installed it manually, delete `config/custom_components/badegewaesser_austria/` instead, then restart.
 
 ## Attribution
 
