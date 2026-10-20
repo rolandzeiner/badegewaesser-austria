@@ -28,71 +28,6 @@ Optional but recommended:
 pre-commit install      # ruff + mypy + vp check on every commit
 ```
 
-## Two Python versions
-
-Every change has to respect both, and conflating them has shipped a broken
-release elsewhere in this portfolio.
-
-| Axis | Version | Where it is declared |
-|---|---|---|
-| **Runtime** — what we develop and test on | 3.14 | `validate.yml` `tests` job, your local venv |
-| **Floor** — the oldest Python we must still run on | 3.13 | `pyproject.toml` `[tool.ruff] target-version`, the `compile-floor-python` CI job |
-
-The floor is whatever `hacs.json`'s `homeassistant` value requires. HA 2025.6.0
-declares `REQUIRED_PYTHON_VER = (3, 13, 2)`, which you can check rather than
-remember:
-
-```bash
-gh api "repos/home-assistant/core/contents/homeassistant/const.py?ref=2025.6.0" \
-  --jq .content | base64 -d | grep REQUIRED_PYTHON_VER
-```
-
-Setting `target-version` to the CI interpreter authorises `ruff format` to emit
-syntax the floor cannot parse, and then declines to flag it. Raise the floor
-only by changing all three declarations in one commit, plus the README's
-requirement line and badge.
-
-## Verification gate (must pass before pushing)
-
-```bash
-# Python
-pytest tests/ -v
-python scripts/check_module_coverage.py
-mypy --strict --ignore-missing-imports custom_components/badegewaesser_austria
-ruff check .
-ruff format --check .                  # separate: `ruff check` ignores formatting
-
-# The oldest Python we support. Derived, not hardcoded:
-FLOOR=$(sed -n 's/^target-version = "py3\([0-9]*\)"/3.\1/p' pyproject.toml)
-uv run --python "$FLOOR" --no-project python -m compileall -q \
-  custom_components/badegewaesser_austria
-
-# Card
-npx vp check                           # format, lint, and the ONLY type-check
-npm test
-npm run build
-node -c custom_components/badegewaesser_austria/www/badegewaesser-austria-card.js
-python3 scripts/readme_toc.py --check
-```
-
-CI runs all of the above plus `hassfest` and HACS validation.
-
-Two of these are easy to skip and expensive to skip:
-
-- **`ruff format --check`** is separate from `ruff check`, which never inspects
-  formatting. Without it the formatter drifts silently until someone runs it.
-- **`npx vp check`** is the only type-check anywhere. The build strips types
-  without checking them, so a type error builds cleanly all the way to a
-  shipped bundle.
-
-## Coverage
-
-`pytest.ini` enforces 95% over the package. That is only half the gate: the
-quality scale's `test-coverage` rule is **per module**, and one module can slide
-while the others carry the average. `scripts/check_module_coverage.py` reads the
-`coverage.json` pytest writes and enforces the per-module floor. Run it after
-the suite — pytest alone will not tell you a module regressed.
-
 ## The card
 
 The card lives in `src/` and builds to
@@ -149,6 +84,73 @@ in **per file** with a docblock:
 
 There is no global `environment` setting, so only the files that need a DOM
 pay for booting one.
+
+## Two Python versions
+
+Every change has to respect both, and conflating them has shipped a broken
+release elsewhere in this portfolio.
+
+| Axis | Version | Where it is declared |
+|---|---|---|
+| **Runtime** — what we develop and test on | 3.14 | `validate.yml` `tests` job, your local venv |
+| **Floor** — the oldest Python we must still run on | 3.13 | `pyproject.toml` `[tool.ruff] target-version`, the `compile-floor-python` CI job |
+
+The floor is whatever `hacs.json`'s `homeassistant` value requires. HA 2025.6.0
+declares `REQUIRED_PYTHON_VER = (3, 13, 2)`, which you can check rather than
+remember:
+
+```bash
+gh api "repos/home-assistant/core/contents/homeassistant/const.py?ref=2025.6.0" \
+  --jq .content | base64 -d | grep REQUIRED_PYTHON_VER
+```
+
+Setting `target-version` to the CI interpreter authorises `ruff format` to emit
+syntax the floor cannot parse, and then declines to flag it. Raise the floor
+only by changing all three declarations in one commit, plus the README's
+requirement line and badge.
+
+## Verification gate (must pass before pushing)
+
+```bash
+# Python
+pytest tests/ -v
+python scripts/check_module_coverage.py
+mypy --strict --ignore-missing-imports custom_components/badegewaesser_austria
+ruff check .
+ruff format --check .                  # separate: `ruff check` ignores formatting
+
+# The oldest Python we support. Derived, not hardcoded:
+FLOOR=$(sed -n 's/^target-version = "py3\([0-9]*\)"/3.\1/p' pyproject.toml)
+uv run --python "$FLOOR" --no-project python -m compileall -q \
+  custom_components/badegewaesser_austria
+
+# Card
+npx vp check                           # format, lint, and the ONLY type-check
+npm test
+npm run build
+node -c custom_components/badegewaesser_austria/www/badegewaesser-austria-card.js
+python3 scripts/readme_toc.py --check
+```
+
+CI runs all of the above plus `hassfest` and HACS validation, `npm audit` on
+the card's runtime dependencies, a check that the committed bundle matches a
+fresh build, and CodeQL.
+
+Two of these are easy to skip and expensive to skip:
+
+- **`ruff format --check`** is separate from `ruff check`, which never inspects
+  formatting. Without it the formatter drifts silently until someone runs it.
+- **`npx vp check`** is the only type-check anywhere. The build strips types
+  without checking them, so a type error builds cleanly all the way to a
+  shipped bundle.
+
+## Coverage
+
+`pytest.ini` enforces 95% over the package. That is only half the gate:
+coverage has to hold **per module**, and one module can slide while the others
+carry the average. `scripts/check_module_coverage.py` reads the
+`coverage.json` pytest writes and enforces the per-module floor. Run it after
+the suite — pytest alone will not tell you a module regressed.
 
 ## Version sync
 
