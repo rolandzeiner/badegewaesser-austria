@@ -32,8 +32,7 @@ export type NormalisedConfig = BadegewaesserCardConfig &
   Required<Pick<BadegewaesserCardConfig, keyof typeof DEFAULTS>>;
 
 /** "" is what a cleared text field hands back. */
-const isUnset = (value: unknown): boolean =>
-  value === undefined || value === null || value === "";
+const isUnset = (value: unknown): boolean => value === undefined || value === null || value === "";
 
 /**
  * The config with every default filled in: what the card renders and what
@@ -44,9 +43,7 @@ const isUnset = (value: unknown): boolean =>
  * this order, so filling defaults in first would move every changed option
  * above `device` in the saved YAML.
  */
-export function normaliseConfig(
-  config: Partial<BadegewaesserCardConfig>,
-): NormalisedConfig {
+export function normaliseConfig(config: Partial<BadegewaesserCardConfig>): NormalisedConfig {
   const out: Record<string, unknown> = { type: config.type ?? "" };
   for (const [key, value] of Object.entries(config)) {
     if (!isUnset(value)) out[key] = value;

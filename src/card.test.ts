@@ -9,7 +9,7 @@
  * find eight siblings, and every failure mode there renders a card that looks
  * merely empty rather than wrong.
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import "./badegewaesser-austria-card";
 import "./editor";
@@ -63,8 +63,18 @@ function makeHass(overrides: Partial<HomeAssistant> = {}): HomeAssistant {
     entity("last_sample", "2026-08-19T22:00:00+00:00", {}),
   ];
   const binaries = [
-    { entityId: "binary_sensor.koenigsdorf_closed", key: "closed", state: "off", attributes: { closure_reason: null } },
-    { entityId: "binary_sensor.koenigsdorf_bathing_season", key: "bathing_season", state: "off", attributes: {} },
+    {
+      entityId: "binary_sensor.koenigsdorf_closed",
+      key: "closed",
+      state: "off",
+      attributes: { closure_reason: null },
+    },
+    {
+      entityId: "binary_sensor.koenigsdorf_bathing_season",
+      key: "bathing_season",
+      state: "off",
+      attributes: {},
+    },
   ];
   const all = [...rows, ...binaries];
 
@@ -72,12 +82,20 @@ function makeHass(overrides: Partial<HomeAssistant> = {}): HomeAssistant {
     language: "de",
     locale: { language: "de" },
     states: Object.fromEntries(
-      all.map((row) => [row.entityId, { entity_id: row.entityId, state: row.state, attributes: row.attributes }]),
+      all.map((row) => [
+        row.entityId,
+        { entity_id: row.entityId, state: row.state, attributes: row.attributes },
+      ]),
     ),
     entities: Object.fromEntries(
       all.map((row) => [
         row.entityId,
-        { entity_id: row.entityId, device_id: DEVICE, platform: PLATFORM, translation_key: row.key },
+        {
+          entity_id: row.entityId,
+          device_id: DEVICE,
+          platform: PLATFORM,
+          translation_key: row.key,
+        },
       ]),
     ),
     devices: { [DEVICE]: { id: DEVICE, name: "Naturbadesee Königsdorf", model: "Burgenland" } },
@@ -89,7 +107,7 @@ async function mount(
   config: Record<string, unknown>,
   hass: HomeAssistant = makeHass(),
 ): Promise<BadegewaesserAustriaCard> {
-  const card = document.createElement(CARD_TAG) as BadegewaesserAustriaCard;
+  const card = document.createElement(CARD_TAG);
   card.setConfig({ type: `custom:${CARD_TAG}`, ...config });
   card.hass = hass;
   document.body.append(card);
@@ -124,8 +142,9 @@ describe("registration", () => {
   it("suggests itself only for its own entities", () => {
     // Suggesting for every entity is the documented anti-pattern — it makes
     // the entity-first picker noisy for everyone.
-    const entry = (window as { customCards?: { type: string; getEntitySuggestion?: Function }[] })
-      .customCards?.find((row) => row.type === CARD_TAG);
+    const entry = (
+      window as { customCards?: { type: string; getEntitySuggestion?: Function }[] }
+    ).customCards?.find((row) => row.type === CARD_TAG);
     const hass = makeHass();
     // HA hands the hook an entity; the card is about the bathing water that
     // entity belongs to, so the suggestion resolves to its device.
@@ -138,12 +157,12 @@ describe("registration", () => {
 
 describe("config", () => {
   it("throws on a missing config so HA renders hui-error-card", () => {
-    const card = document.createElement(CARD_TAG) as BadegewaesserAustriaCard;
+    const card = document.createElement(CARD_TAG);
     expect(() => card.setConfig(undefined as never)).toThrow();
   });
 
   it("defaults both sections on", () => {
-    const card = document.createElement(CARD_TAG) as BadegewaesserAustriaCard;
+    const card = document.createElement(CARD_TAG);
     card.setConfig({ type: "x", entity: "sensor.a" });
     expect(card.getGridOptions()).toEqual({ columns: 12, min_columns: 6, rows: "auto" });
   });
@@ -438,8 +457,23 @@ describe("tile trends", () => {
       attributes: {
         unit_of_measurement: "°C",
         season_samples: [
-          { date: "2026-07-08", water_temperature: 24.9, e_coli: 64, secchi_depth: 1.2, enterococci: 15, enterococci_below_limit: true },
-          { date: "2026-08-20", water_temperature: 26.2, e_coli: 15, e_coli_below_limit: true, secchi_depth: 1.05, enterococci: 15, enterococci_below_limit: true },
+          {
+            date: "2026-07-08",
+            water_temperature: 24.9,
+            e_coli: 64,
+            secchi_depth: 1.2,
+            enterococci: 15,
+            enterococci_below_limit: true,
+          },
+          {
+            date: "2026-08-20",
+            water_temperature: 26.2,
+            e_coli: 15,
+            e_coli_below_limit: true,
+            secchi_depth: 1.05,
+            enterococci: 15,
+            enterococci_below_limit: true,
+          },
         ],
       },
     };
@@ -486,7 +520,13 @@ describe("tile trends", () => {
       attributes: {
         ...temperature.attributes,
         season_samples: [
-          { date: "2026-07-08", water_temperature: 24.9, secchi_depth: 1.2, e_coli: 15, e_coli_below_limit: true },
+          {
+            date: "2026-07-08",
+            water_temperature: 24.9,
+            secchi_depth: 1.2,
+            e_coli: 15,
+            e_coli_below_limit: true,
+          },
           { date: "2026-08-20", water_temperature: 26.2, secchi_depth: 1.05, e_coli: 64 },
         ],
       },
@@ -591,8 +631,9 @@ describe("the grid cell", () => {
 });
 
 describe("the readings", () => {
-  const tiles = (card: BadegewaesserAustriaCard) =>
-    [...(card.shadowRoot?.querySelectorAll<HTMLElement>(".tiles .tile") ?? [])];
+  const tiles = (card: BadegewaesserAustriaCard) => [
+    ...(card.shadowRoot?.querySelectorAll<HTMLElement>(".tiles .tile") ?? []),
+  ];
 
   it("sets the verdict and the Secchi depth above the two bacteria counts", async () => {
     const card = await mount({ device: DEVICE });
@@ -654,9 +695,9 @@ describe("the readings", () => {
     const card = await mount({ device: DEVICE }, hass);
     const symbol = tiles(card)[0]!.querySelector(".quality-symbol");
     expect(symbol?.classList.contains(`is-${state}`)).toBe(true);
-    expect([...(symbol?.querySelectorAll("ha-icon") ?? [])].map((i) => i.getAttribute("icon"))).toEqual(
-      expected,
-    );
+    expect(
+      [...(symbol?.querySelectorAll("ha-icon") ?? [])].map((i) => i.getAttribute("icon")),
+    ).toEqual(expected);
   });
 
   it("shows no icon when there is no rating to mark", async () => {
@@ -714,7 +755,8 @@ describe("the photo header", () => {
     card.shadowRoot?.querySelector<T>(selector) ?? null;
   const img = (card: BadegewaesserAustriaCard) => q<HTMLImageElement>(card, ".hero-img");
   const tip = (card: BadegewaesserAustriaCard) => q(card, ".photo-tip")!;
-  const button = (card: BadegewaesserAustriaCard) => q<HTMLButtonElement>(card, ".photo-info-button")!;
+  const button = (card: BadegewaesserAustriaCard) =>
+    q<HTMLButtonElement>(card, ".photo-info-button")!;
 
   it("is absent when the bathing water has no photo", async () => {
     // AGES has none for one site, and an install without the photo folder
@@ -1024,7 +1066,10 @@ describe("the map link", () => {
   it("rounds to six decimals, about ten centimetres", () => {
     // Gamsjaga, whose position comes from its bathing-water profile.
     expect(
-      siteMapUrl({ state: "20", attributes: { latitude: 47.7489768867, longitude: 13.4191829076 } }),
+      siteMapUrl({
+        state: "20",
+        attributes: { latitude: 47.7489768867, longitude: 13.4191829076 },
+      }),
     ).toBe(
       "https://www.openstreetmap.org/?mlat=47.748977&mlon=13.419183#map=16/47.748977/13.419183",
     );
@@ -1366,10 +1411,13 @@ describe("the map view", () => {
   });
 
   it("takes its position from the same check as the pin", () => {
-    expect(sitePosition({ state: "20", attributes: { latitude: 47.5, longitude: 13.4 } })).toEqual(
-      { latitude: 47.5, longitude: 13.4 },
-    );
-    expect(sitePosition({ state: "20", attributes: { latitude: 0, longitude: 13.4 } })).toBeUndefined();
+    expect(sitePosition({ state: "20", attributes: { latitude: 47.5, longitude: 13.4 } })).toEqual({
+      latitude: 47.5,
+      longitude: 13.4,
+    });
+    expect(
+      sitePosition({ state: "20", attributes: { latitude: 0, longitude: 13.4 } }),
+    ).toBeUndefined();
   });
 
   describe("styles", () => {
@@ -1383,14 +1431,18 @@ describe("the map view", () => {
     });
 
     it("is the credit's 32px disc, with its white ring", () => {
-      expect(css).toMatch(/\.photo-info-button,\s*\.map-toggle \{[^}]*width:\s*32px;[^}]*height:\s*32px;/);
+      expect(css).toMatch(
+        /\.photo-info-button,\s*\.map-toggle \{[^}]*width:\s*32px;[^}]*height:\s*32px;/,
+      );
       expect(css).toMatch(
         /\.photo-info-button:focus-visible,\s*\.map-toggle:focus-visible \{[^}]*outline:\s*2px solid #fff;/,
       );
     });
 
     it("moves the credit one disc to the left of it", () => {
-      expect(cssRule(".has-map .photo-info")).toMatch(/right:\s*calc\(2 \* var\(--bade-gap\) \+ 32px\)/);
+      expect(cssRule(".has-map .photo-info")).toMatch(
+        /right:\s*calc\(2 \* var\(--bade-gap\) \+ 32px\)/,
+      );
       expect(cssRule(".photo-info[hidden]")).toMatch(/display:\s*none/);
     });
 
@@ -1545,7 +1597,8 @@ describe("editor", () => {
     const saved = new Promise<Record<string, unknown>>((resolve) => {
       editor.addEventListener(
         "config-changed",
-        (event) => resolve((event as CustomEvent<{ config: Record<string, unknown> }>).detail.config),
+        (event) =>
+          resolve((event as CustomEvent<{ config: Record<string, unknown> }>).detail.config),
         { once: true },
       );
     });
@@ -1612,5 +1665,72 @@ describe("legacy entity-shaped configs", () => {
   it("reports a bathing water that no longer exists", async () => {
     const card = await mount({ device: "device-that-went-away" });
     expect(text(card)).toContain("gibt es nicht mehr");
+  });
+});
+
+describe("the version check", () => {
+  const withVersion = (callWS: NonNullable<HomeAssistant["callWS"]>) => makeHass({ callWS });
+  const banner = (card: BadegewaesserAustriaCard) =>
+    card.shadowRoot?.querySelector(".version-banner");
+
+  it("shows the reload banner when the integration runs another version", async () => {
+    const callWS = vi.fn().mockResolvedValue({ version: "9.9.9" });
+    const card = await mount({ device: DEVICE }, withVersion(callWS));
+    await vi.waitFor(() => expect(banner(card)).not.toBeNull());
+    expect(callWS).toHaveBeenCalledWith({ type: `${PLATFORM}/card_version` });
+    expect(text(card)).toContain("9.9.9");
+  });
+
+  it("stays quiet when the versions match", async () => {
+    const { CARD_VERSION } = await import("./const");
+    const callWS = vi.fn().mockResolvedValue({ version: CARD_VERSION });
+    const card = await mount({ device: DEVICE }, withVersion(callWS));
+    await vi.waitFor(() => expect(callWS).toHaveBeenCalled());
+    await card.updateComplete;
+    expect(banner(card)).toBeNull();
+  });
+
+  it("stays quiet when the integration has no such command", async () => {
+    // An older integration rejects the unknown command.
+    const callWS = vi.fn().mockRejectedValue(new Error("unknown_command"));
+    const card = await mount({ device: DEVICE }, withVersion(callWS));
+    await vi.waitFor(() => expect(callWS).toHaveBeenCalled());
+    await card.updateComplete;
+    expect(banner(card)).toBeNull();
+  });
+
+  it("asks once, not on every hass update", async () => {
+    const callWS = vi.fn().mockResolvedValue({ version: "9.9.9" });
+    const card = await mount({ device: DEVICE }, withVersion(callWS));
+    card.hass = withVersion(callWS);
+    await card.updateComplete;
+    card.hass = withVersion(callWS);
+    await card.updateComplete;
+    expect(callWS).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the caches before reloading", async () => {
+    const order: string[] = [];
+    const keys = vi.fn().mockResolvedValue(["a", "b"]);
+    const remove = vi.fn(async (key: string) => {
+      order.push(`delete ${key}`);
+      return true;
+    });
+    vi.stubGlobal("caches", { keys, delete: remove });
+    const reload = vi.fn(() => order.push("reload"));
+    vi.spyOn(window, "location", "get").mockReturnValue(
+      Object.create(window.location, { reload: { value: reload } }),
+    );
+    try {
+      const callWS = vi.fn().mockResolvedValue({ version: "9.9.9" });
+      const card = await mount({ device: DEVICE }, withVersion(callWS));
+      await vi.waitFor(() => expect(banner(card)).not.toBeNull());
+      banner(card)?.querySelector("button")?.click();
+      await vi.waitFor(() => expect(reload).toHaveBeenCalled());
+      expect(order).toEqual(["delete a", "delete b", "reload"]);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
   });
 });

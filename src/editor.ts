@@ -60,7 +60,7 @@ export class BadegewaesserAustriaCardEditor extends LitElement {
   @state() private _config?: BadegewaesserCardConfig;
 
   public setConfig(config: LovelaceCardConfig): void {
-    this._config = config as BadegewaesserCardConfig;
+    this._config = config;
   }
 
   protected override render(): TemplateResult | typeof nothing {
@@ -100,7 +100,7 @@ export class BadegewaesserAustriaCardEditor extends LitElement {
     return text === key ? undefined : text;
   };
 
-  private _valueChanged(event: CustomEvent<{ value: BadegewaesserCardConfig }>): void {
+  private _valueChanged = (event: CustomEvent<{ value: BadegewaesserCardConfig }>): void => {
     // The emitted value carries every default, because `data` did (feeding
     // ha-form the raw config is what made the toggles render OFF on a freshly
     // added card). tidyConfig takes the defaults and cleared fields back out,
@@ -110,7 +110,7 @@ export class BadegewaesserAustriaCardEditor extends LitElement {
     // Must be composed to cross the Shadow DOM boundary; without it Lovelace
     // never hears the change and the editor silently discards every edit.
     fireEvent(this, "config-changed", { config: next });
-  }
+  };
 }
 
 // The tag is already declared in types.ts as LovelaceCardEditor, which is what

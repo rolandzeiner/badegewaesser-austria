@@ -40,6 +40,15 @@ repos:
       - id: check-merge-conflict
   - repo: local
     hooks:
+      # Card format, lint and type-check. Deliberately a plain hook rather
+      # than `vp staged` / `vp hooks`: those set core.hooksPath, which would
+      # switch this whole file (ruff, mypy) off.
+      - id: vp-check
+        name: vp check (card format, lint, types)
+        entry: npx --no-install vp check
+        language: system
+        files: ^(src/.*\.ts|vite\.config\.ts|package\.json)$
+        pass_filenames: false
       # Regenerates README.md's table of contents from its `##` headings.
       # A rewrite fails the commit once, like any fixer; `git add` and commit
       # again. CI runs the same script with `--check`.

@@ -5,14 +5,9 @@
  * different from a 14-day one, so the mapping from date to position is the
  * thing worth testing.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
-import {
-  labelRows,
-  latestFraction,
-  seasonFraction,
-  seasonTrackDescription,
-} from "./season-track";
+import { labelRows, latestFraction, seasonFraction, seasonTrackDescription } from "./season-track";
 
 const at = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
@@ -44,7 +39,7 @@ describe("seasonFraction", () => {
   it("is monotonic through the season", () => {
     const dates = ["2026-05-26", "2026-06-24", "2026-07-08", "2026-08-20", "2026-08-31"];
     const positions = dates.map((iso) => seasonFraction(at(iso)));
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    positions.slice(1).forEach((position, i) => expect(position).toBeGreaterThan(positions[i]!));
   });
 
   it("spaces samples by real elapsed time", () => {

@@ -15,7 +15,7 @@ uv venv --python 3.14          # the CI interpreter, NOT the support floor
 source .venv/bin/activate
 uv pip install -r requirements_test.txt
 
-npm install                    # the Lovelace card's toolchain
+npm install                    # the Lovelace card's toolchain (Vite+)
 ```
 
 `3.14` is what CI runs and what `pytest-homeassistant-custom-component`
@@ -25,8 +25,65 @@ requires. It is deliberately *not* the same as the support floor — see
 Optional but recommended:
 
 ```bash
-pre-commit install
+pre-commit install      # ruff + mypy + vp check on every commit
 ```
+
+## The card
+
+The card lives in `src/` and builds to
+`custom_components/badegewaesser_austria/www/`. Its whole toolchain runs
+through [Vite+](https://viteplus.dev/) (`vp`), configured in `vite.config.ts`:
+`vp build` (Vite library mode on Rolldown), `vp test` (Vitest) and `vp check`
+(Oxfmt, Oxlint and the type-check).
+
+```bash
+npm run build     # = vp build; production bundle
+npm run dev       # watch mode, unminified, with sourcemaps
+npm test          # = vp test run
+npm run check     # = vp check
+```
+
+The only card `devDependencies` are `vite-plus` and `happy-dom`. Vitest,
+Rolldown and the type-checker ship inside `vite-plus`; `typescript` is not
+installed.
+
+**Commit the built bundle.** End users install through HACS and never run
+`npm`, so `www/*.js` is tracked. CI asserts the committed bundle matches a
+fresh build byte for byte — a stale bundle is the infinite reload-banner bug.
+
+Things in `vite.config.ts` that fail silently if you change them:
+
+- The banner must be a **legal** comment, `/*! ... */`, with
+  `comments: { legal: true }`. The minifier strips a `//` banner without a
+  word.
+- **`minify` lives on `rolldownOptions.output`, with `dropConsole: false`.**
+  Vite's library mode skips whitespace minification for ES output, so
+  `build.minify` alone ships a larger bundle. `dropConsole` is all-or-nothing,
+  and most `console.*` calls sit in `catch` blocks, where dropping them turns a
+  caught error into a silent one.
+- **`emptyOutDir: false`.** `www/` sits inside the integration package.
+- **`fmt.embeddedLanguageFormatting` stays `"off"`.** Otherwise Oxfmt
+  reformats Lit `html`/`css` templates and changes the whitespace inside
+  rendered elements, which is a DOM change.
+- **Decorators are not configured.** Rolldown reads `tsconfig.json` and enables
+  Lit's legacy decorators from it.
+
+**The `vite` override in `package.json` must name the same version as
+`vite-plus`.** It keeps npm from installing upstream Vite next to Vite+'s core.
+Dependabot bumps `vite-plus` but not the override, and `src/toolchain.test.ts`
+fails until both match. Bump with `npx vp migrate`, which re-pins both.
+
+Tests sit next to the code as `src/**/*.test.ts`. Tests that touch the DOM opt
+in **per file** with a docblock:
+
+```ts
+/**
+ * @vitest-environment happy-dom
+ */
+```
+
+There is no global `environment` setting, so only the files that need a DOM
+pay for booting one.
 
 ## Two Python versions
 
@@ -68,56 +125,32 @@ uv run --python "$FLOOR" --no-project python -m compileall -q \
   custom_components/badegewaesser_austria
 
 # Card
-npx tsc --noEmit                       # the ONLY type-check in the pipeline
+npx vp check                           # format, lint, and the ONLY type-check
 npm test
 npm run build
 node -c custom_components/badegewaesser_austria/www/badegewaesser-austria-card.js
 python3 scripts/readme_toc.py --check
 ```
 
-CI runs all of the above plus `hassfest` and HACS validation.
+CI runs all of the above plus `hassfest` and HACS validation, `npm audit` on
+the card's runtime dependencies, a check that the committed bundle matches a
+fresh build, and CodeQL.
 
 Two of these are easy to skip and expensive to skip:
 
 - **`ruff format --check`** is separate from `ruff check`, which never inspects
   formatting. Without it the formatter drifts silently until someone runs it.
-- **`npx tsc --noEmit`** is the only type-check anywhere. Rolldown strips types
+- **`npx vp check`** is the only type-check anywhere. The build strips types
   without checking them, so a type error builds cleanly all the way to a
   shipped bundle.
 
 ## Coverage
 
-`pytest.ini` enforces 95% over the package. That is only half the gate: the
-quality scale's `test-coverage` rule is **per module**, and one module can slide
-while the others carry the average. `scripts/check_module_coverage.py` reads the
+`pytest.ini` enforces 95% over the package. That is only half the gate:
+coverage has to hold **per module**, and one module can slide while the others
+carry the average. `scripts/check_module_coverage.py` reads the
 `coverage.json` pytest writes and enforces the per-module floor. Run it after
 the suite — pytest alone will not tell you a module regressed.
-
-## The card
-
-The card lives in `src/` and builds to
-`custom_components/badegewaesser_austria/www/`.
-
-```bash
-npm run build     # production bundle
-npm run dev       # watch mode
-npm test          # vitest
-```
-
-**Commit the built bundle.** End users install through HACS and never run
-`npm`, so `www/*.js` is tracked. CI asserts the committed bundle matches a
-fresh build byte for byte — a stale bundle is the infinite reload-banner bug.
-
-Tests that touch the DOM opt in **per file** with a docblock:
-
-```ts
-/**
- * @vitest-environment happy-dom
- */
-```
-
-There is no global `environment` setting and no `vitest.config.ts`, so only the
-files that need a DOM pay for booting one.
 
 ## Version sync
 
@@ -142,9 +175,8 @@ Bumping a version means editing `manifest.json` and `src/const.ts`, then
 |---|---|---|
 | `ruff` | exact, in `requirements_test.txt` | The `rev:` in `.pre-commit-config.yaml` must match. |
 | `mypy` | exact, in `requirements_test.txt` | Same — check **both** tools when bumping either. |
-| `rolldown` | exact, in `package.json` | Not Rollup. There is no Rollup anywhere in this portfolio. |
-| `typescript` | exact | TS 7 is the Go-native compiler. |
-| `vitest` + `happy-dom` | exact | |
+| `vite-plus` | exact, in `package.json` | Bundles Vite, Rolldown, Vitest, Oxlint and Oxfmt. The `vite` override must name the same version. |
+| `happy-dom` | exact | |
 
 Linters are pinned exactly because CI runs nightly: a floating range lets a new
 upstream release turn the build red with no code change.
