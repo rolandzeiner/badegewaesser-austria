@@ -1,5 +1,5 @@
 /** Translation lookup and its fallbacks. */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { localize } from "./localize/localize";
 
@@ -28,9 +28,7 @@ describe("localize", () => {
   });
 
   it("substitutes placeholders", () => {
-    expect(localize("card.sampled_on", "de", { date: "20. August" })).toContain(
-      "20. August",
-    );
+    expect(localize("card.sampled_on", "de", { date: "20. August" })).toContain("20. August");
   });
 
   it("substitutes every occurrence of a placeholder", () => {

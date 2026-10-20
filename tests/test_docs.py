@@ -227,7 +227,7 @@ def test_contributing_documents_the_real_gate() -> None:
         "mypy --strict --ignore-missing-imports",
         "ruff check .",
         "ruff format --check .",
-        "npx tsc --noEmit",
+        "npx vp check",
         "npm run build",
         "scripts/readme_toc.py --check",
     ):

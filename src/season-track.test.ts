@@ -5,14 +5,9 @@
  * different from a 14-day one, so the mapping from date to position is the
  * thing worth testing.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
-import {
-  labelRows,
-  latestFraction,
-  seasonFraction,
-  seasonTrackDescription,
-} from "./season-track";
+import { labelRows, latestFraction, seasonFraction, seasonTrackDescription } from "./season-track";
 
 const at = (iso: string) => new Date(`${iso}T00:00:00Z`);
 

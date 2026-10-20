@@ -4,7 +4,7 @@
  * No DOM here on purpose — these are pure functions, so they run in vitest's
  * default node environment and pay nothing for a happy-dom boot.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { formatCount, formatNumber, formatSampleDate, hasValue, numericState } from "./utils";
 

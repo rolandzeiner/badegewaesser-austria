@@ -1,5 +1,5 @@
 # Unified .gitignore for the *-austria HACS portfolio — Lit 3 +
-# TypeScript + Rolldown card alongside a HA Python integration.
+# TypeScript + Vite+ card alongside a HA Python integration.
 # Lifted from wiener-linien-austria 2026-09-22; the scripts/ allow-list
 # below is the only per-repo part, so re-read it when adding a script
 # that a workflow or the build invokes.
@@ -79,7 +79,9 @@ Desktop.ini
 # ───────────────────────────────────────────────────────────────────
 # IDE / editor state
 # ───────────────────────────────────────────────────────────────────
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.iml
 .cursor/
@@ -175,3 +177,4 @@ custom_components/*/_dev_fixture.py
 # the dev box; git history never sees them, so withdrawing is `rm -r`.
 custom_components/badegewaesser_austria/photos/
 .photo-cache/
+.vitest/
