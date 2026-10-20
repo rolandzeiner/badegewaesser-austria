@@ -65,7 +65,7 @@ const LABEL_Y = 44;
 const LABEL_PX = 36;
 // The axis width to assume before the card has measured itself: the
 // narrowest a sections grid allows, so the first paint errs towards two rows.
-export const FALLBACK_AXIS_PX = 240;
+const FALLBACK_AXIS_PX = 240;
 // Height of one label row, and so how far each extra row lifts everything.
 const LABEL_ROW = 14;
 // Measured over all 1102 gaps between consecutive samples (2026 season): the
@@ -82,8 +82,6 @@ const TRACK_HEIGHT = 48;
 // 12px marks.
 const DOT_R = 4;
 const LATEST_R = 6;
-// Keeps the end dots off the edge now that 0% and 100% are the real edges.
-export const TRACK_INSET_PX = LATEST_R + 2;
 // dataviz: a pinpoint hover target is an anti-pattern; the hit area must
 // reach ~24px even though the mark is 8px.
 const HIT_R = 12;
@@ -338,7 +336,8 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
 
 export const seasonTrackStyles = css`
   /* The inset the end dots need now that 0% and 100% are the real edges of
-     the element rather than padded coordinates inside a viewBox. */
+     the element rather than padded coordinates inside a viewBox: the latest
+     dot's radius (LATEST_R, 6px) plus 2. */
   .track-wrap {
     position: relative;
     padding-inline: 8px;

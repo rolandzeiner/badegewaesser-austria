@@ -108,7 +108,7 @@ type Trend = { direction: keyof typeof TREND_ICON; delta: number };
  * The newest sample's reading against the last earlier sample that has one.
  * Null when the newest sample has no reading, or nothing before it does.
  */
-export function sampleTrend(
+function sampleTrend(
   samples: readonly SeasonSample[],
   read: (sample: SeasonSample) => number | null | undefined,
   isSteady: (latest: SeasonSample, previous: SeasonSample, delta: number) => boolean,
@@ -234,6 +234,32 @@ type SiteEntities = Partial<Record<string, HassEntity>>;
 
 /** The readings whose season the track can show in place of the temperature. */
 type TrackReading = typeof KEY.secchi | typeof KEY.eColi | typeof KEY.enterococci;
+
+/**
+ * Why the card cannot render this config, as the message to show, or
+ * undefined when it can.
+ */
+function configError(
+  config: NormalisedConfig,
+  hass: HomeAssistant,
+  entities: SiteEntities,
+  language: string | undefined,
+): string | undefined {
+  if (!config.device && !config.entity) return localize("error.no_device", language);
+  // A legacy entity-shaped config must still say something useful when the
+  // entity it names has been deleted or belongs elsewhere.
+  if (!config.device && config.entity) {
+    const registryEntry = hass.entities?.[config.entity];
+    if (!registryEntry || !hass.states[config.entity]) {
+      return localize("error.entity_missing", language, { entity: config.entity });
+    }
+    if (registryEntry.platform !== PLATFORM) {
+      return localize("error.not_this_integration", language, { entity: config.entity });
+    }
+  }
+  if (Object.keys(entities).length === 0) return localize("error.device_missing", language);
+  return undefined;
+}
 
 @customElement(CARD_TAG)
 export class BadegewaesserAustriaCard extends LitElement {
@@ -427,30 +453,10 @@ export class BadegewaesserAustriaCard extends LitElement {
     if (!config || !hass) return nothing;
 
     const language = languageOf(hass);
-
-    if (!config.device && !config.entity) {
-      return this._renderAlert(localize("error.no_device", language));
-    }
-    // A legacy entity-shaped config must still say something useful when the
-    // entity it names has been deleted or belongs elsewhere.
-    if (!config.device && config.entity) {
-      const registryEntry = hass.entities?.[config.entity];
-      if (!registryEntry || !hass.states[config.entity]) {
-        return this._renderAlert(
-          localize("error.entity_missing", language, { entity: config.entity }),
-        );
-      }
-      if (registryEntry.platform !== PLATFORM) {
-        return this._renderAlert(
-          localize("error.not_this_integration", language, { entity: config.entity }),
-        );
-      }
-    }
-
     const entities = this._siteEntities() ?? {};
-    if (Object.keys(entities).length === 0) {
-      return this._renderAlert(localize("error.device_missing", language));
-    }
+    const error = configError(config, hass, entities, language);
+    if (error) return this._renderAlert(error);
+
     const temperature = entities[KEY.temperature];
     const closed = entities[KEY.closed];
     const season = entities[KEY.season];

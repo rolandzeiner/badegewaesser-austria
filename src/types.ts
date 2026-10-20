@@ -86,7 +86,7 @@ export interface LovelaceCardEditor extends HTMLElement {
   setConfig(config: LovelaceCardConfig): void;
 }
 
-export type LovelaceCard = HTMLElement;
+type LovelaceCard = HTMLElement;
 
 /**
  * A card element as HA's `createCardElement` returns it. `layout` is what a
@@ -118,7 +118,7 @@ export interface HaFormSchema {
   [key: string]: unknown;
 }
 
-export interface HaFormElement extends HTMLElement {
+interface HaFormElement extends HTMLElement {
   hass?: HomeAssistant;
   data?: Record<string, unknown>;
   schema?: HaFormSchema[];
