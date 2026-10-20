@@ -70,6 +70,8 @@ Not in the search yet? In HACS, open ⋮ → **Custom repositories**, add `https
 
 ## Setup
 
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=badegewaesser_austria)
+
 Go to **Settings → Devices & services → Add integration** and search for **Badegewässer Austria**. You then choose how to find your lake:
 
 - **Choose by province** — pick a Bundesland, then a bathing water from that province's list.
@@ -237,7 +239,7 @@ logger:
 
 Go to **Settings → Devices & services → Badegewässer Austria**, open the entry's menu and choose **Delete**. That removes its device and all of its entities. Removing the last entry also withdraws the Lovelace card resource.
 
-To uninstall completely, remove the integration in HACS and restart Home Assistant.
+To uninstall completely, remove the integration in HACS and restart Home Assistant. If you installed it manually, delete `config/custom_components/badegewaesser_austria/` instead, then restart.
 
 ## Attribution
 
