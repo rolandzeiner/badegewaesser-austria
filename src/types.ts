@@ -156,12 +156,6 @@ export interface WindowWithCustomCards extends Window {
  * Without `composed: true` the event never leaves the card and the editor's
  * changes are silently dropped.
  */
-export const fireEvent = <T>(
-  node: HTMLElement,
-  type: string,
-  detail?: T,
-): void => {
-  node.dispatchEvent(
-    new CustomEvent(type, { detail, bubbles: true, composed: true }),
-  );
+export const fireEvent = <T>(node: HTMLElement, type: string, detail?: T): void => {
+  node.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
 };

@@ -318,8 +318,9 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
           `,
         )}
       </svg>
-      ${active
-        ? html`<div
+      ${
+        active
+          ? html`<div
             class="tip"
             role="status"
             style=${`--tip-x:${active.cx}`}
@@ -329,7 +330,8 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
               >${formatTemperature(read(active.sample), active.sample)}</span
             >
           </div>`
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }

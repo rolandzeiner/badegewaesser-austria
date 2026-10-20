@@ -477,29 +477,35 @@ export class BadegewaesserAustriaCard extends LitElement {
 
     return html`
       <ha-card>
-        ${hero
-          ? this._renderHero(
-              photoSrc,
-              photo,
-              title,
-              mapLink,
-              mapEntity,
-              temperature,
-              samples,
-              language,
-            )
-          : nothing}
+        ${
+          hero
+            ? this._renderHero(
+                photoSrc,
+                photo,
+                title,
+                mapLink,
+                mapEntity,
+                temperature,
+                samples,
+                language,
+              )
+            : nothing
+        }
         ${this._renderVersionBanner(language)}
         ${isClosed ? this._renderClosure(closed, language) : nothing}
         <div class="body">
           ${hero ? nothing : this._renderHeader(title, mapLink, temperature, samples, language)}
-          ${config.show_season_track
-            ? this._renderSeason(temperature, entities, samples, inSeason, language, hero)
-            : nothing}
+          ${
+            config.show_season_track
+              ? this._renderSeason(temperature, entities, samples, inSeason, language, hero)
+              : nothing
+          }
           ${config.show_readings ? this._renderReadings(entities, samples, language) : nothing}
-          ${config.show_attribution
-            ? html`<p class="attribution">${localize("card.attribution", language)}</p>`
-            : nothing}
+          ${
+            config.show_attribution
+              ? html`<p class="attribution">${localize("card.attribution", language)}</p>`
+              : nothing
+          }
         </div>
       </ha-card>
     `;
@@ -542,9 +548,11 @@ export class BadegewaesserAustriaCard extends LitElement {
       <div class="closure">
         <ha-icon icon="mdi:close-octagon" aria-hidden="true"></ha-icon>
         <span>${localize("card.closed", language)}</span>
-        ${typeof reason === "string" && reason
-          ? html`<span class="closure-reason">${reason}</span>`
-          : nothing}
+        ${
+          typeof reason === "string" && reason
+            ? html`<span class="closure-reason">${reason}</span>`
+            : nothing
+        }
       </div>
     `;
   }
@@ -612,28 +620,33 @@ export class BadegewaesserAustriaCard extends LitElement {
                 icon=${READING_ICON.temperature}
                 aria-hidden="true"
               ></ha-icon
-              ><span class="hero-value">${formatted ?? "—"}</span>${formatted !== null &&
-              typeof unit === "string"
-                ? html`<span class="hero-unit">${unit}</span>`
-                : nothing}
+              ><span class="hero-value">${formatted ?? "—"}</span>${
+                formatted !== null && typeof unit === "string"
+                  ? html`<span class="hero-unit">${unit}</span>`
+                  : nothing
+              }
             </p>
-            ${latest
-              ? html`<p class="hero-sampled">
+            ${
+              latest
+                ? html`<p class="hero-sampled">
                   ${localize("card.sampled_on", language, {
                     date: formatSampleDate(new Date(`${latest.date}T00:00:00Z`), language),
                   })}
                 </p>`
-              : nothing}
+                : nothing
+            }
           </div>
         </div>
         ${credit ? this._renderPhotoCredit(credit, language, showMap) : nothing}
-        ${mapEntity
-          ? html`${showMap ? html`<h2 class="visually-hidden">${title}</h2>` : nothing}
+        ${
+          mapEntity
+            ? html`${showMap ? html`<h2 class="visually-hidden">${title}</h2>` : nothing}
               ${this._renderMapToggle(mapEntity, showMap, language)}
               <div class="hero-map" ?inert=${!showMap} @wheel=${this._mapWheel}>
                 ${this._mapCard ?? nothing}
               </div>`
-          : nothing}
+            : nothing
+        }
       </div>
     `;
   }
@@ -898,19 +911,23 @@ export class BadegewaesserAustriaCard extends LitElement {
           ></ha-icon
           ><span class=${formatted === null ? "temperature is-missing" : "temperature"}
             >${formatted ?? "—"}</span
-          >${formatted !== null && typeof unit === "string"
-            ? html`<span class="unit">${unit}</span>`
-            : nothing}
+          >${
+            formatted !== null && typeof unit === "string"
+              ? html`<span class="unit">${unit}</span>`
+              : nothing
+          }
         </p>
         <div class="meta">
           ${this._renderPlace()}
-          ${latest
-            ? html`<p class="sampled">
+          ${
+            latest
+              ? html`<p class="sampled">
                 ${localize("card.sampled_on", language, {
                   date: formatSampleDate(new Date(`${latest.date}T00:00:00Z`), language),
                 })}
               </p>`
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
     `;
@@ -959,15 +976,17 @@ export class BadegewaesserAustriaCard extends LitElement {
     // where the card is too narrow for it on the photo.
     return html`
       <div class="season">
-        ${hero && latestDate
-          ? html`<div class="reading-block hero-fallback">
+        ${
+          hero && latestDate
+            ? html`<div class="reading-block hero-fallback">
               <p class="sampled">
                 ${localize("card.sampled_on", language, {
                   date: formatSampleDate(latestDate, language),
                 })}
               </p>
             </div>`
-          : nothing}
+            : nothing
+        }
         ${renderSeasonTrack(options)}
         ${
           // Only an empty track gets a line. "Season over" / "season under way"
@@ -1055,25 +1074,31 @@ export class BadegewaesserAustriaCard extends LitElement {
       <dl class="tiles">
         <div class="tile">
           <dt>
-            ${localize("card.water_quality", language)}${symbol
-              ? html`<span class=${`quality-symbol is-${state}`} aria-hidden="true"
+            ${localize("card.water_quality", language)}${
+              symbol
+                ? html`<span class=${`quality-symbol is-${state}`} aria-hidden="true"
                   >${Array.from(
                     { length: symbol.count },
                     () => html`<ha-icon icon=${symbol.icon}></ha-icon>`,
                   )}</span
                 >`
-              : nothing}
+                : nothing
+            }
           </dt>
           <dd class="tile-value">
-            ${hasQuality
-              ? localize(`quality.${state}`, language)
-              : localize("card.no_rating", language)}
+            ${
+              hasQuality
+                ? localize(`quality.${state}`, language)
+                : localize("card.no_rating", language)
+            }
           </dd>
-          ${typeof ratingYear === "number"
-            ? html`<dd class="tile-detail">
+          ${
+            typeof ratingYear === "number"
+              ? html`<dd class="tile-detail">
                 ${localize("card.rating_year", language, { year: ratingYear })}
               </dd>`
-            : nothing}
+              : nothing
+          }
         </div>
         <div
           class=${this._tileClass(KEY.secchi)}
@@ -1087,11 +1112,9 @@ export class BadegewaesserAustriaCard extends LitElement {
         >
           <dt>${localize("card.secchi_depth", language)}</dt>
           <dd class="tile-value">
-            ${this._renderReadingIcon(READING_ICON.secchi)}${formatNumber(
-              numericState(secchi),
-              language,
-              2,
-            ) ?? "—"}${this._renderTail(
+            ${this._renderReadingIcon(READING_ICON.secchi)}${
+              formatNumber(numericState(secchi), language, 2) ?? "—"
+            }${this._renderTail(
               hasValue(secchi) && typeof secchiUnit === "string" ? secchiUnit : undefined,
               secchiMove,
               language,
@@ -1161,9 +1184,11 @@ export class BadegewaesserAustriaCard extends LitElement {
             language,
           )}
         </dd>
-        ${below
-          ? html`<dd class="tile-detail">${localize("card.below_limit", language)}</dd>`
-          : nothing}
+        ${
+          below
+            ? html`<dd class="tile-detail">${localize("card.below_limit", language)}</dd>`
+            : nothing
+        }
       </div>
     `;
   }
