@@ -335,9 +335,8 @@ export function renderSeasonTrack(options: SeasonTrackOptions): TemplateResult {
 }
 
 export const seasonTrackStyles = css`
-  /* The inset the end dots need now that 0% and 100% are the real edges of
-     the element rather than padded coordinates inside a viewBox: the latest
-     dot's radius (LATEST_R, 6px) plus 2. */
+  /* Room for the end dots at 0% and 100%: the latest dot's radius
+     (LATEST_R, 6px) plus 2. Keep in step with LATEST_R by hand. */
   .track-wrap {
     position: relative;
     padding-inline: 8px;
