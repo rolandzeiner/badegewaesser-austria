@@ -1,6 +1,6 @@
 # Badegewässer Austria
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![HA min version](https://img.shields.io/badge/Home%20Assistant-%3E%3D2025.6-blue.svg)](https://www.home-assistant.io/)
 [![Version](https://img.shields.io/github/v/release/rolandzeiner/badegewaesser-austria?label=version&color=blue)](https://github.com/rolandzeiner/badegewaesser-austria/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -54,10 +54,13 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 
 ### HACS (recommended)
 
-1. In HACS, open the three-dot menu and choose **Custom repositories**.
-2. Add `https://github.com/rolandzeiner/badegewaesser-austria` with category **Integration**.
-3. Search for **Badegewässer Austria** and install it.
-4. Restart Home Assistant.
+1. Open HACS and search for **Badegewässer Austria**.
+2. Select it and choose **Download**.
+3. Restart Home Assistant.
+
+[![Add to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rolandzeiner&repository=badegewaesser-austria&category=integration)
+
+Not in the search yet? In HACS, open ⋮ → **Custom repositories**, add `https://github.com/rolandzeiner/badegewaesser-austria` with type **Integration**, then search again.
 
 ### Manual
 
