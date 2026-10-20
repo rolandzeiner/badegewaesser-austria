@@ -1667,3 +1667,70 @@ describe("legacy entity-shaped configs", () => {
     expect(text(card)).toContain("gibt es nicht mehr");
   });
 });
+
+describe("the version check", () => {
+  const withVersion = (callWS: NonNullable<HomeAssistant["callWS"]>) => makeHass({ callWS });
+  const banner = (card: BadegewaesserAustriaCard) =>
+    card.shadowRoot?.querySelector(".version-banner");
+
+  it("shows the reload banner when the integration runs another version", async () => {
+    const callWS = vi.fn().mockResolvedValue({ version: "9.9.9" });
+    const card = await mount({ device: DEVICE }, withVersion(callWS));
+    await vi.waitFor(() => expect(banner(card)).not.toBeNull());
+    expect(callWS).toHaveBeenCalledWith({ type: `${PLATFORM}/card_version` });
+    expect(text(card)).toContain("9.9.9");
+  });
+
+  it("stays quiet when the versions match", async () => {
+    const { CARD_VERSION } = await import("./const");
+    const callWS = vi.fn().mockResolvedValue({ version: CARD_VERSION });
+    const card = await mount({ device: DEVICE }, withVersion(callWS));
+    await vi.waitFor(() => expect(callWS).toHaveBeenCalled());
+    await card.updateComplete;
+    expect(banner(card)).toBeNull();
+  });
+
+  it("stays quiet when the integration has no such command", async () => {
+    // An older integration rejects the unknown command.
+    const callWS = vi.fn().mockRejectedValue(new Error("unknown_command"));
+    const card = await mount({ device: DEVICE }, withVersion(callWS));
+    await vi.waitFor(() => expect(callWS).toHaveBeenCalled());
+    await card.updateComplete;
+    expect(banner(card)).toBeNull();
+  });
+
+  it("asks once, not on every hass update", async () => {
+    const callWS = vi.fn().mockResolvedValue({ version: "9.9.9" });
+    const card = await mount({ device: DEVICE }, withVersion(callWS));
+    card.hass = withVersion(callWS);
+    await card.updateComplete;
+    card.hass = withVersion(callWS);
+    await card.updateComplete;
+    expect(callWS).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the caches before reloading", async () => {
+    const order: string[] = [];
+    const keys = vi.fn().mockResolvedValue(["a", "b"]);
+    const remove = vi.fn(async (key: string) => {
+      order.push(`delete ${key}`);
+      return true;
+    });
+    vi.stubGlobal("caches", { keys, delete: remove });
+    const reload = vi.fn(() => order.push("reload"));
+    vi.spyOn(window, "location", "get").mockReturnValue(
+      Object.create(window.location, { reload: { value: reload } }),
+    );
+    try {
+      const callWS = vi.fn().mockResolvedValue({ version: "9.9.9" });
+      const card = await mount({ device: DEVICE }, withVersion(callWS));
+      await vi.waitFor(() => expect(banner(card)).not.toBeNull());
+      banner(card)?.querySelector("button")?.click();
+      await vi.waitFor(() => expect(reload).toHaveBeenCalled());
+      expect(order).toEqual(["delete a", "delete b", "reload"]);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
+  });
+});
