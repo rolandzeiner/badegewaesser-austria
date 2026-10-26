@@ -487,6 +487,15 @@ export const cardStyles = css`
     text-wrap: balance;
   }
 
+  /* The "no current data" notice under the name: ha-alert is inline by
+     default, so without this it would sit flush against the heading. */
+  .unreachable {
+    display: block;
+  }
+  .heading + .unreachable {
+    margin-block-start: var(--ha-space-3, 12px);
+  }
+
   /* -- map link --------------------------------------------------------- */
 
   /* 32px, like the photo credit's button: over the 24px WCAG 2.5.8 minimum,

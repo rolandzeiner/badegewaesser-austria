@@ -44,6 +44,7 @@ Water quality and temperature for all 260 EU-designated Austrian bathing waters,
 - **Readings at a glance** — water quality with its EU symbol, plus Secchi depth, E. coli and enterococci, each with an arrow showing how it moved since the previous sample. Hover or tap a measurement to see its season on the track *(0.2.0)*
 - **Quiet out of season** — from October to mid-May, when nothing can change, the integration stops polling. Through September it still checks once a day for late lab results *(0.2.0)*
 - **On the map** — each bathing water shows up as a marker on Home Assistant's map, and the pin next to its name on the card opens it on OpenStreetMap *(0.2.0)*
+- **Outage notice** — when AGES keeps answering with errors, a Repairs issue says the fault is on their side, not your setup, and clears itself once the data is back. The card shows *No current data from AGES* instead of an empty season *(0.3.0)*
 
 ## Requirements
 
@@ -207,6 +208,9 @@ The configured entity belongs to another integration. Pick one from this integra
 
 **All entities are unavailable.**
 The last fetch failed. Check Home Assistant's log for `badegewaesser_austria`. The integration retries on its own and slows down during a sustained outage, so it recovers without help.
+
+**The card says "No current data from AGES".**
+Every entity of that bathing water is unavailable: the last fetch failed, or none has worked since Home Assistant started. Check **Settings → Repairs**. If it lists an AGES outage, the fault is on their side and the data returns on its own. If it says the bathing water is missing, see the next entry. If there's neither, check that your Home Assistant host can reach the internet.
 
 **A repair says my bathing water is missing from the AGES data.**
 AGES no longer lists that site. It may come back on the next update, or it may have been decommissioned. The entities stay unavailable until it returns; if it was closed for good, remove the entry.

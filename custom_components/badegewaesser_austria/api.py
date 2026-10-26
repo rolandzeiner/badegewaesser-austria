@@ -49,14 +49,18 @@ class BadegewaesserApiError(HomeAssistantError):
 
     Carries the translation key so both callers can do the right thing: the
     coordinator re-raises it as a translated `UpdateFailed`, the config flow
-    turns it into a form error.
+    turns it into a form error. `status` is the HTTP status when the server
+    answered with one, so the outage tracker can tell a 5xx from a 404.
     """
 
-    def __init__(self, translation_key: str, detail: str) -> None:
-        """Store the key and a developer-facing detail string."""
+    def __init__(
+        self, translation_key: str, detail: str, *, status: int | None = None
+    ) -> None:
+        """Store the key, a developer-facing detail string and the status."""
         super().__init__(f"{translation_key}: {detail}")
         self.translation_key = translation_key
         self.detail = detail
+        self.status = status
 
 
 @dataclass(frozen=True, slots=True)
@@ -438,7 +442,9 @@ class BadegewaesserClient:
             ) as response:
                 if response.status != 200:
                     raise BadegewaesserApiError(
-                        "invalid_response", f"HTTP {response.status}"
+                        "invalid_response",
+                        f"HTTP {response.status}",
+                        status=response.status,
                     )
                 raw = await response.read()
         except TimeoutError as err:

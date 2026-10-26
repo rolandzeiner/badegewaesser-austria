@@ -286,6 +286,53 @@ describe("configuration errors", () => {
   });
 });
 
+describe("the unreachable notice", () => {
+  /** What a failed fetch leaves: every entity unavailable, no attributes. */
+  function unavailableHass(keep?: string): HomeAssistant {
+    const hass = makeHass();
+    for (const [entityId, entity] of Object.entries(hass.states)) {
+      if (entityId === keep) continue;
+      hass.states[entityId] = { ...entity, state: "unavailable", attributes: {} };
+    }
+    return hass;
+  }
+
+  const notice = (card: BadegewaesserAustriaCard) =>
+    card.shadowRoot?.querySelector<HTMLElement & { title: string }>("ha-alert.unreachable");
+
+  it("replaces the empty season with a notice when every entity is unavailable", async () => {
+    const card = await mount({ device: DEVICE }, unavailableHass());
+    expect(notice(card)?.getAttribute("alert-type")).toBe("warning");
+    expect(notice(card)?.title).toBe("Keine aktuellen Daten von der AGES");
+    expect(text(card)).toContain("Einstellungen → Reparaturen");
+    expect(text(card)).toContain("Naturbadesee Königsdorf");
+    expect(text(card)).not.toContain("Noch keine Proben");
+    expect(text(card)).not.toContain("noch nicht bewertet");
+  });
+
+  it("speaks the user's language", async () => {
+    const hass = unavailableHass();
+    hass.locale = { language: "en" };
+    const card = await mount({ device: DEVICE }, hass);
+    expect(notice(card)?.title).toBe("No current data from AGES");
+  });
+
+  it("stays away while any entity still has a state", async () => {
+    const card = await mount(
+      { device: DEVICE },
+      unavailableHass("sensor.koenigsdorf_water_temperature"),
+    );
+    expect(notice(card)).toBeNull();
+    expect(text(card)).toContain("26,2");
+  });
+
+  it("leaves configuration errors to the error alert", async () => {
+    const card = await mount({}, unavailableHass());
+    expect(notice(card)).toBeNull();
+    expect(text(card)).toContain("Karteneditor");
+  });
+});
+
 describe("the reading", () => {
   it("is right-aligned rather than proportionally anchored", async () => {
     // A detour worth recording. An earlier version tried to place the reading

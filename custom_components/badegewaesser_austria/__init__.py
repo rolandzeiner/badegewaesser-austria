@@ -24,6 +24,7 @@ from homeassistant.helpers.typing import ConfigType
 from .card_registration import JSModuleRegistration
 from .const import CONF_SITE_ID, DOMAIN
 from .coordinator import BadegewaesserCoordinator, async_get_coordinator
+from .outage import async_clear_outage
 from .repairs import async_clear_missing_site, async_report_missing_site
 from .websocket import async_register_websocket_commands
 
@@ -175,6 +176,8 @@ async def async_remove_entry(
     ]
     if remaining:
         return
+    # Nothing is left to report an outage for.
+    async_clear_outage(hass)
     await JSModuleRegistration(hass).async_unregister()
 
 

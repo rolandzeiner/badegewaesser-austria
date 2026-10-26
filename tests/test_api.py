@@ -207,6 +207,7 @@ async def test_non_200_raises_invalid_response() -> None:
         await client.async_fetch()
     assert err.value.translation_key == "invalid_response"
     assert "503" in err.value.detail
+    assert err.value.status == 503
 
 
 async def test_client_error_raises_cannot_connect() -> None:

@@ -457,10 +457,21 @@ export class BadegewaesserAustriaCard extends LitElement {
     const error = configError(config, hass, entities, language);
     if (error) return this._renderAlert(error);
 
+    const title = config.name ?? this._deviceName() ?? "";
+    // Every entity is a coordinator entity, so all of them unavailable means
+    // the last fetch failed or none has worked since Home Assistant started.
+    // Rendering the body would then say "No samples yet" and "not yet
+    // rated", which read like a real answer from AGES.
+    if (Object.values(entities).every((entity) => !entity || entity.state === "unavailable")) {
+      return this._renderAlert(localize("card.unreachable_detail", language), {
+        heading: localize("card.unreachable", language),
+        title,
+      });
+    }
+
     const temperature = entities[KEY.temperature];
     const closed = entities[KEY.closed];
     const season = entities[KEY.season];
-    const title = config.name ?? this._deviceName() ?? "";
 
     const samples = (temperature?.attributes["season_samples"] ?? []) as SeasonSample[];
     const inSeason = season?.state === "on";
@@ -517,12 +528,40 @@ export class BadegewaesserAustriaCard extends LitElement {
     `;
   }
 
-  private _renderAlert(message: string): TemplateResult {
+  /**
+   * A card that holds only a message: a configuration error, or with
+   * `notice` the "no current data" warning under the bathing water's name.
+   *
+   * The notice is worded neutrally on purpose. From entity states alone the
+   * card can't tell an AGES outage from a site AGES no longer lists; the
+   * Repairs issue raised for each case is what says which one it is.
+   */
+  private _renderAlert(
+    message: string,
+    notice?: { heading: string; title: string },
+  ): TemplateResult {
     // ha-alert carries role="alert" and the themed error styling, so the
     // message reaches a screen reader instead of being colour-only.
+    if (!notice) {
+      return html`
+        <ha-card>
+          <div class="body"><ha-alert alert-type="error">${message}</ha-alert></div>
+        </ha-card>
+      `;
+    }
     return html`
       <ha-card>
-        <div class="body"><ha-alert alert-type="error">${message}</ha-alert></div>
+        ${this._renderVersionBanner(languageOf(this.hass))}
+        <div class="body">
+          ${
+            notice.title
+              ? html`<div class="heading"><h2 class="title">${notice.title}</h2></div>`
+              : nothing
+          }
+          <ha-alert class="unreachable" alert-type="warning" .title=${notice.heading}
+            >${message}</ha-alert
+          >
+        </div>
       </ha-card>
     `;
   }

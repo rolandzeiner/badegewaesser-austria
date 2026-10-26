@@ -1,6 +1,8 @@
 {
   "card": {
     "no_samples": "No samples yet this season",
+    "unreachable": "No current data from AGES",
+    "unreachable_detail": "If this doesn't clear on its own, Settings → Repairs explains why.",
     "closed": "Swimming prohibited",
     "sampled_on": "Sampled {date}",
     "not_measured": "not measured",
