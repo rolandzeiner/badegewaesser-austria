@@ -54,6 +54,7 @@ from .const import (
     SEASON_END_MONTH,
     SEASON_START_DAY,
     SEASON_START_MONTH,
+    USER_AGENT,
     WAKE_SPREAD_SECONDS,
 )
 from .outage import Fault, async_note_fault, classify
@@ -457,7 +458,7 @@ async def async_get_coordinator(hass: HomeAssistant) -> BadegewaesserCoordinator
         return coordinator
 
     coordinator = BadegewaesserCoordinator(
-        hass, BadegewaesserClient(async_get_clientsession(hass))
+        hass, BadegewaesserClient(async_get_clientsession(hass), USER_AGENT)
     )
     # Entry-less coordinators do not get the `config_entry.async_on_unload`
     # shutdown wiring, so this is how the refresh timer is cancelled when HA

@@ -7,9 +7,12 @@ in the options form, produces no error anywhere. It is asserted directly.
 
 from __future__ import annotations
 
+import json
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import pytest
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
@@ -31,6 +34,7 @@ from custom_components.badegewaesser_austria.const import (
     MAX_SNAPSHOT_AGE_HOURS,
     MIN_POLL_HOURS,
     POLL_JITTER_SECONDS,
+    USER_AGENT,
     WAKE_SPREAD_SECONDS,
 )
 from custom_components.badegewaesser_austria.coordinator import (
@@ -42,6 +46,7 @@ from custom_components.badegewaesser_austria.coordinator import (
     is_monitoring_window,
     next_monitoring_start,
 )
+from custom_components.badegewaesser_austria.outage import Fault, classify
 from tests.test_api import NORMAL, fixture_bytes, make_session
 
 
@@ -49,7 +54,7 @@ def build_coordinator(
     hass: HomeAssistant, session: MagicMock | None = None
 ) -> BadegewaesserCoordinator:
     """A coordinator with jitter pinned to zero so intervals are exact."""
-    client = BadegewaesserClient(session or make_session(fixture_bytes()))
+    client = BadegewaesserClient(session or make_session(fixture_bytes()), USER_AGENT)
     return BadegewaesserCoordinator(hass, client, jitter=lambda _spread: 0.0)
 
 
@@ -218,7 +223,7 @@ async def test_a_below_floor_option_is_clamped_not_honoured(
 
 async def test_jitter_is_added_to_every_cycle(hass: HomeAssistant) -> None:
     """Spreads installs, and stops a fleet re-synchronising after an outage."""
-    client = BadegewaesserClient(make_session(fixture_bytes()))
+    client = BadegewaesserClient(make_session(fixture_bytes()), USER_AGENT)
     coordinator = BadegewaesserCoordinator(hass, client, jitter=lambda _spread: 300.0)
     with patch(
         "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
@@ -353,7 +358,7 @@ async def test_the_wake_up_is_spread_wider_than_a_poll(
         spreads.append(spread)
         return 0.0
 
-    client = BadegewaesserClient(make_session(fixture_bytes()))
+    client = BadegewaesserClient(make_session(fixture_bytes()), USER_AGENT)
     at(freezer, 2026, 11, 3, 12, 0)
     BadegewaesserCoordinator(hass, client, jitter=record)
     at(freezer, 2026, 7, 3, 12, 0)
@@ -490,7 +495,7 @@ async def test_jitter_alone_does_not_restart_the_timer(hass: HomeAssistant) -> N
     """
     _entry_asking_for(hass, 12)
     jitters = iter((0.0, 300.0))
-    client = BadegewaesserClient(make_session(fixture_bytes()))
+    client = BadegewaesserClient(make_session(fixture_bytes()), USER_AGENT)
     with patch(
         "custom_components.badegewaesser_austria.coordinator.is_monitoring_window",
         return_value=True,
@@ -781,3 +786,99 @@ def test_dev_fixture_applies_when_a_developer_runs_it(
     monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
 
     assert module.apply_dev_fixture({"a": object()}) is replacement  # type: ignore[arg-type]
+
+
+# --- translation contract --------------------------------------------------
+
+STRINGS = Path(__file__).parents[1] / (
+    "custom_components/badegewaesser_austria/strings.json"
+)
+
+
+def _raising(err: BaseException) -> MagicMock:
+    session = MagicMock()
+    session.get = MagicMock(side_effect=err)
+    return session
+
+
+@pytest.mark.parametrize(
+    ("session", "key", "detail", "fault"),
+    [
+        pytest.param(
+            _raising(TimeoutError()),
+            "cannot_connect",
+            "request timed out",
+            Fault.INCONCLUSIVE,
+            id="timeout",
+        ),
+        pytest.param(
+            _raising(aiohttp.ClientConnectionError("refused")),
+            "cannot_connect",
+            "refused",
+            Fault.INCONCLUSIVE,
+            id="transport",
+        ),
+        pytest.param(
+            make_session(b"", status=503),
+            "invalid_response",
+            "HTTP 503",
+            Fault.OUTAGE,
+            id="http-5xx",
+        ),
+        pytest.param(
+            make_session(b"", status=404),
+            "invalid_response",
+            "HTTP 404",
+            Fault.ANSWERED,
+            id="http-4xx",
+        ),
+        pytest.param(
+            make_session(b"<html>maintenance</html>"),
+            "malformed_payload",
+            None,
+            Fault.OUTAGE,
+            id="not-json",
+        ),
+        pytest.param(
+            make_session(b"[]"),
+            "malformed_payload",
+            "top level is list, expected object",
+            Fault.OUTAGE,
+            id="wrong-shape",
+        ),
+    ],
+)
+async def test_api_errors_keep_their_translation_contract(
+    hass: HomeAssistant,
+    session: MagicMock,
+    key: str,
+    detail: str | None,
+    fault: Fault,
+) -> None:
+    """Keys, the `detail` placeholder and `.status` are what outage.py reads.
+
+    Driven from the wire, so this pins the whole path: what the client raises
+    for each failure, the `UpdateFailed` the coordinator makes of it, the
+    outage verdict, and that strings.json still has a message taking
+    `{detail}` for the key. `detail=None` skips the text check where it is
+    the JSON decoder's own wording.
+    """
+    coordinator = build_coordinator(hass, session)
+
+    with pytest.raises(UpdateFailed) as failed:
+        await coordinator._async_update_data()
+
+    cause = failed.value.__cause__
+    assert isinstance(cause, BadegewaesserApiError)
+    assert classify(cause) is fault
+    assert failed.value.translation_domain == DOMAIN
+    assert failed.value.translation_key == key
+    placeholders = failed.value.translation_placeholders or {}
+    assert list(placeholders) == ["detail"]
+    if detail is not None:
+        assert placeholders["detail"] == detail
+
+    message = json.loads(STRINGS.read_text(encoding="utf-8"))["exceptions"][key][
+        "message"
+    ]
+    assert "{detail}" in message
