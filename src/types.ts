@@ -86,8 +86,6 @@ export interface LovelaceCardEditor extends HTMLElement {
   setConfig(config: LovelaceCardConfig): void;
 }
 
-type LovelaceCard = HTMLElement;
-
 /**
  * A card element as HA's `createCardElement` returns it. `layout` is what a
  * sections view sets on every card it places; `setConfig` is optional
@@ -129,7 +127,6 @@ interface HaFormElement extends HTMLElement {
 declare global {
   interface HTMLElementTagNameMap {
     "badegewaesser-austria-card-editor": LovelaceCardEditor;
-    "hui-error-card": LovelaceCard;
     "ha-form": HaFormElement;
   }
 }
