@@ -17,7 +17,6 @@ import pytest
 from custom_components.badegewaesser_austria.const import (
     ATTRIBUTION,
     DEFAULT_SCAN_INTERVAL_SEASON_HOURS,
-    INTEGRATION_VERSION,
     LATE_RESULTS_POLL_HOURS,
     MAX_POLL_HOURS,
     MIN_POLL_HOURS,
@@ -158,45 +157,19 @@ def test_attribution_is_short_on_screen_and_full_in_the_docs() -> None:
     assert "creativecommons.org/licenses/by/3.0/at/" in README
 
 
-def test_every_feature_bullet_carries_a_version_marker() -> None:
-    """Historical markers are frozen, so they have to be right when written."""
-    section = README.split("## Supported Functions")[1].split("## Requirements")[0]
-    bullets = [line for line in section.splitlines() if line.startswith("- **")]
-    assert bullets, "expected feature bullets"
-    for bullet in bullets:
-        assert re.search(r"\*\(\d+\.\d+\.\d+\)\*", bullet), bullet
-
-
-def test_release_markers_name_a_shipped_or_the_next_version() -> None:
-    """A marker names a version that shipped, or the one being built.
-
-    Until 0.1.0 shipped, every marker simply equalled the manifest. Since then
-    a new feature carries the NEXT version while manifest.json still says the
-    last release — the workflow bumps once per cycle, just before the release
-    PR. So a marker is valid if it is not newer than the manifest, or if it is
-    exactly one patch, minor or major step past it. A typo such as 0.12.0
-    is neither.
-    """
-    major, minor, patch = (int(part) for part in INTEGRATION_VERSION.split("."))
-    current = (major, minor, patch)
-    upcoming = {(major, minor, patch + 1), (major, minor + 1, 0), (major + 1, 0, 0)}
-    section = README.split("## Supported Functions")[1].split("## Requirements")[0]
-    for marker in re.findall(r"\*\((\d+\.\d+\.\d+)\)\*", section):
-        version = tuple(int(part) for part in marker.split("."))
-        assert version <= current or version in upcoming, marker
-
-
 @pytest.mark.parametrize(
     "heading",
     [
-        "## Supported Functions",
+        "## Features",
         "## Requirements",
         "## Installation",
         "## Setup",
-        "## Data Updates",
-        "## Use Cases",
+        "## Options",
+        "## Entities",
+        "## Data updates",
+        "## Examples",
+        "## Known limitations",
         "## Troubleshooting",
-        "## Known Limitations",
         "## Removal",
         "## Attribution",
         "## Disclaimer",

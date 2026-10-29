@@ -1,44 +1,45 @@
 # <sub><sub><img src="https://raw.githubusercontent.com/rolandzeiner/badegewaesser-austria/main/custom_components/badegewaesser_austria/brand/icon.png" width="40" height="40" alt=""></sub></sub> Badegewässer Austria
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
+[![Marketplace](https://img.shields.io/badge/Marketplace-Catalog-41BDF5.svg)](https://www.home-assistant.io/integrations/marketplace/)
 [![HA min version](https://img.shields.io/badge/Home%20Assistant-%3E%3D2025.6-blue.svg)](https://www.home-assistant.io/)
 [![Version](https://img.shields.io/github/v/release/rolandzeiner/badegewaesser-austria?label=version&color=blue)](https://github.com/rolandzeiner/badegewaesser-austria/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![vibe-coded](https://img.shields.io/badge/vibe-coded-ff69b4?logo=musicbrainz&logoColor=white)](https://en.wikipedia.org/wiki/Vibe_coding)
 [![Live demo](https://img.shields.io/badge/live-demo-2196F3.svg)](https://demo.rolandzeiner.at/#badegewaesser)
 
-Water quality and temperature for all 260 EU-designated Austrian bathing waters, from the official [AGES](https://www.ages.at/) dataset. Pick your lake by province or by distance from home — no API key, no YAML.
+Water quality and temperature for all 260 EU-designated bathing waters in Austria, from the official [AGES](https://www.ages.at/) dataset. Follow the lakes you swim in as sensors, each with a card that shows its season at a glance.
 
-## Supported Functions
+> [!WARNING]
+> Water quality can change between samples. Follow the notices posted at the bathing water itself.
 
-- **All 260 EU-designated bathing waters**, across every Bundesland — Burgenland 20, Niederösterreich 28, Wien 17, Kärnten 32, Steiermark 32, Oberösterreich 43, Salzburg 37, Tirol 35, Vorarlberg 16 *(0.1.0)*
-- **Six sensors and two binary sensors per bathing water** — water temperature, E. coli, enterococci, Secchi depth, the annual EU classification, the sampling date, a closure flag and a bathing-season flag *(0.1.0)*
-- **A Lovelace card built around the season**, not the instant. The samples sit on a calendar axis from 15 May to 31 August, so you can see the rhythm of the season and how fresh the newest reading is *(0.1.0)*
-- **Find a lake by distance** — the setup flow can rank bathing waters by how far they are from your Home Assistant location *(0.1.0)*
-- **Honest about detection limits** — most samples report "below the laboratory's detection limit" rather than a measured count. The card shows `<15`, and the sensor carries a `below_detection_limit` attribute, so you never read a limit as a measurement *(0.1.0)*
-- **Keeps working out of season** — from September to mid-May nothing new is sampled, but last summer's readings and the annual classification stay valid. Your entities stay available and keep showing them *(0.1.0)*
-- **One request for every lake you follow** — all 260 arrive in a single document, so ten config entries still cost one HTTP request per poll *(0.1.0)*
-- **Readings at a glance** — water quality with its EU symbol, plus Secchi depth, E. coli and enterococci, each with an arrow showing how it moved since the previous sample. Hover or tap a measurement to see its season on the track *(0.2.0)*
-- **Quiet out of season** — from October to mid-May, when nothing can change, the integration stops polling. Through September it still checks once a day for late lab results *(0.2.0)*
-- **On the map** — each bathing water shows up as a marker on Home Assistant's map, and the pin next to its name on the card opens it on OpenStreetMap *(0.2.0)*
-- **Outage notice** — when AGES keeps answering with errors, a Repairs issue says the fault is on their side, not your setup, and clears itself once the data is back. The card shows *No current data from AGES* instead of an empty season *(0.3.0)*
+## Features
+
+- All 260 EU-designated bathing waters, in every province.
+- Water temperature, E. coli, enterococci, Secchi depth, the annual EU rating, the last sample date, and closure and bathing-season flags.
+- A card that lays the season's samples on a calendar, with an arrow for how each reading moved.
+- Pick a lake by province, or from the twelve nearest to your home.
+- Readings below the lab's detection limit show as `<15`, never as a measurement.
+- Last summer's values stay available out of season, and polling pauses from October to mid-May.
+- Each lake on Home Assistant's map, and on OpenStreetMap from the card.
+- A repair notice when AGES is down, and the card says so instead of showing an empty season.
 
 ## Requirements
 
-- Home Assistant **2025.6.0** or newer
+- Home Assistant **2025.6.0** or newer.
 - An internet connection. No account, no API key, no registration.
 
 ## Installation
 
-### HACS (recommended)
+### Marketplace (recommended)
 
-1. Open HACS and search for **Badegewässer Austria**.
-2. Select it and choose **Download**.
-3. Restart Home Assistant.
+The Marketplace is HACS, built into Home Assistant since 2026.11.
 
-[![Add to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rolandzeiner&repository=badegewaesser-austria&category=integration)
+1. In Home Assistant, go to **Settings → Marketplace** and search for **Badegewässer Austria**.
+2. Select it, then select **Install**. The setup starts right away, no restart needed.
 
-Not in the search yet? In HACS, open ⋮ → **Custom repositories**, add `https://github.com/rolandzeiner/badegewaesser-austria` with type **Integration**, then search again.
+[![Open this repository in the Marketplace of your Home Assistant.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rolandzeiner&repository=badegewaesser-austria&category=integration)
+
+On Home Assistant older than 2026.11, use HACS instead: search for **Badegewässer Austria**, select **Download**, then restart Home Assistant.
 
 ### Manual
 
@@ -50,14 +51,22 @@ Not in the search yet? In HACS, open ⋮ → **Custom repositories**, add `https
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=badegewaesser_austria)
 
-Go to **Settings → Devices & services → Add integration** and search for **Badegewässer Austria**. You then choose how to find your lake:
+1. Go to **Settings → Devices & services → Add integration** and search for **Badegewässer Austria**.
+2. Choose how to find your lake: **Choose by province**, or **Bathing waters near you** for the twelve closest to your Home Assistant location, nearest first.
+3. Pick the bathing water.
 
-- **Choose by province** — pick a Bundesland, then a bathing water from that province's list.
-- **Bathing waters near you** — the twelve closest to your Home Assistant location, nearest first.
+| Field | Description |
+|---|---|
+| **Province** | The Bundesland whose bathing waters are listed. Only for **Choose by province**. |
+| **Bathing water** | The lake or river site to follow. Each one is its own entry; add the integration again for a second one. |
 
-Either way you end up with one config entry per bathing water. Add the integration again for a second lake.
+## Options
 
-To change how often it checks, open the entry's **Configure** dialog. See [Data Updates](#data-updates).
+Under **Settings → Devices & services → Badegewässer Austria → Configure**:
+
+| Option | Default | Description |
+|---|---|---|
+| **During the bathing season** | 6 hours | How often to check from 15 May to 31 August, between 3 and 168 hours. Entries share one poll, so the shortest interval you set applies to all of them. |
 
 ## Entities
 
@@ -71,7 +80,7 @@ Each bathing water becomes one device with eight entities.
 | Secchi depth | `sensor` | Metres. How far down you can see. |
 | Water quality | `sensor` | The annual EU classification, plus `rating_year` and `rating_class`. |
 | Last sample | `sensor` | When the newest sample was taken. |
-| Closed | `binary_sensor` | On when the authority has banned swimming. `closure_reason` says why. |
+| Closed | `binary_sensor` | On when the authority has banned swimming. `closure_reason` says why. Device class `problem`, so it shows up in problem-based dashboards and automations. |
 | Bathing season | `binary_sensor` | On between 15 June and 31 August, the season defined in Badegewässerverordnung § 4. |
 
 ### Water quality
@@ -85,15 +94,37 @@ The EU Bathing Water Directive classifies each bathing water once a year, over t
 | `sufficient` | C | ★ | Elevated microbial readings occur regularly |
 | `poor` | D | – | A swimming ban or advice against swimming follows |
 
-The current year's classification is empty until AGES publishes it after the season ends, so through the summer and autumn this sensor shows **last year's** rating. The `rating_year` attribute always says which year it means.
+AGES publishes the current year's classification after the season ends, so through the summer and autumn this sensor shows **last year's** rating. The `rating_year` attribute always says which year it means.
 
 ### Detection limits
 
-For most samples the laboratory reports "below the detection limit" rather than a number — 901 of 1,362 E. coli samples in the 2026 season. The sensor's state is the limit, and `below_detection_limit` is `true`. Read `15` with that flag as **"under 15"**, not "15".
+For most samples the laboratory reports "below the detection limit" instead of a number: 901 of 1,362 E. coli samples in the 2026 season. The sensor's state is then the limit, and `below_detection_limit` is `true`. Read `15` with that flag as **"under 15"**, not "15".
 
-## Data Updates
+## Cards
 
-The integration polls once for every bathing water you follow, because AGES publishes all 260 in a single document.
+The card is installed and registered automatically. Add it from the card picker and pick the bathing water by name, or in YAML:
+
+```yaml
+type: custom:badegewaesser-austria-card
+device: 1a2b3c4d5e6f7890abcdef1234567890
+```
+
+It puts the season's samples on a calendar axis, so you can see how often the lake was sampled and how fresh the newest reading is. Hover or tap a measurement to see its season on the track. The pin next to the lake's name opens it on OpenStreetMap.
+
+### Card configuration
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `device` | string | *required* | The bathing water's device. The card finds all of its entities itself. |
+| `entity` | string | none | Older alternative to `device`: any one entity of the bathing water. Still honoured so older cards keep working. |
+| `name` | string | the lake's name | Overrides the card title. |
+| `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
+| `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth, each with an arrow for how it moved since the previous sample. |
+| `show_attribution` | boolean | `true` | The "Datenquelle: AGES · CC BY 3.0 AT" line at the bottom. The entities carry the attribution either way. |
+
+## Data updates
+
+AGES publishes all 260 bathing waters in a single document, so one poll serves every lake you follow.
 
 | When | Default | Why |
 |---|---|---|
@@ -101,44 +132,18 @@ The integration polls once for every bathing water you follow, because AGES publ
 | Late results (September) | every 24 hours | Sampling has stopped, but lab results for the last samples of August can still come in. |
 | 1 Oct – 14 May | no polls | Nothing changes. The next poll comes on 15 May, at a random time in its first six hours. AGES publishes the new annual classification before the season, so that poll picks it up. |
 
-You can set the season interval in the entry's **Configure** dialog, between 3 and 168 hours. Entries share one poll, so the shortest interval you set applies to all of them.
+Home Assistant also fetches the document once at every restart, since the integration keeps no copy on disk. If a poll fails, the integration keeps retrying, daily outside the season, until one succeeds.
 
-Home Assistant also fetches the document at every restart, once for all your bathing waters, since the integration keeps no copy on disk. If a poll fails, the integration keeps retrying, daily outside the season, until one succeeds.
+The integration sends no `If-Modified-Since` header. AGES regenerates the file every ten minutes whether or not anything changed, so the server would send the whole document anyway. The integration fingerprints the content instead and skips the parse when nothing moved.
 
-The integration sends no `If-Modified-Since` header, on purpose. AGES regenerates the file every ten minutes whether or not anything changed, so a cached copy is never considered fresh and the request would return the whole document anyway. Instead it fingerprints the content and skips the parse when nothing moved.
+## Examples
 
-## Lovelace card
+- Check before you go swimming: the newest water temperature, how old it is, and whether the lake is open.
+- Get a notification when your lake is closed.
+- Watch the water warm up in spring on a statistics graph.
+- Compare lakes by putting their cards side by side.
 
-The card is installed and registered automatically. Add it from the card picker, or:
-
-```yaml
-type: custom:badegewaesser-austria-card
-device: 1a2b3c4d5e6f7890abcdef1234567890
-```
-
-The editor's picker fills this in for you — pick the bathing water by name.
-
-### Card configuration
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `device` | string | *required* | The bathing water's device. The card finds all of its entities itself. |
-| `entity` | string | — | Legacy alternative to `device`: any one entity of the bathing water. Still honoured so older cards keep working. |
-| `name` | string | the lake's name | Overrides the card title. |
-| `show_season_track` | boolean | `true` | The season's samples on a calendar axis. |
-| `show_readings` | boolean | `true` | Water quality, E. coli, enterococci and Secchi depth. |
-| `show_attribution` | boolean | `true` | The "Datenquelle: AGES · CC BY 3.0 AT" line at the bottom. The entities carry the attribution either way. |
-
-## Use Cases
-
-- **Decide whether to go swimming.** One glance gives the newest water temperature, how long ago it was measured, and whether the lake is open.
-- **Get told when your lake is closed.** The `Closed` binary sensor has device class `problem`, so it shows up in a problem-based dashboard or automation without extra configuration.
-- **Watch the water warm up in spring.** The temperature sensor records history, so a statistics card shows the season's curve.
-- **Compare lakes.** Add several entries and put their cards side by side.
-
-## Automation Examples
-
-Notify when a bathing ban is posted:
+Get a notification when a bathing ban is posted:
 
 ```yaml
 automation:
@@ -156,7 +161,8 @@ automation:
                           'closure_reason') or 'No reason given.' }}
 ```
 
-Notify when the water first reaches 22 °C:
+<details>
+<summary>Get a notification when the water first reaches 22 °C</summary>
 
 ```yaml
 automation:
@@ -175,52 +181,39 @@ automation:
           message: "The lake is at {{ states('sensor.naturbadesee_konigsdorf_water_temperature') }} °C."
 ```
 
-## Troubleshooting
+</details>
 
-**The card says "Pick a bathing water in the card editor".**
-The card has no `entity` set. Open the card editor and choose one.
+## Known limitations
 
-**The card says an entity isn't part of Badegewässer Austria.**
-The configured entity belongs to another integration. Pick one from this integration — the editor's picker is already filtered.
-
-**All entities are unavailable.**
-The last fetch failed. Check Home Assistant's log for `badegewaesser_austria`. The integration retries on its own and slows down during a sustained outage, so it recovers without help.
-
-**The card says "No current data from AGES".**
-Every entity of that bathing water is unavailable: the last fetch failed, or none has worked since Home Assistant started. Check **Settings → Repairs**. If it lists an AGES outage, the fault is on their side and the data returns on its own. If it says the bathing water is missing, see the next entry. If there's neither, check that your Home Assistant host can reach the internet.
-
-**A repair says my bathing water is missing from the AGES data.**
-AGES no longer lists that site. It may come back on the next update, or it may have been decommissioned. The entities stay unavailable until it returns; if it was closed for good, remove the entry.
-
-**The temperature shows a dash.**
-That sample has no temperature. AGES reports `0` when nothing was measured, and the integration treats that as missing rather than as 0 °C.
-
-**The card looks out of date and offers to reload.**
-Your browser cached an older version of the card than the integration ships. Click **Reload**. If it comes back, clear the browser cache for your Home Assistant URL.
-
-**Getting a debug log**
-
-```yaml
-logger:
-  default: warning
-  logs:
-    custom_components.badegewaesser_austria: debug
-```
-
-## Known Limitations
-
-- **Samples are sparse.** Each bathing water is sampled 4 to 9 times a season, about 20 days apart. This is not live data and the card does not pretend otherwise — every reading is shown with the date it was taken.
+- **Samples are sparse.** Each bathing water is sampled 4 to 9 times a season, about 20 days apart. The card shows every reading with the date it was taken.
 - **Nothing changes from September to mid-May.** No samples are taken, so the newest reading stays put until the following summer.
 - **One bathing water's position comes from its profile.** AGES publishes `0` / `0` for *Wolfgangsee, St. Gilgen – Gamsjaga*. The integration uses the sampling point from the site's bathing-water profile instead, until AGES publishes one.
-- **A few historical ratings use letters AGES does not document.** Two sites carry an `F` or a `G` in an older year. The integration will not publish a letter it cannot interpret, so it falls back to the most recent year it can, and keeps the original in `rating_raw`.
-- **The per-sample assessment is a raw number.** Each sample carries a 1, 2 or 3 whose meaning AGES does not publish; sources disagree on whether the scale even has four levels. It is exposed as `sample_assessment` without a label rather than guessed at.
-- **Closures have not been seen in live data.** `TGESPERRT` was `0` for all 260 sites when this integration was written, so the closure banner is built to the documented shape rather than an observed one.
+- **A few historical ratings use letters AGES does not document.** Two sites carry an `F` or a `G` in an older year. The integration won't publish a letter it can't interpret, so it falls back to the most recent year it can, and keeps the original in `rating_raw`.
+- **The per-sample assessment is a raw number.** Each sample carries a 1, 2 or 3 whose meaning AGES does not publish, and sources disagree on whether the scale even has four levels. It is exposed as `sample_assessment` without a label.
+- **Closures have not been seen in live data.** `TGESPERRT` was `0` for all 260 sites when this integration was written, so the closure banner follows the documented shape, not an observed one.
+
+## Troubleshooting
+
+- **The card says "Pick a bathing water in the card editor".** The card has no bathing water set. Open the card editor and pick one.
+- **The card says an entity isn't part of Badegewässer Austria.** The configured entity belongs to another integration. Pick a bathing water in the card editor; its picker only lists this integration's.
+- **All entities are unavailable.** The last fetch failed. Check Home Assistant's log for `badegewaesser_austria`. The integration retries on its own and slows down during a longer outage, so it recovers without help.
+- **The card says "No current data from AGES".** The last fetch failed, or none has worked since Home Assistant started. Check **Settings → Repairs**. If it lists an AGES outage, the fault is on their side and the data returns on its own. If it says the bathing water is missing, see the next entry. If there's neither, check that Home Assistant can reach the internet.
+- **A repair says my bathing water is missing from the AGES data.** AGES no longer lists that site. It may come back with the next update, or it may have been closed for good, in which case remove the entry.
+- **The temperature shows a dash.** That sample has no temperature. AGES reports `0` when nothing was measured, and the integration treats that as missing, not as 0 °C.
+- **The card looks out of date and offers to reload.** Your browser has an older copy of the card. Select **Reload**. If the offer comes back, clear the browser cache for your Home Assistant URL.
+- **Debug logging.** Add this to `configuration.yaml`, restart, and reproduce the problem:
+
+  ```yaml
+  logger:
+    default: warning
+    logs:
+      custom_components.badegewaesser_austria: debug
+  ```
 
 ## Removal
 
-Go to **Settings → Devices & services → Badegewässer Austria**, open the entry's menu and choose **Delete**. That removes its device and all of its entities. Removing the last entry also withdraws the Lovelace card resource.
-
-To uninstall completely, remove the integration in HACS and restart Home Assistant. If you installed it manually, delete `config/custom_components/badegewaesser_austria/` instead, then restart.
+1. Go to **Settings → Devices & services → Badegewässer Austria**, open the entry's menu and choose **Delete**. That removes its device and all of its entities. Removing the last entry also withdraws the card's dashboard resource.
+2. To uninstall, go to **Settings → Marketplace**, open **Badegewässer Austria**, then ⋮ → **Uninstall**. On Home Assistant older than 2026.11, remove it in HACS. For a manual install, delete `config/custom_components/badegewaesser_austria/`. Then restart Home Assistant.
 
 ## Attribution
 
@@ -228,22 +221,22 @@ Every entity and the card footer carry:
 
 > Datenquelle: AGES · CC BY 3.0 AT
 
-In full: **AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH**.
+In full: AGES, Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH. The data comes from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/), whose only condition is attribution.
 
-Data from the [„österreichische Badegewässer"](https://www.data.gv.at/) dataset published by AGES, licensed under [CC BY 3.0 AT](https://creativecommons.org/licenses/by/3.0/at/). Attribution is the only condition.
+Icon: Font Awesome Free, CC BY 4.0.
 
-## Acknowledgements
-
-This integration started with an email from Johannes Spreitzer of [zeitwesentech](https://zeitwesentech.com/). His blog post [*Home Assistant – Anzeige der österreichische Badegewässer und Badeplätze*](https://zeitwesentech.com/blog/?p=1037) (June 2024) showed how to put the AGES bathing-water data on a Home Assistant dashboard with a REST sensor. Thank you, Johannes.
+This integration started with an email from Johannes Spreitzer of [zeitwesentech](https://zeitwesentech.com/). His blog post [*Home Assistant – Anzeige der österreichische Badegewässer und Badeplätze*](https://zeitwesentech.com/blog/?p=1037) (June 2024) showed how to put the AGES data on a Home Assistant dashboard with a REST sensor. Thank you, Johannes.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](https://github.com/rolandzeiner/badegewaesser-austria/blob/main/LICENSE).
+
+Dev setup, tests and the verification gate: [CONTRIBUTING.md](https://github.com/rolandzeiner/badegewaesser-austria/blob/main/CONTRIBUTING.md).
 
 ## Disclaimer
 
-This integration is not affiliated with or endorsed by AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH. All bathing-water data comes from the AGES dataset under the Creative Commons Attribution 3.0 Austria (CC BY 3.0 AT) licence. The developer assumes no liability for the accuracy, completeness or timeliness of the displayed values. **Water quality can change between samples. Never rely on this integration to decide whether water is safe to swim in — follow the notices posted at the bathing water itself.** Use at your own risk.
+This integration is not affiliated with or endorsed by AGES (Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH). Its data comes from the AGES [bathing-water dataset](https://www.data.gv.at/) under CC BY 3.0 AT. **Water quality can change between samples. Never rely on this integration to decide whether water is safe to swim in; follow the notices posted at the bathing water itself.** The developer assumes no liability for the accuracy, completeness or timeliness of the displayed values. Use at your own risk.
 
 ---
 
-Diese Integration steht in keiner Verbindung zur AGES — Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH und wird von dieser nicht unterstützt. Alle Badegewässerdaten stammen aus dem AGES-Datensatz und stehen unter der Creative-Commons-Lizenz Namensnennung 3.0 Österreich (CC BY 3.0 AT). Für die Richtigkeit, Vollständigkeit und Aktualität der angezeigten Werte wird keine Haftung übernommen. **Die Wasserqualität kann sich zwischen zwei Proben ändern. Entscheide nie anhand dieser Integration, ob Wasser zum Baden sicher ist — richte dich nach den Hinweisen vor Ort.** Nutzung auf eigene Verantwortung.
+Diese Integration steht in keiner Verbindung zur AGES (Österreichische Agentur für Gesundheit und Ernährungssicherheit GmbH) und wird von ihr nicht unterstützt. Die Daten stammen aus dem [Badegewässer-Datensatz](https://www.data.gv.at/) der AGES und stehen unter CC BY 3.0 AT. **Die Wasserqualität kann sich zwischen zwei Proben ändern. Entscheide nie anhand dieser Integration, ob Wasser zum Baden sicher ist. Richte dich nach den Hinweisen vor Ort.** Für die Richtigkeit, Vollständigkeit und Aktualität der angezeigten Werte wird keine Haftung übernommen. Nutzung auf eigene Verantwortung.
