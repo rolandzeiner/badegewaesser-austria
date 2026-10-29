@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -229,7 +227,6 @@ def test_contributing_documents_the_real_gate() -> None:
         "ruff format --check .",
         "npx vp check",
         "npm run build",
-        "scripts/readme_toc.py --check",
     ):
         assert command in CONTRIBUTING, f"{command} missing from CONTRIBUTING"
 
@@ -241,14 +238,3 @@ def test_contributing_states_both_python_axes() -> None:
     assert floor is not None
     assert f"3.{floor.group(1)}" in CONTRIBUTING
     assert "3.14" in CONTRIBUTING
-
-
-def test_table_of_contents_is_current() -> None:
-    """The same check CI runs, so a stale list fails locally first."""
-    result = subprocess.run(
-        [sys.executable, str(REPO / "scripts" / "readme_toc.py"), "--check"],
-        capture_output=True,
-        cwd=REPO,
-        check=False,
-    )
-    assert result.returncode == 0, result.stdout.decode()

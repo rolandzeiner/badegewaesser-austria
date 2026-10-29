@@ -49,12 +49,3 @@ repos:
         language: system
         files: ^(src/.*\.ts|vite\.config\.ts|package\.json)$
         pass_filenames: false
-      # Regenerates README.md's table of contents from its `##` headings.
-      # A rewrite fails the commit once, like any fixer; `git add` and commit
-      # again. CI runs the same script with `--check`.
-      - id: readme-toc
-        name: README table of contents
-        entry: python3 scripts/readme_toc.py
-        language: system
-        files: ^README\.md$
-        pass_filenames: false

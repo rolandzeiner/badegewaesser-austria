@@ -129,7 +129,6 @@ npx vp check                           # format, lint, and the ONLY type-check
 npm test
 npm run build
 node -c custom_components/badegewaesser_austria/www/badegewaesser-austria-card.js
-python3 scripts/readme_toc.py --check
 ```
 
 CI runs all of the above plus `hassfest` and HACS validation, `npm audit` on

@@ -9,29 +9,6 @@
 
 Water quality and temperature for all 260 EU-designated Austrian bathing waters, from the official [AGES](https://www.ages.at/) dataset. Pick your lake by province or by distance from home — no API key, no YAML.
 
-<!-- toc -->
-
-## Contents
-
-- [Supported Functions](#supported-functions)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Setup](#setup)
-- [Entities](#entities)
-- [Data Updates](#data-updates)
-- [Lovelace card](#lovelace-card)
-- [Use Cases](#use-cases)
-- [Automation Examples](#automation-examples)
-- [Troubleshooting](#troubleshooting)
-- [Known Limitations](#known-limitations)
-- [Removal](#removal)
-- [Attribution](#attribution)
-- [Acknowledgements](#acknowledgements)
-- [License](#license)
-- [Disclaimer](#disclaimer)
-
-<!-- tocstop -->
-
 ## Supported Functions
 
 - **All 260 EU-designated bathing waters**, across every Bundesland — Burgenland 20, Niederösterreich 28, Wien 17, Kärnten 32, Steiermark 32, Oberösterreich 43, Salzburg 37, Tirol 35, Vorarlberg 16 *(0.1.0)*
