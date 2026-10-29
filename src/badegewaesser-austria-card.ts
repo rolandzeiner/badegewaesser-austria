@@ -266,6 +266,9 @@ export class BadegewaesserAustriaCard extends LitElement {
   static override styles = [cardStyles, seasonTrackStyles];
 
   @property({ attribute: false }) public hass?: HomeAssistant;
+  /** Set by HA: "grid" in a sections view, "panel" in a panel view, unset in
+   *  the add-card picker. Reflected so card-styles.ts can fill only a cell. */
+  @property({ reflect: true }) public layout?: string;
 
   @state() private _config?: NormalisedConfig;
   @state() private _staleVersion?: string;
@@ -342,7 +345,10 @@ export class BadegewaesserAustriaCard extends LitElement {
     // The season track needs horizontal room to be worth drawing; below about
     // six columns the container query collapses the readings to one per line
     // and the card is still usable, so that is the honest minimum.
-    return { columns: 12, min_columns: 6, rows: "auto" };
+    // Two rows, measured at 12 and at 6 columns: the header (name, water
+    // temperature, sample date) still fits and the rest scrolls. At one row
+    // the header itself is cut.
+    return { columns: 12, min_columns: 6, rows: "auto", min_rows: 2 };
   }
 
   public override connectedCallback(): void {

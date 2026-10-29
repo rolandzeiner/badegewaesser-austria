@@ -22,7 +22,7 @@ import {
   servesMapTiles,
   siteMapUrl,
   sitePosition,
-  type BadegewaesserAustriaCard,
+  BadegewaesserAustriaCard,
 } from "./badegewaesser-austria-card";
 import type { BadegewaesserAustriaCardEditor } from "./editor";
 import type { HomeAssistant } from "./types";
@@ -164,7 +164,12 @@ describe("config", () => {
   it("defaults both sections on", () => {
     const card = document.createElement(CARD_TAG);
     card.setConfig({ type: "x", entity: "sensor.a" });
-    expect(card.getGridOptions()).toEqual({ columns: 12, min_columns: 6, rows: "auto" });
+    expect(card.getGridOptions()).toEqual({
+      columns: 12,
+      min_columns: 6,
+      rows: "auto",
+      min_rows: 2,
+    });
   });
 });
 
@@ -641,22 +646,43 @@ describe("the grid cell", () => {
   // grid_options overrides getGridOptions(). Only the PAIR of declarations
   // makes the card fill that cell instead of painting over the card below
   // (ha-lovelace-card, references/gotchas.md). This card shipped without
-  // either, the fourth time the portfolio met the bug. happy-dom does no
-  // layout, so the guard is on the CSS itself.
+  // either, the fourth time the portfolio met the bug. The pair is gated on
+  // the layout attribute HA sets, because the add-card picker sets none and
+  // an ungated 100% stretches the preview to the tallest tile in its row.
+  // happy-dom does no layout, so the guard is on the CSS itself.
+  //
+  // Anchored on the start of a line, so "ha-card" does not match the tail of
+  // `:host([layout="panel"]) ha-card`.
   const rule = (selector: string): string => {
     const css = cardStyles.cssText;
-    const start = css.indexOf(`${selector} {`);
+    const start = css.indexOf(`\n  ${selector} {`);
     return start < 0 ? "" : css.slice(start, css.indexOf("}", start));
   };
 
-  it("takes the cell's height on the host", () => {
+  it("is a block on the host", () => {
     expect(rule(":host")).toMatch(/display:\s*block/);
-    expect(rule(":host")).toMatch(/block-size:\s*100%/);
   });
 
-  it("resolves ha-card against it and clips inside the card", () => {
-    expect(rule("ha-card")).toMatch(/block-size:\s*100%/);
+  it("takes the cell's height on the host in grid and panel layouts", () => {
+    expect(rule(':host([layout="grid"]),\n  :host([layout="panel"])')).toMatch(
+      /block-size:\s*100%/,
+    );
+  });
+
+  it("resolves ha-card against it there, and clips inside the card", () => {
+    expect(rule(':host([layout="grid"]) ha-card,\n  :host([layout="panel"]) ha-card')).toMatch(
+      /block-size:\s*100%/,
+    );
     expect(rule("ha-card")).toMatch(/overflow:\s*hidden/);
+  });
+
+  it("never fills ungated, so the picker preview keeps its own height", () => {
+    expect(rule(":host")).not.toMatch(/block-size/);
+    expect(rule("ha-card")).not.toMatch(/block-size/);
+  });
+
+  it("reflects the layout HA sets, which the selectors above read", () => {
+    expect(BadegewaesserAustriaCard.getPropertyOptions("layout").reflect).toBe(true);
   });
 
   it("tells masonry its real height, section by section", async () => {

@@ -58,15 +58,30 @@ export const cardStyles = css`
     --bade-radius-md: var(--ha-border-radius-md, 8px);
 
     display: block;
-    /* Fill the grid cell the dashboard gives us. A sections view puts a fixed
-       height on the cell wrapper whenever rows is numeric -- and the user
-       causes that by dragging the height handle, since a stored grid_options
-       overrides getGridOptions(). Because of display: block above, this
-       element is ha-card's containing block, so ha-card's block-size: 100%
-       resolves against this line; without it the percentage computes to auto
-       and the card paints over the card below. Resolves to auto in an
-       auto-height cell, so it costs nothing there. The two declarations only
-       work as a pair: ha-lovelace-card, references/gotchas.md. */
+  }
+
+  /* Fill the grid cell the dashboard gives us. A sections view puts a fixed
+     height on the cell wrapper whenever rows is numeric -- and the user
+     causes that by dragging the height handle, since a stored grid_options
+     overrides getGridOptions(). Because :host is display: block, it is
+     ha-card's containing block, so ha-card's block-size: 100% resolves
+     against this rule; without it the percentage computes to auto and the
+     card paints over the card below. The two declarations only work as a
+     pair: ha-lovelace-card, references/gotchas.md.
+     Gated on the layout HA sets on the card: "grid" in a sections view and
+     its edit dialog, "panel" in a panel view. The add-card picker sets none
+     and centres each preview in a tile as tall as the tallest one in its
+     row; an ungated 100% resolved against that tile and stretched the card. */
+  :host([layout="grid"]),
+  :host([layout="panel"]) {
+    block-size: 100%;
+  }
+
+  /* Takes the height :host took from the cell. In a cell shorter than the
+     content, the photo and banners keep their size and the body scrolls,
+     instead of the card spilling over its neighbour. */
+  :host([layout="grid"]) ha-card,
+  :host([layout="panel"]) ha-card {
     block-size: 100%;
   }
 
@@ -74,10 +89,6 @@ export const cardStyles = css`
     /* The card can sit in a 280px sidebar column or a full-width section, and
        it must reflow to its own width rather than the viewport's. */
     container-type: inline-size;
-    /* Takes the height :host took from the cell. In a cell shorter than the
-       content, the photo and banners keep their size and the body scrolls,
-       instead of the card spilling over its neighbour. */
-    block-size: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
