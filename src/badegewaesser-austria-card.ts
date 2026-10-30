@@ -334,21 +334,30 @@ export class BadegewaesserAustriaCard extends LitElement {
   public getCardSize(): number {
     const config = this._config ?? normaliseConfig({});
     let size = 1; // padding and the attribution footer
-    const photo = this.hass ? this._siteEntities()?.[KEY.photo] : undefined;
-    if (config.show_photo && (!this.hass || hasValue(photo))) size += 4;
+    if (this._showsPhoto()) size += 4;
     if (config.show_season_track) size += 1;
     if (config.show_readings) size += 3;
     return size;
+  }
+
+  /** Whether the header will be the photo: switched on, and a photo to show
+   *  (or no hass yet, as in the picker before it has one). A photo that then
+   *  fails to load isn't known here. */
+  private _showsPhoto(): boolean {
+    const config = this._config ?? normaliseConfig({});
+    const photo = this.hass ? this._siteEntities()?.[KEY.photo] : undefined;
+    return config.show_photo && (!this.hass || hasValue(photo));
   }
 
   public getGridOptions(): Record<string, unknown> {
     // The season track needs horizontal room to be worth drawing; below about
     // six columns the container query collapses the readings to one per line
     // and the card is still usable, so that is the honest minimum.
-    // Two rows, measured at 12 and at 6 columns: the header (name, water
-    // temperature, sample date) still fits and the rest scrolls. At one row
-    // the header itself is cut.
-    return { columns: 12, min_columns: 6, rows: "auto", min_rows: 2 };
+    // Measured at 12 and at 6 columns, the smallest height at which the
+    // header (name, water temperature, sample date) still fits and the rest
+    // scrolls: two rows, or four with the photo, which the header sits on.
+    // One row fewer cuts the header itself.
+    return { columns: 12, min_columns: 6, rows: "auto", min_rows: this._showsPhoto() ? 4 : 2 };
   }
 
   public override connectedCallback(): void {

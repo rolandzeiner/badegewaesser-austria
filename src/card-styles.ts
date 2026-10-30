@@ -241,6 +241,13 @@ export const cardStyles = css`
     /* Also what keeps the pin off a line of its own: balancing spreads the
        words over the lines, so the last one keeps a word beside the pin. */
     text-wrap: balance;
+    /* A one-word name wider than the column (Naturbadesee at six columns)
+       would otherwise run under the temperature. HA sets the document's
+       lang to the UI language, so a German UI hyphenates the names by German
+       rules; break-word catches any other language, and a word the
+       hyphenator doesn't split. */
+    hyphens: auto;
+    overflow-wrap: break-word;
   }
 
   /* Inline, so the pin after it continues the same line. */
@@ -496,6 +503,9 @@ export const cardStyles = css`
     line-height: var(--ha-line-height-condensed, 1.2);
     color: var(--primary-text-color);
     text-wrap: balance;
+    /* Same break rules as .hero-heading. */
+    hyphens: auto;
+    overflow-wrap: break-word;
   }
 
   /* The "no current data" notice under the name: ha-alert is inline by

@@ -164,11 +164,12 @@ describe("config", () => {
   it("defaults both sections on", () => {
     const card = document.createElement(CARD_TAG);
     card.setConfig({ type: "x", entity: "sensor.a" });
+    // No hass yet, so the photo is assumed, as in getCardSize().
     expect(card.getGridOptions()).toEqual({
       columns: 12,
       min_columns: 6,
       rows: "auto",
-      min_rows: 2,
+      min_rows: 4,
     });
   });
 });
@@ -859,6 +860,15 @@ describe("the photo header", () => {
     expect(q(card, ".hero-value")?.textContent?.trim()).toBe("26,2");
     expect(q(card, ".hero-unit")?.textContent).toBe("°C");
     expect(q(card, ".hero-sampled")?.textContent).toContain("Probe vom");
+  });
+
+  it("needs four rows of cell with the photo, two without", async () => {
+    // Measured at 6 and 12 columns: below four rows the photo fills the cell
+    // and cuts off the name and the temperature on it.
+    expect((await mount({ device: DEVICE }, withPhoto())).getGridOptions().min_rows).toBe(4);
+    expect((await mount({ device: DEVICE })).getGridOptions().min_rows).toBe(2);
+    const off = await mount({ device: DEVICE, show_photo: false }, withPhoto());
+    expect(off.getGridOptions().min_rows).toBe(2);
   });
 
   it("does not repeat them in the body", async () => {
