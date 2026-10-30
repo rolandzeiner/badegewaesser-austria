@@ -54,8 +54,10 @@ from .const import (
     SEASON_END_MONTH,
     SEASON_START_DAY,
     SEASON_START_MONTH,
+    USER_AGENT,
     WAKE_SPREAD_SECONDS,
 )
+from .outage import Fault, async_note_fault, classify
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -394,17 +396,25 @@ class BadegewaesserCoordinator(DataUpdateCoordinator[SiteMap]):
         `_schedule_refresh()` in its own `finally`. Setting the interval in
         the success path alone would leave a failing upstream polled at full
         cadence.
+
+        Every real request comes through here (scheduled polls, setup
+        retries, the config flow's readiness check), which is why the outage
+        tracker is fed here and nowhere else. It keeps its own count:
+        `_consecutive_failures` drives backoff and counts timeouts too.
         """
         try:
             sites = await self.client.async_fetch()
         except BadegewaesserApiError as err:
             self._consecutive_failures += 1
+            async_note_fault(self.hass, classify(err))
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key=err.translation_key,
                 translation_placeholders={"detail": err.detail},
             ) from err
         else:
+            # An unchanged document (None) is an answer too.
+            async_note_fault(self.hass, Fault.ANSWERED)
             if self._consecutive_failures:
                 _LOGGER.debug(
                     "Upstream recovered after %d consecutive failures; "
@@ -448,7 +458,7 @@ async def async_get_coordinator(hass: HomeAssistant) -> BadegewaesserCoordinator
         return coordinator
 
     coordinator = BadegewaesserCoordinator(
-        hass, BadegewaesserClient(async_get_clientsession(hass))
+        hass, BadegewaesserClient(async_get_clientsession(hass), USER_AGENT)
     )
     # Entry-less coordinators do not get the `config_entry.async_on_unload`
     # shutdown wiring, so this is how the refresh timer is cancelled when HA

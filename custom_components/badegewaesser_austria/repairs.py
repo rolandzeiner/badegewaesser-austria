@@ -1,10 +1,14 @@
 """Repair issues.
 
-Exactly one, and it is domain-specific: the configured bathing water is no
-longer in the AGES document. Nothing the integration can do fixes that, and
-nothing about it is visible from the entity states alone — they simply go
-unavailable, which looks identical to an outage. The issue is what tells the
-user the difference.
+Two of them, and they never overlap. This module holds the domain-specific
+one: the configured bathing water is no longer in the AGES document. Nothing
+the integration can do fixes that, and nothing about it is visible from the
+entity states alone — they simply go unavailable, which looks identical to an
+outage. The issue is what tells the user the difference.
+
+The other is the outage itself, `upstream_unavailable` in `outage.py`: AGES
+answering with errors over and over. A missing site needs a successful
+answer to be noticed, so the two can't be raised by the same fetch.
 """
 
 from __future__ import annotations

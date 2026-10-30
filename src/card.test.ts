@@ -22,7 +22,7 @@ import {
   servesMapTiles,
   siteMapUrl,
   sitePosition,
-  type BadegewaesserAustriaCard,
+  BadegewaesserAustriaCard,
 } from "./badegewaesser-austria-card";
 import type { BadegewaesserAustriaCardEditor } from "./editor";
 import type { HomeAssistant } from "./types";
@@ -164,7 +164,13 @@ describe("config", () => {
   it("defaults both sections on", () => {
     const card = document.createElement(CARD_TAG);
     card.setConfig({ type: "x", entity: "sensor.a" });
-    expect(card.getGridOptions()).toEqual({ columns: 12, min_columns: 6, rows: "auto" });
+    // No hass yet, so the photo is assumed, as in getCardSize().
+    expect(card.getGridOptions()).toEqual({
+      columns: 12,
+      min_columns: 6,
+      rows: "auto",
+      min_rows: 4,
+    });
   });
 });
 
@@ -283,6 +289,53 @@ describe("configuration errors", () => {
     };
     const card = await mount({ entity: "sensor.foreign" }, hass);
     expect(text(card)).toContain("gehört nicht");
+  });
+});
+
+describe("the unreachable notice", () => {
+  /** What a failed fetch leaves: every entity unavailable, no attributes. */
+  function unavailableHass(keep?: string): HomeAssistant {
+    const hass = makeHass();
+    for (const [entityId, entity] of Object.entries(hass.states)) {
+      if (entityId === keep) continue;
+      hass.states[entityId] = { ...entity, state: "unavailable", attributes: {} };
+    }
+    return hass;
+  }
+
+  const notice = (card: BadegewaesserAustriaCard) =>
+    card.shadowRoot?.querySelector<HTMLElement & { title: string }>("ha-alert.unreachable");
+
+  it("replaces the empty season with a notice when every entity is unavailable", async () => {
+    const card = await mount({ device: DEVICE }, unavailableHass());
+    expect(notice(card)?.getAttribute("alert-type")).toBe("warning");
+    expect(notice(card)?.title).toBe("Keine aktuellen Daten von der AGES");
+    expect(text(card)).toContain("Einstellungen → Reparaturen");
+    expect(text(card)).toContain("Naturbadesee Königsdorf");
+    expect(text(card)).not.toContain("Noch keine Proben");
+    expect(text(card)).not.toContain("noch nicht bewertet");
+  });
+
+  it("speaks the user's language", async () => {
+    const hass = unavailableHass();
+    hass.locale = { language: "en" };
+    const card = await mount({ device: DEVICE }, hass);
+    expect(notice(card)?.title).toBe("No current data from AGES");
+  });
+
+  it("stays away while any entity still has a state", async () => {
+    const card = await mount(
+      { device: DEVICE },
+      unavailableHass("sensor.koenigsdorf_water_temperature"),
+    );
+    expect(notice(card)).toBeNull();
+    expect(text(card)).toContain("26,2");
+  });
+
+  it("leaves configuration errors to the error alert", async () => {
+    const card = await mount({}, unavailableHass());
+    expect(notice(card)).toBeNull();
+    expect(text(card)).toContain("Karteneditor");
   });
 });
 
@@ -594,22 +647,43 @@ describe("the grid cell", () => {
   // grid_options overrides getGridOptions(). Only the PAIR of declarations
   // makes the card fill that cell instead of painting over the card below
   // (ha-lovelace-card, references/gotchas.md). This card shipped without
-  // either, the fourth time the portfolio met the bug. happy-dom does no
-  // layout, so the guard is on the CSS itself.
+  // either, the fourth time the portfolio met the bug. The pair is gated on
+  // the layout attribute HA sets, because the add-card picker sets none and
+  // an ungated 100% stretches the preview to the tallest tile in its row.
+  // happy-dom does no layout, so the guard is on the CSS itself.
+  //
+  // Anchored on the start of a line, so "ha-card" does not match the tail of
+  // `:host([layout="panel"]) ha-card`.
   const rule = (selector: string): string => {
     const css = cardStyles.cssText;
-    const start = css.indexOf(`${selector} {`);
+    const start = css.indexOf(`\n  ${selector} {`);
     return start < 0 ? "" : css.slice(start, css.indexOf("}", start));
   };
 
-  it("takes the cell's height on the host", () => {
+  it("is a block on the host", () => {
     expect(rule(":host")).toMatch(/display:\s*block/);
-    expect(rule(":host")).toMatch(/block-size:\s*100%/);
   });
 
-  it("resolves ha-card against it and clips inside the card", () => {
-    expect(rule("ha-card")).toMatch(/block-size:\s*100%/);
+  it("takes the cell's height on the host in grid and panel layouts", () => {
+    expect(rule(':host([layout="grid"]),\n  :host([layout="panel"])')).toMatch(
+      /block-size:\s*100%/,
+    );
+  });
+
+  it("resolves ha-card against it there, and clips inside the card", () => {
+    expect(rule(':host([layout="grid"]) ha-card,\n  :host([layout="panel"]) ha-card')).toMatch(
+      /block-size:\s*100%/,
+    );
     expect(rule("ha-card")).toMatch(/overflow:\s*hidden/);
+  });
+
+  it("never fills ungated, so the picker preview keeps its own height", () => {
+    expect(rule(":host")).not.toMatch(/block-size/);
+    expect(rule("ha-card")).not.toMatch(/block-size/);
+  });
+
+  it("reflects the layout HA sets, which the selectors above read", () => {
+    expect(BadegewaesserAustriaCard.getPropertyOptions("layout").reflect).toBe(true);
   });
 
   it("tells masonry its real height, section by section", async () => {
@@ -786,6 +860,15 @@ describe("the photo header", () => {
     expect(q(card, ".hero-value")?.textContent?.trim()).toBe("26,2");
     expect(q(card, ".hero-unit")?.textContent).toBe("°C");
     expect(q(card, ".hero-sampled")?.textContent).toContain("Probe vom");
+  });
+
+  it("needs four rows of cell with the photo, two without", async () => {
+    // Measured at 6 and 12 columns: below four rows the photo fills the cell
+    // and cuts off the name and the temperature on it.
+    expect((await mount({ device: DEVICE }, withPhoto())).getGridOptions().min_rows).toBe(4);
+    expect((await mount({ device: DEVICE })).getGridOptions().min_rows).toBe(2);
+    const off = await mount({ device: DEVICE, show_photo: false }, withPhoto());
+    expect(off.getGridOptions().min_rows).toBe(2);
   });
 
   it("does not repeat them in the body", async () => {
@@ -1679,6 +1762,19 @@ describe("the version check", () => {
     await vi.waitFor(() => expect(banner(card)).not.toBeNull());
     expect(callWS).toHaveBeenCalledWith({ type: `${PLATFORM}/card_version` });
     expect(text(card)).toContain("9.9.9");
+  });
+
+  it("stays out of the edit dialog's preview, where a reload loses the edit", async () => {
+    const callWS = vi.fn().mockResolvedValue({ version: "9.9.9" });
+    const card = document.createElement(CARD_TAG);
+    card.preview = true;
+    card.setConfig({ type: `custom:${CARD_TAG}`, device: DEVICE });
+    card.hass = withVersion(callWS);
+    document.body.append(card);
+    await vi.waitFor(() => expect(callWS).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await card.updateComplete;
+    expect(banner(card)).toBeNull();
   });
 
   it("stays quiet when the versions match", async () => {

@@ -104,6 +104,10 @@
     "site_missing": {
       "title": "{title} fehlt in den AGES-Daten",
       "description": "AGES führt {title} (ID {site_id}) nicht mehr, darum bleiben die Entitäten nicht verfügbar. Wenn das Badegewässer dauerhaft aufgelassen wurde, kannst du diesen Eintrag entfernen."
+    },
+    "upstream_unavailable": {
+      "title": "AGES liefert keine Badegewässerdaten",
+      "description": "Der Badegewässerdienst der AGES hat bei wiederholten Abfragen mit Fehlern geantwortet. Der Fehler liegt bei der AGES: Deine Home-Assistant-Einrichtung und deine Badegewässer sind in Ordnung, du musst nichts ändern. Sobald der Dienst wieder funktioniert, kommen die Daten von selbst zurück, und diese Meldung verschwindet mit ihnen."
     }
   },
   "exceptions": {

@@ -129,7 +129,6 @@ npx vp check                           # format, lint, and the ONLY type-check
 npm test
 npm run build
 node -c custom_components/badegewaesser_austria/www/badegewaesser-austria-card.js
-python3 scripts/readme_toc.py --check
 ```
 
 CI runs all of the above plus `hassfest` and HACS validation, `npm audit` on
@@ -143,6 +142,26 @@ Two of these are easy to skip and expensive to skip:
 - **`npx vp check`** is the only type-check anywhere. The build strips types
   without checking them, so a type error builds cleanly all the way to a
   shipped bundle.
+
+## Module map
+
+- `api.py` — the one request to AGES and everything about the document: its
+  URL, the request headers, the content digest, the parser and dataclasses,
+  the per-field sentinels, and `BadegewaesserApiError` with the translation
+  key, detail and HTTP status it carries. **It must not import Home Assistant
+  or anything else from the package** (`const.py` pulls in HA for the
+  User-Agent, so the coordinator passes that in), and `tests/test_api.py`
+  fails on any such import. Catch `BadegewaesserApiError`, never `aiohttp`
+  errors, outside `api.py`.
+- `coordinator.py` — the one shared, domain-wide poller: season windows,
+  cadence, backoff, and turning `BadegewaesserApiError` into a translated
+  `UpdateFailed`. `test_api_errors_keep_their_translation_contract` pins the
+  keys, the `detail` placeholder and the `.status` values that
+  `strings.json` and `outage.py` depend on.
+- `outage.py` — classifies failures and raises the upstream-outage Repairs
+  issue. `repairs.py` owns the "bathing water missing" issue.
+- `const.py` — HA-side constants: domain, version, User-Agent, poll cadence,
+  season windows, and the measured block on why there is no conditional GET.
 
 ## Coverage
 

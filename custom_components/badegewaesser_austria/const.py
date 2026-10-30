@@ -45,7 +45,9 @@ CARD_URL: Final = f"{URL_BASE}/{CARD_FILENAME}"
 # Upstream
 # ---------------------------------------------------------------------------
 
-API_URL: Final = "https://www.ages.at/typo3temp/badegewaesser_db.json"
+# The document URL and every fact about its shape (the regeneration counter,
+# the rating letters, the sentinels) live in `api.py`, which must not import
+# this module: it pulls in Home Assistant for the User-Agent below.
 
 # Identify ourselves properly rather than hiding behind HA's default
 # clientsession UA: it lets AGES traffic-shape or contact *this* integration
@@ -103,13 +105,6 @@ USER_AGENT: Final = (
 #   the above — but read this whole block first, because the probe alone will
 #   tell you to add the validator back.
 # ---------------------------------------------------------------------------
-
-# Strips the regeneration counter so the digest reflects content only. Anchored
-# on the quoted form because upstream serialises it as a string; a `\d+`
-# pattern without the quotes silently matches nothing and every poll then looks
-# like a change. `VERSION` occurs exactly once in the document (measured), so
-# `count=1` is safe and keeps the substitution O(1) in matches.
-VERSION_FIELD_PATTERN: Final = r'"VERSION"\s*:\s*"[^"]*"\s*,'
 
 # ---------------------------------------------------------------------------
 # Season
@@ -228,33 +223,9 @@ CONF_SCAN_INTERVAL_SEASON_HOURS: Final = "scan_interval_season_hours"
 # Data semantics
 # ---------------------------------------------------------------------------
 
-# `O_E` / `O_EC` carry a comparison operator rather than a value. The only
-# non-null value observed across 1362 samples is "<N", which means the analyte
-# was below the laboratory's detection limit — so `E=15, O_E="<N"` reads
-# "<15", not "15". Publishing 15 as a measured count would be wrong.
-BELOW_DETECTION_OPERATOR: Final = "<N"
-
-# The EU Bathing Water Directive classes, best to worst, as AGES encodes them.
+# The annual EU class letters, `api.RATING_CLASSES` (where the measurement that
+# pins A = ausgezeichnet is written down), mapped to state values.
 #
-# The letter-to-meaning mapping is MEASURED, not assumed. AGES's own 2025
-# report states that "251 (96,5 %) von 260 österreichischen Badestellen" were
-# rated *ausgezeichnet*, and `QUALITAET_2025` in this document carries exactly
-# 251 "A" values out of 260. That pins A = ausgezeichnet quantitatively, and
-# the rest follow the Directive's four-class order (2006/7/EC: ausgezeichnet /
-# gut / ausreichend / mangelhaft).
-#
-# Worth knowing before "correcting" this: the per-site AGES page also prints a
-# line reading "Einhaltung der Richtwerte, Wasser guter Qualität" next to a
-# site whose QUALITAET_* is "A". That is a different statement (compliance
-# with guideline values) on a different axis, and reading it as the annual
-# class is how you end up mapping A to "gut".
-#
-# Anything outside this set is NOT published as a rating: across the five
-# year-columns the live document also carries a single "G" (2022) and a single
-# "F" (2024) whose meaning AGES does not document anywhere found. They are
-# kept verbatim in the `rating_raw` attribute rather than guessed at.
-RATING_CLASSES: Final = ("A", "B", "C", "D")
-
 # Home Assistant enum states double as translation keys, and hassfest enforces
 # `[a-z0-9-_]+` on those — so the bare letters cannot be the state. Naming the
 # class outright is better anyway: "excellent" says what "A" means to somebody
@@ -287,35 +258,6 @@ RATING_STATES: Final = {
 # in metres, E = intestinal enterococci and E_C = E. coli, which is a useful
 # second source for the field meanings this parser relies on.
 SAMPLE_ASSESSMENT_IS_UNDOCUMENTED: Final = True
-
-# The per-year rating columns, matched against the WHOLE key (`re.fullmatch`)
-# and discovered from the document rather than listed here. This was a fixed
-# (2026, ..., 2022) tuple until 2026-09-23, which would have stopped reading
-# new ratings the day AGES published a year it did not name: `QUALITAET_2027`
-# would have been ignored and the sensor would have kept reporting 2026's
-# class as current, with nothing anywhere to say so.
-#
-# `WASSERQUALITAET_JAHR_*` must NOT match. Those columns duplicate the matching
-# `QUALITAET_<year>` letter (verified byte-equal on all 260 sites) under
-# relative names — HEUER, VORIGES, VOR_VORIGES — so they carry no year and
-# are ignored entirely.
-RATING_KEY_PATTERN: Final = r"QUALITAET_(\d{4})"
-
-# Positions for sites whose upstream coordinates are "0"/"0", taken from the
-# site's own bathing-water profile (section 1.18, "Koordinaten der
-# Probenahmestelle im Bezugssystem ETRS89" — within a metre of WGS84 here).
-# Used only while upstream sends no position, so an upstream fix wins
-# automatically. Measured 2026-09-23: this is the only such site of 260.
-#   https://www.ages.at/fileadmin/badegewaesser/pdf/AT3230004400240040.pdf
-COORDINATE_FALLBACKS: Final[dict[str, tuple[float, float]]] = {
-    # Wolfgangsee, St. Gilgen - Gamsjaga
-    "AT3230004400240040": (47.7489768867, 13.4191829076),
-}
-
-# Upstream sends 0 for an unmeasured water temperature. Two of 1362 samples do
-# this, in months when an Austrian lake cannot be at 0 °C, so it is a sentinel
-# and not a reading. Sichttiefe has no such sentinel (its minimum is 0.1 m).
-UNMEASURED_TEMPERATURE: Final = 0.0
 
 # On-screen attribution. CC BY 3.0 AT asks for attribution "in the manner
 # specified by the author"; naming AGES and the licence does that, and AGES is

@@ -51,7 +51,7 @@ rules:
   docs-installation-instructions:
     status: done
     comment: >-
-      README: Installation (HACS and manual).
+      README: Installation (Marketplace, HACS and manual).
   docs-removal-instructions:
     status: done
     comment: >-
@@ -98,7 +98,7 @@ rules:
   docs-configuration-parameters:
     status: done
     comment: >-
-      README: Data Updates (both poll intervals) and the card option table.
+      README: Options, Data updates and the card option table.
   docs-installation-parameters:
     status: done
     comment: >-
@@ -142,22 +142,22 @@ rules:
   docs-data-update:
     status: done
     comment: >-
-      README: Data Updates, including why no conditional GET is sent.
+      README: Data updates, including why no conditional GET is sent.
   docs-examples:
     status: done
     comment: >-
-      README: Automation Examples.
+      README: Examples.
   docs-known-limitations:
     status: done
     comment: >-
-      README: Known Limitations — sparse samples, the frozen off-season, the site with no coordinates, the undocumented letters, and that closures have never been seen live.
+      README: Known limitations: sparse samples, the frozen off-season, the site with no coordinates, the undocumented letters, and that closures have never been seen live.
   docs-supported-devices:
     status: exempt
     comment: No devices; the integration reads one public dataset.
   docs-supported-functions:
     status: done
     comment: >-
-      README: Supported Functions and Entities.
+      README: Features and Entities.
   docs-troubleshooting:
     status: done
     comment: >-
@@ -165,7 +165,7 @@ rules:
   docs-use-cases:
     status: done
     comment: >-
-      README: Use Cases.
+      README: Examples.
   dynamic-devices:
     status: exempt
     comment: One entry is one bathing water, chosen at setup; no devices appear later.

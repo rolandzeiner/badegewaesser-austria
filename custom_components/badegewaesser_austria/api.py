@@ -12,6 +12,7 @@ the probe script will tell you there is, and the probe is wrong.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import re
 from dataclasses import dataclass
@@ -19,21 +20,86 @@ from datetime import date
 from typing import Any, Final
 
 import aiohttp
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.util.json import json_loads
-
-from .const import (
-    API_URL,
-    BELOW_DETECTION_OPERATOR,
-    COORDINATE_FALLBACKS,
-    RATING_CLASSES,
-    RATING_KEY_PATTERN,
-    UNMEASURED_TEMPERATURE,
-    USER_AGENT,
-    VERSION_FIELD_PATTERN,
-)
 
 _LOGGER = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Upstream
+# ---------------------------------------------------------------------------
+# Nothing here may import Home Assistant or the rest of the package; the
+# guard in tests/test_api.py fails on any such import. The User-Agent is
+# therefore a parameter: it comes from const.py, which needs HA's version.
+
+API_URL: Final = "https://www.ages.at/typo3temp/badegewaesser_db.json"
+
+# Strips the regeneration counter so the digest reflects content only. Anchored
+# on the quoted form because upstream serialises it as a string; a `\d+`
+# pattern without the quotes silently matches nothing and every poll then looks
+# like a change. `VERSION` occurs exactly once in the document (measured), so
+# `count=1` is safe and keeps the substitution O(1) in matches.
+VERSION_FIELD_PATTERN: Final = r'"VERSION"\s*:\s*"[^"]*"\s*,'
+
+# ---------------------------------------------------------------------------
+# Data semantics
+# ---------------------------------------------------------------------------
+
+# `O_E` / `O_EC` carry a comparison operator rather than a value. The only
+# non-null value observed across 1362 samples is "<N", which means the analyte
+# was below the laboratory's detection limit — so `E=15, O_E="<N"` reads
+# "<15", not "15". Publishing 15 as a measured count would be wrong.
+BELOW_DETECTION_OPERATOR: Final = "<N"
+
+# The EU Bathing Water Directive classes, best to worst, as AGES encodes them.
+#
+# The letter-to-meaning mapping is MEASURED, not assumed. AGES's own 2025
+# report states that "251 (96,5 %) von 260 österreichischen Badestellen" were
+# rated *ausgezeichnet*, and `QUALITAET_2025` in this document carries exactly
+# 251 "A" values out of 260. That pins A = ausgezeichnet quantitatively, and
+# the rest follow the Directive's four-class order (2006/7/EC: ausgezeichnet /
+# gut / ausreichend / mangelhaft).
+#
+# Worth knowing before "correcting" this: the per-site AGES page also prints a
+# line reading "Einhaltung der Richtwerte, Wasser guter Qualität" next to a
+# site whose QUALITAET_* is "A". That is a different statement (compliance
+# with guideline values) on a different axis, and reading it as the annual
+# class is how you end up mapping A to "gut".
+#
+# Anything outside this set is NOT published as a rating: across the five
+# year-columns the live document also carries a single "G" (2022) and a single
+# "F" (2024) whose meaning AGES does not document anywhere found. They are
+# kept verbatim in the `rating_raw` attribute rather than guessed at.
+RATING_CLASSES: Final = ("A", "B", "C", "D")
+
+# The per-year rating columns, matched against the WHOLE key (`re.fullmatch`)
+# and discovered from the document rather than listed here. This was a fixed
+# (2026, ..., 2022) tuple until 2026-09-23, which would have stopped reading
+# new ratings the day AGES published a year it did not name: `QUALITAET_2027`
+# would have been ignored and the sensor would have kept reporting 2026's
+# class as current, with nothing anywhere to say so.
+#
+# `WASSERQUALITAET_JAHR_*` must NOT match. Those columns duplicate the matching
+# `QUALITAET_<year>` letter (verified byte-equal on all 260 sites) under
+# relative names — HEUER, VORIGES, VOR_VORIGES — so they carry no year and
+# are ignored entirely.
+RATING_KEY_PATTERN: Final = r"QUALITAET_(\d{4})"
+
+# Positions for sites whose upstream coordinates are "0"/"0", taken from the
+# site's own bathing-water profile (section 1.18, "Koordinaten der
+# Probenahmestelle im Bezugssystem ETRS89" — within a metre of WGS84 here).
+# Used only while upstream sends no position, so an upstream fix wins
+# automatically. Measured 2026-09-23: this is the only such site of 260.
+#   https://www.ages.at/fileadmin/badegewaesser/pdf/AT3230004400240040.pdf
+COORDINATE_FALLBACKS: Final[dict[str, tuple[float, float]]] = {
+    # Wolfgangsee, St. Gilgen - Gamsjaga
+    "AT3230004400240040": (47.7489768867, 13.4191829076),
+}
+
+# Upstream sends 0 for an unmeasured water temperature. Two of 1362 samples do
+# this, in months when an Austrian lake cannot be at 0 °C, so it is a sentinel
+# and not a reading. Sichttiefe has no such sentinel (its minimum is 0.1 m).
+UNMEASURED_TEMPERATURE: Final = 0.0
+
+# ---------------------------------------------------------------------------
 
 _TIMEOUT: Final = aiohttp.ClientTimeout(total=30)
 _VERSION_RE: Final = re.compile(VERSION_FIELD_PATTERN.encode())
@@ -44,19 +110,24 @@ _RATING_KEY_RE: Final = re.compile(RATING_KEY_PATTERN)
 _DIGEST_SIZE: Final = 16
 
 
-class BadegewaesserApiError(HomeAssistantError):
+class BadegewaesserApiError(Exception):
     """Upstream could not be read or understood.
 
-    Carries the translation key so both callers can do the right thing: the
+    A plain exception, so this module stays free of Home Assistant. It carries
+    the translation key so both callers can do the right thing: the
     coordinator re-raises it as a translated `UpdateFailed`, the config flow
-    turns it into a form error.
+    turns it into a form error. `status` is the HTTP status when the server
+    answered with one, so the outage tracker can tell a 5xx from a 404.
     """
 
-    def __init__(self, translation_key: str, detail: str) -> None:
-        """Store the key and a developer-facing detail string."""
+    def __init__(
+        self, translation_key: str, detail: str, *, status: int | None = None
+    ) -> None:
+        """Store the key, a developer-facing detail string and the status."""
         super().__init__(f"{translation_key}: {detail}")
         self.translation_key = translation_key
         self.detail = detail
+        self.status = status
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,7 +208,7 @@ class BathingSite:
         return self.samples[0] if self.samples else None
 
 
-def base_request_headers() -> dict[str, str]:
+def base_request_headers(user_agent: str) -> dict[str, str]:
     """Headers for every outbound call, coordinator and config flow alike.
 
     `Accept-Encoding` is deliberately ABSENT. aiohttp already negotiates
@@ -148,7 +219,7 @@ def base_request_headers() -> dict[str, str]:
     well-meaning edit trips CI.
     """
     return {
-        "User-Agent": USER_AGENT,
+        "User-Agent": user_agent,
         "Accept": "application/json",
     }
 
@@ -406,9 +477,10 @@ class BadegewaesserClient:
     entry — see `coordinator.py`.
     """
 
-    def __init__(self, session: aiohttp.ClientSession) -> None:
-        """Store the injected HA client session."""
+    def __init__(self, session: aiohttp.ClientSession, user_agent: str) -> None:
+        """Store the injected client session and the User-Agent to send."""
         self._session = session
+        self._user_agent = user_agent
         self._digest: str | None = None
         self.upstream_version: str | None = None
         # The DECODED size — aiohttp has already undone the gzip by the time
@@ -434,11 +506,15 @@ class BadegewaesserClient:
         """
         try:
             async with self._session.get(
-                API_URL, headers=base_request_headers(), timeout=_TIMEOUT
+                API_URL,
+                headers=base_request_headers(self._user_agent),
+                timeout=_TIMEOUT,
             ) as response:
                 if response.status != 200:
                     raise BadegewaesserApiError(
-                        "invalid_response", f"HTTP {response.status}"
+                        "invalid_response",
+                        f"HTTP {response.status}",
+                        status=response.status,
                     )
                 raw = await response.read()
         except TimeoutError as err:
@@ -455,8 +531,8 @@ class BadegewaesserClient:
             return None
 
         try:
-            payload = json_loads(raw)
-        except ValueError as err:
+            payload = json.loads(raw)
+        except ValueError as err:  # JSONDecodeError, and UnicodeDecodeError
             raise BadegewaesserApiError("malformed_payload", str(err)) from err
 
         sites = parse_document(payload)

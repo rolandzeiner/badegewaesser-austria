@@ -1,6 +1,8 @@
 {
   "card": {
     "no_samples": "Noch keine Proben in dieser Saison",
+    "unreachable": "Keine aktuellen Daten von der AGES",
+    "unreachable_detail": "Verschwindet das nicht von selbst, findest du den Grund unter Einstellungen → Reparaturen.",
     "closed": "Baden verboten",
     "sampled_on": "Probe vom {date}",
     "not_measured": "nicht gemessen",

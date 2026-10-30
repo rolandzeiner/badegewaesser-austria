@@ -104,6 +104,10 @@
     "site_missing": {
       "title": "{title} is missing from the AGES data",
       "description": "AGES no longer lists {title} (ID {site_id}), so its entities stay unavailable. If the bathing water was closed for good, you can remove this entry."
+    },
+    "upstream_unavailable": {
+      "title": "AGES isn't sending bathing-water data",
+      "description": "The AGES bathing-water service has answered with errors on repeated attempts. The fault is on AGES's side: your Home Assistant setup and your bathing waters are fine, and there's nothing you need to change. The data comes back on its own as soon as the service works again, and this message goes away with it."
     }
   },
   "exceptions": {

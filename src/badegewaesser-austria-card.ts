@@ -266,6 +266,12 @@ export class BadegewaesserAustriaCard extends LitElement {
   static override styles = [cardStyles, seasonTrackStyles];
 
   @property({ attribute: false }) public hass?: HomeAssistant;
+  /** Set by HA: "grid" in a sections view, "panel" in a panel view, unset in
+   *  the add-card picker. Reflected so card-styles.ts can fill only a cell. */
+  @property({ reflect: true }) public layout?: string;
+  /** Set by HA on the edit-card dialog's live preview. The version banner
+   *  stays out of it: its Reload would throw away the unsaved edit. */
+  @property({ type: Boolean }) public preview = false;
 
   @state() private _config?: NormalisedConfig;
   @state() private _staleVersion?: string;
@@ -331,18 +337,30 @@ export class BadegewaesserAustriaCard extends LitElement {
   public getCardSize(): number {
     const config = this._config ?? normaliseConfig({});
     let size = 1; // padding and the attribution footer
-    const photo = this.hass ? this._siteEntities()?.[KEY.photo] : undefined;
-    if (config.show_photo && (!this.hass || hasValue(photo))) size += 4;
+    if (this._showsPhoto()) size += 4;
     if (config.show_season_track) size += 1;
     if (config.show_readings) size += 3;
     return size;
+  }
+
+  /** Whether the header will be the photo: switched on, and a photo to show
+   *  (or no hass yet, as in the picker before it has one). A photo that then
+   *  fails to load isn't known here. */
+  private _showsPhoto(): boolean {
+    const config = this._config ?? normaliseConfig({});
+    const photo = this.hass ? this._siteEntities()?.[KEY.photo] : undefined;
+    return config.show_photo && (!this.hass || hasValue(photo));
   }
 
   public getGridOptions(): Record<string, unknown> {
     // The season track needs horizontal room to be worth drawing; below about
     // six columns the container query collapses the readings to one per line
     // and the card is still usable, so that is the honest minimum.
-    return { columns: 12, min_columns: 6, rows: "auto" };
+    // Measured at 12 and at 6 columns, the smallest height at which the
+    // header (name, water temperature, sample date) still fits and the rest
+    // scrolls: two rows, or four with the photo, which the header sits on.
+    // One row fewer cuts the header itself.
+    return { columns: 12, min_columns: 6, rows: "auto", min_rows: this._showsPhoto() ? 4 : 2 };
   }
 
   public override connectedCallback(): void {
@@ -457,10 +475,21 @@ export class BadegewaesserAustriaCard extends LitElement {
     const error = configError(config, hass, entities, language);
     if (error) return this._renderAlert(error);
 
+    const title = config.name ?? this._deviceName() ?? "";
+    // Every entity is a coordinator entity, so all of them unavailable means
+    // the last fetch failed or none has worked since Home Assistant started.
+    // Rendering the body would then say "No samples yet" and "not yet
+    // rated", which read like a real answer from AGES.
+    if (Object.values(entities).every((entity) => !entity || entity.state === "unavailable")) {
+      return this._renderAlert(localize("card.unreachable_detail", language), {
+        heading: localize("card.unreachable", language),
+        title,
+      });
+    }
+
     const temperature = entities[KEY.temperature];
     const closed = entities[KEY.closed];
     const season = entities[KEY.season];
-    const title = config.name ?? this._deviceName() ?? "";
 
     const samples = (temperature?.attributes["season_samples"] ?? []) as SeasonSample[];
     const inSeason = season?.state === "on";
@@ -517,18 +546,46 @@ export class BadegewaesserAustriaCard extends LitElement {
     `;
   }
 
-  private _renderAlert(message: string): TemplateResult {
+  /**
+   * A card that holds only a message: a configuration error, or with
+   * `notice` the "no current data" warning under the bathing water's name.
+   *
+   * The notice is worded neutrally on purpose. From entity states alone the
+   * card can't tell an AGES outage from a site AGES no longer lists; the
+   * Repairs issue raised for each case is what says which one it is.
+   */
+  private _renderAlert(
+    message: string,
+    notice?: { heading: string; title: string },
+  ): TemplateResult {
     // ha-alert carries role="alert" and the themed error styling, so the
     // message reaches a screen reader instead of being colour-only.
+    if (!notice) {
+      return html`
+        <ha-card>
+          <div class="body"><ha-alert alert-type="error">${message}</ha-alert></div>
+        </ha-card>
+      `;
+    }
     return html`
       <ha-card>
-        <div class="body"><ha-alert alert-type="error">${message}</ha-alert></div>
+        ${this._renderVersionBanner(languageOf(this.hass))}
+        <div class="body">
+          ${
+            notice.title
+              ? html`<div class="heading"><h2 class="title">${notice.title}</h2></div>`
+              : nothing
+          }
+          <ha-alert class="unreachable" alert-type="warning" .title=${notice.heading}
+            >${message}</ha-alert
+          >
+        </div>
       </ha-card>
     `;
   }
 
   private _renderVersionBanner(language: string | undefined): TemplateResult | typeof nothing {
-    if (!this._staleVersion) return nothing;
+    if (!this._staleVersion || this.preview) return nothing;
     return html`
       <div class="version-banner">
         <ha-icon icon="mdi:refresh" aria-hidden="true"></ha-icon>

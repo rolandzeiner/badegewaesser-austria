@@ -58,15 +58,30 @@ export const cardStyles = css`
     --bade-radius-md: var(--ha-border-radius-md, 8px);
 
     display: block;
-    /* Fill the grid cell the dashboard gives us. A sections view puts a fixed
-       height on the cell wrapper whenever rows is numeric -- and the user
-       causes that by dragging the height handle, since a stored grid_options
-       overrides getGridOptions(). Because of display: block above, this
-       element is ha-card's containing block, so ha-card's block-size: 100%
-       resolves against this line; without it the percentage computes to auto
-       and the card paints over the card below. Resolves to auto in an
-       auto-height cell, so it costs nothing there. The two declarations only
-       work as a pair: ha-lovelace-card, references/gotchas.md. */
+  }
+
+  /* Fill the grid cell the dashboard gives us. A sections view puts a fixed
+     height on the cell wrapper whenever rows is numeric -- and the user
+     causes that by dragging the height handle, since a stored grid_options
+     overrides getGridOptions(). Because :host is display: block, it is
+     ha-card's containing block, so ha-card's block-size: 100% resolves
+     against this rule; without it the percentage computes to auto and the
+     card paints over the card below. The two declarations only work as a
+     pair: ha-lovelace-card, references/gotchas.md.
+     Gated on the layout HA sets on the card: "grid" in a sections view and
+     its edit dialog, "panel" in a panel view. The add-card picker sets none
+     and centres each preview in a tile as tall as the tallest one in its
+     row; an ungated 100% resolved against that tile and stretched the card. */
+  :host([layout="grid"]),
+  :host([layout="panel"]) {
+    block-size: 100%;
+  }
+
+  /* Takes the height :host took from the cell. In a cell shorter than the
+     content, the photo and banners keep their size and the body scrolls,
+     instead of the card spilling over its neighbour. */
+  :host([layout="grid"]) ha-card,
+  :host([layout="panel"]) ha-card {
     block-size: 100%;
   }
 
@@ -74,10 +89,6 @@ export const cardStyles = css`
     /* The card can sit in a 280px sidebar column or a full-width section, and
        it must reflow to its own width rather than the viewport's. */
     container-type: inline-size;
-    /* Takes the height :host took from the cell. In a cell shorter than the
-       content, the photo and banners keep their size and the body scrolls,
-       instead of the card spilling over its neighbour. */
-    block-size: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -230,6 +241,13 @@ export const cardStyles = css`
     /* Also what keeps the pin off a line of its own: balancing spreads the
        words over the lines, so the last one keeps a word beside the pin. */
     text-wrap: balance;
+    /* A one-word name wider than the column (Naturbadesee at six columns)
+       would otherwise run under the temperature. HA sets the document's
+       lang to the UI language, so a German UI hyphenates the names by German
+       rules; break-word catches any other language, and a word the
+       hyphenator doesn't split. */
+    hyphens: auto;
+    overflow-wrap: break-word;
   }
 
   /* Inline, so the pin after it continues the same line. */
@@ -485,6 +503,18 @@ export const cardStyles = css`
     line-height: var(--ha-line-height-condensed, 1.2);
     color: var(--primary-text-color);
     text-wrap: balance;
+    /* Same break rules as .hero-heading. */
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+
+  /* The "no current data" notice under the name: ha-alert is inline by
+     default, so without this it would sit flush against the heading. */
+  .unreachable {
+    display: block;
+  }
+  .heading + .unreachable {
+    margin-block-start: var(--ha-space-3, 12px);
   }
 
   /* -- map link --------------------------------------------------------- */

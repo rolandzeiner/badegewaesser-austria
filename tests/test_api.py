@@ -8,6 +8,7 @@ a red test unless a test asserts them directly.
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 from typing import Any
@@ -16,14 +17,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
+from custom_components.badegewaesser_austria import api
 from custom_components.badegewaesser_austria.api import (
+    API_URL,
     BadegewaesserApiError,
     BadegewaesserClient,
     base_request_headers,
     content_digest,
     parse_document,
 )
-from custom_components.badegewaesser_austria.const import API_URL, USER_AGENT
+from custom_components.badegewaesser_austria.const import USER_AGENT
 
 FIXTURE = Path(__file__).parent / "fixtures" / "badegewaesser_db.json"
 
@@ -67,12 +70,47 @@ def make_session(*bodies: bytes, status: int = 200) -> MagicMock:
     return session
 
 
+# --- module boundary -------------------------------------------------------
+
+
+def test_api_module_imports_nothing_from_home_assistant() -> None:
+    """api.py may import only the standard library and aiohttp.
+
+    A relative import counts as a violation too: const.py imports Home
+    Assistant for its User-Agent, so `from .const import …` would pull HA
+    back in through the side door.
+    """
+    tree = ast.parse(Path(api.__file__).read_text(encoding="utf-8"))
+    offenders: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            if node.level > 0 or (node.module or "").startswith("homeassistant"):
+                offenders.append(f"from {'.' * node.level}{node.module or ''}")
+        elif isinstance(node, ast.Import):
+            offenders += [
+                a.name for a in node.names if a.name.startswith("homeassistant")
+            ]
+    assert offenders == []
+
+
+def test_api_error_is_a_plain_exception() -> None:
+    """Not a HomeAssistantError, and `str()` reads as it always has."""
+    err = BadegewaesserApiError("invalid_response", "HTTP 502", status=502)
+    assert type(err).__mro__[1:] == (Exception, BaseException, object)
+    assert str(err) == "invalid_response: HTTP 502"
+    assert (err.translation_key, err.detail, err.status) == (
+        "invalid_response",
+        "HTTP 502",
+        502,
+    )
+
+
 # --- headers ---------------------------------------------------------------
 
 
 def test_user_agent_is_sent() -> None:
     """Every outbound call identifies the integration."""
-    assert base_request_headers()["User-Agent"] == USER_AGENT
+    assert base_request_headers(USER_AGENT)["User-Agent"] == USER_AGENT
     assert "badegewaesser_austria/" in USER_AGENT
     assert "github.com/rolandzeiner/badegewaesser-austria" in USER_AGENT
 
@@ -86,8 +124,21 @@ def test_accept_encoding_is_not_pinned() -> None:
     repos in this portfolio carry exactly that bug. Asserting the ABSENCE is
     the only way a future "optimisation" trips CI.
     """
-    assert "Accept-Encoding" not in base_request_headers()
-    assert "accept-encoding" not in {k.lower() for k in base_request_headers()}
+    assert "Accept-Encoding" not in base_request_headers(USER_AGENT)
+    assert "accept-encoding" not in {
+        k.lower() for k in base_request_headers(USER_AGENT)
+    }
+
+
+async def test_wire_headers_are_exactly_these() -> None:
+    """The full header dict that leaves, pinned: same keys, same values."""
+    session = make_session(fixture_bytes())
+    await BadegewaesserClient(session, USER_AGENT).async_fetch()
+
+    assert session.get.call_args.kwargs["headers"] == {
+        "User-Agent": USER_AGENT,
+        "Accept": "application/json",
+    }
 
 
 async def test_no_conditional_validator_is_ever_sent() -> None:
@@ -101,7 +152,7 @@ async def test_no_conditional_validator_is_ever_sent() -> None:
     """
     body = fixture_bytes()
     session = make_session(body, body, body)
-    client = BadegewaesserClient(session)
+    client = BadegewaesserClient(session, USER_AGENT)
 
     for _ in range(3):
         await client.async_fetch()
@@ -147,12 +198,12 @@ async def test_unchanged_document_short_circuits_before_parsing() -> None:
     churn — not bytes. The 24 KB arrives either way.
     """
     body = fixture_bytes()
-    client = BadegewaesserClient(make_session(body, body))
+    client = BadegewaesserClient(make_session(body, body), USER_AGENT)
 
     first = await client.async_fetch()
     assert first is not None
 
-    with patch("custom_components.badegewaesser_austria.api.json_loads") as spy_parse:
+    with patch("custom_components.badegewaesser_austria.api.json.loads") as spy_parse:
         second = await client.async_fetch()
 
     assert second is None, "unchanged document should short-circuit"
@@ -164,7 +215,7 @@ async def test_version_only_change_short_circuits() -> None:
     """The real steady state: upstream regenerates, content is identical."""
     raw = fixture_bytes()
     bumped = raw.replace(b'"VERSION": "121625"', b'"VERSION": "121626"', 1)
-    client = BadegewaesserClient(make_session(raw, bumped))
+    client = BadegewaesserClient(make_session(raw, bumped), USER_AGENT)
 
     assert await client.async_fetch() is not None
     assert await client.async_fetch() is None
@@ -178,7 +229,7 @@ async def test_changed_document_is_reparsed() -> None:
         changed = raw.replace("Naturbadesee Königsdorf".encode(), b"Umbenannter See", 1)
     assert changed != raw
 
-    client = BadegewaesserClient(make_session(raw, changed))
+    client = BadegewaesserClient(make_session(raw, changed), USER_AGENT)
     await client.async_fetch()
     second = await client.async_fetch()
 
@@ -189,7 +240,7 @@ async def test_changed_document_is_reparsed() -> None:
 async def test_reset_cache_forces_a_reparse() -> None:
     """Clearing the digest makes the next identical fetch parse again."""
     body = fixture_bytes()
-    client = BadegewaesserClient(make_session(body, body))
+    client = BadegewaesserClient(make_session(body, body), USER_AGENT)
 
     await client.async_fetch()
     client.reset_cache()
@@ -202,11 +253,12 @@ async def test_reset_cache_forces_a_reparse() -> None:
 
 async def test_non_200_raises_invalid_response() -> None:
     """A 503 is an upstream problem, reported as one."""
-    client = BadegewaesserClient(make_session(b"", status=503))
+    client = BadegewaesserClient(make_session(b"", status=503), USER_AGENT)
     with pytest.raises(BadegewaesserApiError) as err:
         await client.async_fetch()
     assert err.value.translation_key == "invalid_response"
     assert "503" in err.value.detail
+    assert err.value.status == 503
 
 
 async def test_client_error_raises_cannot_connect() -> None:
@@ -214,7 +266,7 @@ async def test_client_error_raises_cannot_connect() -> None:
     session = MagicMock()
     session.get = MagicMock(side_effect=aiohttp.ClientError("boom"))
     with pytest.raises(BadegewaesserApiError) as err:
-        await BadegewaesserClient(session).async_fetch()
+        await BadegewaesserClient(session, USER_AGENT).async_fetch()
     assert err.value.translation_key == "cannot_connect"
 
 
@@ -223,22 +275,40 @@ async def test_timeout_raises_cannot_connect() -> None:
     session = MagicMock()
     session.get = MagicMock(side_effect=TimeoutError)
     with pytest.raises(BadegewaesserApiError) as err:
-        await BadegewaesserClient(session).async_fetch()
+        await BadegewaesserClient(session, USER_AGENT).async_fetch()
     assert err.value.translation_key == "cannot_connect"
 
 
 async def test_unparseable_body_raises_malformed_payload() -> None:
     """Bytes that are not JSON at all."""
-    client = BadegewaesserClient(make_session(b"<html>maintenance</html>"))
+    client = BadegewaesserClient(make_session(b"<html>maintenance</html>"), USER_AGENT)
     with pytest.raises(BadegewaesserApiError) as err:
         await client.async_fetch()
     assert err.value.translation_key == "malformed_payload"
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(b"", id="empty"),
+        pytest.param(b'{"BUNDESLAENDER": [', id="truncated"),
+        pytest.param(b"\xff\xfe\x00garbage", id="not-utf8"),
+    ],
+)
+async def test_undecodable_body_raises_malformed_payload(body: bytes) -> None:
+    """Every way stdlib `json.loads` can refuse bytes maps to one key."""
+    client = BadegewaesserClient(make_session(body), USER_AGENT)
+    with pytest.raises(BadegewaesserApiError) as err:
+        await client.async_fetch()
+    assert err.value.translation_key == "malformed_payload"
+    assert err.value.status is None
+    assert isinstance(err.value.__cause__, ValueError)
+
+
 async def test_failed_fetch_does_not_poison_the_digest() -> None:
     """A failure must leave the cache untouched so the retry re-parses."""
     body = fixture_bytes()
-    client = BadegewaesserClient(make_session(body))
+    client = BadegewaesserClient(make_session(body), USER_AGENT)
     await client.async_fetch()
     good_digest = client.digest
 
