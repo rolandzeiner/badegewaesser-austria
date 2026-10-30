@@ -1764,6 +1764,19 @@ describe("the version check", () => {
     expect(text(card)).toContain("9.9.9");
   });
 
+  it("stays out of the edit dialog's preview, where a reload loses the edit", async () => {
+    const callWS = vi.fn().mockResolvedValue({ version: "9.9.9" });
+    const card = document.createElement(CARD_TAG);
+    card.preview = true;
+    card.setConfig({ type: `custom:${CARD_TAG}`, device: DEVICE });
+    card.hass = withVersion(callWS);
+    document.body.append(card);
+    await vi.waitFor(() => expect(callWS).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await card.updateComplete;
+    expect(banner(card)).toBeNull();
+  });
+
   it("stays quiet when the versions match", async () => {
     const { CARD_VERSION } = await import("./const");
     const callWS = vi.fn().mockResolvedValue({ version: CARD_VERSION });

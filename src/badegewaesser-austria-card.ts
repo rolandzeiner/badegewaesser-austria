@@ -269,6 +269,9 @@ export class BadegewaesserAustriaCard extends LitElement {
   /** Set by HA: "grid" in a sections view, "panel" in a panel view, unset in
    *  the add-card picker. Reflected so card-styles.ts can fill only a cell. */
   @property({ reflect: true }) public layout?: string;
+  /** Set by HA on the edit-card dialog's live preview. The version banner
+   *  stays out of it: its Reload would throw away the unsaved edit. */
+  @property({ type: Boolean }) public preview = false;
 
   @state() private _config?: NormalisedConfig;
   @state() private _staleVersion?: string;
@@ -582,7 +585,7 @@ export class BadegewaesserAustriaCard extends LitElement {
   }
 
   private _renderVersionBanner(language: string | undefined): TemplateResult | typeof nothing {
-    if (!this._staleVersion) return nothing;
+    if (!this._staleVersion || this.preview) return nothing;
     return html`
       <div class="version-banner">
         <ha-icon icon="mdi:refresh" aria-hidden="true"></ha-icon>
