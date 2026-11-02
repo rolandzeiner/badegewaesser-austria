@@ -158,7 +158,9 @@ describe("registration", () => {
 describe("config", () => {
   it("throws on a missing config so HA renders hui-error-card", () => {
     const card = document.createElement(CARD_TAG);
-    expect(() => card.setConfig(undefined as never)).toThrow();
+    expect(() => card.setConfig(undefined as never)).toThrow(
+      "Pick a bathing water in the card editor.",
+    );
   });
 
   it("defaults both sections on", () => {
