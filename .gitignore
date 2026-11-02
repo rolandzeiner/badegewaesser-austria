@@ -177,3 +177,6 @@ custom_components/*/_dev_fixture.py
 custom_components/badegewaesser_austria/photos/
 .photo-cache/
 .vitest/
+
+# Release-body drafts stay local: GitHub Releases are the published text.
+release-notes/
