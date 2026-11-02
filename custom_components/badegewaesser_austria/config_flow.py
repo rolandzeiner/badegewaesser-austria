@@ -75,6 +75,7 @@ class BadegewaesserConfigFlow(ConfigFlow, domain=DOMAIN):
     """Pick one bathing water."""
 
     VERSION = 1
+    MINOR_VERSION = 1
 
     def __init__(self) -> None:
         """Start with no Bundesland chosen."""

@@ -200,9 +200,11 @@ rules:
   repair-issues:
     status: done
     comment: >-
-      One issue, raised when the configured bathing water is no longer in the
-      AGES document. Raised once and cleared on recovery; entity states alone
-      cannot distinguish that case from an outage.
+      Two issues. site_missing, per entry, when the configured bathing water
+      is no longer in the AGES document: raised once, cleared on recovery;
+      entity states alone cannot distinguish that case from an outage.
+      upstream_unavailable, domain-wide, while the AGES document cannot be
+      fetched at all (outage.py): cleared by the first answered request.
   stale-devices:
     status: exempt
     comment: One device per entry; removing the entry removes the device.
